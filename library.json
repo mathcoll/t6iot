@@ -9,17 +9,17 @@
 		{
 			"name": "Mathieu Lory",
 			"email": "mathieu@internetcollaboratif.info",
-			"url": "https://github.com/mathcoll/t6/tree/master/sensors/libraries/t6iot"
+			"url": "https://github.com/mathcoll/t6iot"
 		},
 		{
 			"name": "Mathieu Lory",
 			"email": "mathieu@internetcollaboratif.info",
-			"url": "https://github.com/mathcoll/t6/tree/master/sensors/libraries/t6iot",
+			"url": "https://github.com/mathcoll/t6iot",
 			"maintainer": true
 		}
 	],
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/mathcoll/t6/tree/master/sensors/libraries/t6iot"
+		"url": "https://github.com/mathcoll/t6iot"
 	}
 }
