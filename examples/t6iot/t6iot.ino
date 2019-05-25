@@ -165,7 +165,8 @@ void handleDatapointResponse() {
 * Loop
 */
 void loop() {
-  t6Client.authenticate(t6Username, t6Password, &responseA);
+  //t6Client.authenticate(t6Username, t6Password, &responseA); // This Authentication method should not be used for an Object
+  t6Client.authenticateKS(t6Key, t6Secret, &responseA); // This Authentication method should be used to get a JWT from a Key/Secret
     handleAuthenticateResponse();
 
   /*
