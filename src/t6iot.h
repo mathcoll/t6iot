@@ -18,7 +18,7 @@ class t6iot {
     int begin(char* httpHost, int httpPort, char* _userAgent);
     int begin(char* httpHost, int httpPort, char* _userAgent, int timeout);
     char* _userAgent;
-		char* _urlJWT;
+    char* _urlJWT;
     char* _urlIndex;
     char* _urlDataPoint;
     char* _urlObjects;
@@ -30,58 +30,58 @@ class t6iot {
     char* _urlUsers;
     char* _urlDatatypes;
     char* _urlUnits;
-		char* _urlStatus;
-   
+    char* _urlStatus;
+
     void authenticate(const char* t6Username, const char* t6Password);
     void authenticate(const char* t6Username, const char* t6Password, String* response);
-   
+
     void authenticateKS(const char* t6Key, const char* t6Secret);
     void authenticateKS(const char* t6Key, const char* t6Secret, String* response);
-    
-  	void getStatus(String* response);
-  	void getDatatypes(String* response);
-  	void getUnits(String* response);
-  	void getIndex(String* response);
-    
+
+    void getStatus(String* response);
+    void getDatatypes(String* response);
+    void getUnits(String* response);
+    void getIndex(String* response);
+
     void createUser();
     void getUser(char* userId);
     void editUser();
-  
+
     void createDatapoint(char* flowId, JsonObject& payload);
     void createDatapoint(char* flowId, JsonObject& payload, String* response);
     void createDatapoint(char* flowId, JsonObject& payload, bool useSignature, String* response);
     void getDatapoints();
-  
+
     void createObject();
     void getObjects();
     void editObject();
     void deleteObject();
-  
+
     void createFlow();
     void getFlows();
     void editFlow();
     void deleteFlow();
-  
+
     void createDashboard();
     void getDashboards();
     void editDashboard();
     void deleteDashboard();
-  
+
     void createSnippet();
     void getSnippets();
     void editSnippet();
     void deleteSnippet();
-  
+
     void createRule();
     void getRules();
     void editRule();
     void deleteRule();
-  
+
     void createMqtt();
     void getMqtts();
     void editMqtt();
     void deleteMqtt();
-  	
+
   private:
     char* _httpHost;
     int _httpPort;
