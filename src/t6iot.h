@@ -34,6 +34,9 @@ class t6iot {
    
     void authenticate(const char* t6Username, const char* t6Password);
     void authenticate(const char* t6Username, const char* t6Password, String* response);
+   
+    void authenticateKS(const char* t6Key, const char* t6Secret);
+    void authenticateKS(const char* t6Key, const char* t6Secret, String* response);
     
   	void getStatus(String* response);
   	void getDatatypes(String* response);
@@ -85,6 +88,8 @@ class t6iot {
     int _timeout;
     const char* _t6Username;
     const char* _t6Password;
+    const char* _t6Key;
+    const char* _t6Secret;
     void _getRequest(WiFiClient* client, String url);
     void _postRequest(WiFiClient* client, String url, JsonObject& payload);
     void _postRequest(WiFiClient* client, String url, JsonObject& payload, bool useSignature);

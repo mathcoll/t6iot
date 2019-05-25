@@ -58,7 +58,7 @@ void t6iot::authenticate(const char* t6Username, const char* t6Password) {
   return authenticate(t6Username, t6Password, NULL);
 }
 void t6iot::authenticate(const char* t6Username, const char* t6Password, String* res) {
-  Serial.println("Authenticating to t6:");
+  Serial.println("Authenticating to t6 using a Username/Password:");
   if (!client.connect(_httpHost, _httpPort)) {
     Serial.println("Http connection failed");
   }
@@ -70,6 +70,43 @@ void t6iot::authenticate(const char* t6Username, const char* t6Password, String*
   JsonObject& payload = jsonRequestBuffer.createObject();
   payload["username"] = _t6Username;
   payload["password"] = _t6Password;
+  
+  _postRequest(&client, _urlJWT, payload, false);
+  
+  while (client.available()) {
+    String line = client.readStringUntil('\n');
+    //Serial.println(line); // output the response from server
+    if (line.length() == 1) { //empty line means end of headers
+      break;
+    }
+  }
+  //read first line of body
+  while (client.available()) {
+    String line = client.readStringUntil('\n');
+    const char* lineChars = line.c_str();
+    res->concat(line);
+    JsonObject& response = jsonRequestBuffer.parseObject(lineChars);
+    _JWTToken = response.get<char*>("token");
+  }
+}
+
+void t6iot::authenticateKS(const char* t6Key, const char* t6Secret) {
+  return authenticateKS(t6Key, t6Secret, NULL);
+}
+void t6iot::authenticateKS(const char* t6Key, const char* t6Secret, String* res) {
+  Serial.println("Authenticating to t6 using a Key/Secret:");
+  if (!client.connect(_httpHost, _httpPort)) {
+    Serial.println("Http connection failed");
+  }
+  _t6Key = t6Key;
+  _t6Secret = t6Secret;
+  StaticJsonBuffer<400> jsonBuffer;
+  const int BUFFER_SIZE = JSON_OBJECT_SIZE(2);
+  DynamicJsonBuffer jsonRequestBuffer(BUFFER_SIZE);
+  JsonObject& payload = jsonRequestBuffer.createObject();
+  payload["key"] = t6Key;
+  payload["secret"] = t6Secret;
+  payload["grant_type"] = "access_token";
   
   _postRequest(&client, _urlJWT, payload, false);
   
