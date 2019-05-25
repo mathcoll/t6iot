@@ -137,55 +137,26 @@ void handleDatatypesResponse() {
 void handleUnitsResponse() {
   Serial.println( "handleUnitsResponse" );
 } // handleUnitsResponse
-  
+
 /*
 * Add data point to timeserie
 */
 void handleDatapointResponse() {
-  /*
-  StaticJsonBuffer<400> jsonBuffer;
-  const int BUFFER_SIZE = JSON_OBJECT_SIZE(2);
-  DynamicJsonBuffer jsonRequestBuffer(BUFFER_SIZE);
-  JsonObject& payload = jsonRequestBuffer.createObject();
-  payload["value"] = 123;
-  payload["text"] = "";
-  payload["publish"] = "true";
-  payload["save"] = "false";
-  payload["unit"] = "";
-  payload["mqtt_topic"] = "";
-  payload["latitude"] = "";
-  payload["longitude"] = "";
-  
-  t6Client.createDatapoint(t6FlowId, payload, &responseD);
   const int D_BUFFER_SIZE = JSON_OBJECT_SIZE(2);
   DynamicJsonBuffer D_jsonRequestBuffer(D_BUFFER_SIZE);
   JsonObject& datapoint = D_jsonRequestBuffer.parseObject(responseD);
-
   if (!datapoint.success()) {
     Serial.println("Failure on parsing json.");
     Serial.println(responseD);
   } else {
     const char* Derror = datapoint["error"];
-    const char* Did = datapoint["data"][0]["attributes"]["id"];
-    const char* Dtime = datapoint["data"][0]["attributes"]["time"];
-    const char* Dtimestamp = datapoint["data"][0]["attributes"]["timestamp"];
-    const char* Dvalue = datapoint["data"][0]["attributes"]["value"];
     if ( Derror ) {
       Serial.println("Failure on:");
       Serial.println(responseD);
     }
     Serial.println();
-    Serial.print("\tId: ");
-    Serial.println( Did );
-    Serial.print("\tTime: ");
-    Serial.println( Dtime );
-    Serial.print("\tTimestamp: ");
-    Serial.println( Dtimestamp );
-    Serial.print("\tValue: ");
-    Serial.println( Dvalue );
     Serial.println();
   }
-  */
 } // handleDatapointResponse
 
 
@@ -196,14 +167,33 @@ void handleDatapointResponse() {
 void loop() {
   t6Client.authenticate(t6Username, t6Password, &responseA);
     handleAuthenticateResponse();
+
+  /*
   t6Client.getStatus(&responseS);
     handlStatusResponse();
+    
   t6Client.getDatatypes(&responseDT);
     handleDatatypesResponse();
+    
   t6Client.getUnits(&responseU);
     handleUnitsResponse();
+    
   t6Client.getIndex(&responseIndex);
     ;
+  */
+  
+  const int BUFFER_SIZE = JSON_OBJECT_SIZE(6);
+  StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
+  JsonObject& payload = jsonBuffer.createObject();
+  payload["value"] = 12345;
+  payload["flow_id"] = t6FlowId;
+  payload["mqtt_topic"] = "ArduinoTest";
+  payload["unit"] = "";
+  payload["save"] = "true";
+  payload["publish"] = "true";
+  payload.prettyPrintTo(Serial);
+  t6Client.createDatapoint(t6FlowId, payload, false, &responseD);
+    handleDatapointResponse();
   
   // 0. Users
   //Serial.println("0. Users");

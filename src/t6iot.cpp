@@ -198,13 +198,19 @@ void t6iot::getUser(char* userId) {
 void t6iot::editUser() {
 	
 }
+void t6iot::createDatapoint(char* flowId, JsonObject& payload) {
+	return createDatapoint(flowId, payload, "", false);
+}
 void t6iot::createDatapoint(char* flowId, JsonObject& payload, String* res) {
+	return createDatapoint(flowId, payload, res, false);
+}
+void t6iot::createDatapoint(char* flowId, JsonObject& payload, bool useSignature, String* res) {
   Serial.println("Adding datapoint to t6:");
   if (!client.connect(_httpHost, _httpPort)) {
     Serial.println("Http connection failed");
   }
 
-  _postRequest(&client, _urlDataPoint+String(flowId), payload, true);
+  _postRequest(&client, _urlDataPoint+String(flowId), payload, useSignature);
   
   while (client.available()) {
     String line = client.readStringUntil('\n');
@@ -317,6 +323,11 @@ void t6iot::_getRequest(WiFiClient* client, String url) {
 	
 	delay(_timeout);
 }
+
+void t6iot::_postRequest(WiFiClient* client, String url, JsonObject& payload) {
+  return _postRequest(client, url, payload, false);
+}
+
 void t6iot::_postRequest(WiFiClient* client, String url, JsonObject& payload, bool useSignature) {
 	String payloadStr;
 	payload.printTo(payloadStr);
@@ -338,7 +349,7 @@ void t6iot::_postRequest(WiFiClient* client, String url, JsonObject& payload, bo
   client->println("Content-Type: application/json");
   client->print("Content-Length: ");
   
-  if (useSignature) {
+  if (useSignature==true) {
     Serial.print("as signed payload:");
     payloadStr = _getSignedPayload(payload, objectId, secret);
     client->println(payloadStr.length());
