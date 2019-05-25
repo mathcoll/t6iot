@@ -44,7 +44,9 @@ class t6iot {
     void getUser(char* userId);
     void editUser();
   
-    void createDatapoint(char* flowId, JsonObject& payload, String* res);
+    void createDatapoint(char* flowId, JsonObject& payload);
+    void createDatapoint(char* flowId, JsonObject& payload, String* response);
+    void createDatapoint(char* flowId, JsonObject& payload, bool useSignature, String* response);
     void getDatapoints();
   
     void createObject();
@@ -84,6 +86,7 @@ class t6iot {
     const char* _t6Username;
     const char* _t6Password;
     void _getRequest(WiFiClient* client, String url);
+    void _postRequest(WiFiClient* client, String url, JsonObject& payload);
     void _postRequest(WiFiClient* client, String url, JsonObject& payload, bool useSignature);
     void _putRequest(WiFiClient* client, String url, JsonObject& payload);
     void _deleteRequest(WiFiClient* client, String url);
