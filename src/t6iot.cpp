@@ -30,9 +30,10 @@ int t6iot::begin(char* host, int port, char* ua) {
   return begin(host, port, ua, 3000);
 }
 int t6iot::begin(char* host, int port, char* ua, int timeout) {
-  _timeout = timeout;
   _httpHost = host;
   _httpPort = port;
+  _userAgent = ua;
+  _timeout = timeout;
   _urlJWT = "/v2.0.1/authenticate";
   _urlStatus = "/v2.0.1/status";
   _urlIndex = "/v2.0.1/index";
@@ -46,7 +47,7 @@ int t6iot::begin(char* host, int port, char* ua, int timeout) {
   _urlUsers = "/v2.0.1/users/";
   _urlDatatypes = "/v2.0.1/datatypes/";
   _urlUnits = "/v2.0.1/units/";
-  _userAgent = ua;
+  _urlOta = "/v2.0.1/ota/";
   
   if (!client.connect(_httpHost, _httpPort)) {
     Serial.println("Http connection failed");
@@ -337,6 +338,57 @@ void t6iot::editMqtt() {
 }
 void t6iot::deleteMqtt() {
 	
+}
+void t6iot::getOtaLatestVersion(char* objectId, String* res) {
+  Serial.println("Getting t6 OTA Latest Version for an Object:");
+  if (!client.connect(_httpHost, _httpPort)) {
+    Serial.println("Http connection failed");
+  }
+  StaticJsonBuffer<400> jsonBuffer;
+  const int BUFFER_SIZE = JSON_OBJECT_SIZE(2);
+  DynamicJsonBuffer jsonRequestBuffer(BUFFER_SIZE);
+  
+	_getRequest(&client, _urlObjects+String(objectId)+String("/latest-version"));
+  
+  while (client.available()) {
+    String line = client.readStringUntil('\n');
+    //Serial.println(line); // output the response from server
+    if (line.length() == 1) { //empty line means end of headers
+      break;
+    }
+  }
+  //read first line of body
+	while (client.available()) {
+		String line = client.readStringUntil('\n');
+		const char* lineChars = line.c_str();
+    res->concat(line);
+	}
+}
+void t6iot::otaDeploy(const char* sourceId, char* objectId, String* res) {
+  Serial.println("Deploying a source to Object: "+String(objectId)+" ("+String(sourceId)+")");
+  if (!client.connect(_httpHost, _httpPort)) {
+    Serial.println("Http connection failed");
+  }
+
+  StaticJsonBuffer<400> jsonBuffer;
+  const int BUFFER_SIZE = JSON_OBJECT_SIZE(1);
+  DynamicJsonBuffer jsonRequestBuffer(BUFFER_SIZE);
+  JsonObject& payload = jsonRequestBuffer.createObject();
+  _postRequest(&client, _urlOta+String(sourceId)+String("/deploy/")+String(objectId), payload);
+  
+  while (client.available()) {
+    String line = client.readStringUntil('\n');
+    //Serial.println(line); // output the response from server
+    if (line.length() == 1) { //empty line means end of headers
+      break;
+    }
+  }
+  //read first line of body
+  while (client.available()) {
+    String line = client.readStringUntil('\n');
+    const char* lineChars = line.c_str();
+    res->concat(line);
+  }
 }
 void t6iot::_getRequest(WiFiClient* client, String url) {
   Serial.print("GETing from: ");

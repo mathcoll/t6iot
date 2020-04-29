@@ -31,6 +31,7 @@ class t6iot {
     char* _urlDatatypes;
     char* _urlUnits;
     char* _urlStatus;
+    char* _urlOta;
 
     void authenticate(const char* t6Username, const char* t6Password);
     void authenticate(const char* t6Username, const char* t6Password, String* response);
@@ -81,7 +82,10 @@ class t6iot {
     void getMqtts();
     void editMqtt();
     void deleteMqtt();
-
+    
+    void getOtaLatestVersion(char* objectId, String* response);
+		void otaDeploy(const char* sourceId, char* objectId, String* response);
+	
   private:
     char* _httpHost;
     int _httpPort;
