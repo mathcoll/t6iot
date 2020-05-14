@@ -11,6 +11,7 @@
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
+#include <aREST.h>
 
 class t6iot {
   public:
