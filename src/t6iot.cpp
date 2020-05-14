@@ -1,6 +1,6 @@
 /*
   t6iot.cpp - 
-  Created by mathieu@internetcollaboratif.info <Mathieu Lory>.
+  Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
   Sample file to connect t6 api
   - t6 iot: https://api.internetcollaboratif.info
   - Api doc: https://api.internetcollaboratif.info/docs/
