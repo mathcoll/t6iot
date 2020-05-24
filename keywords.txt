@@ -62,6 +62,7 @@ getMqtts	KEYWORD2
 editMqtt	KEYWORD2
 deleteMqtt	KEYWORD2
 setValue	KEYWORD2
+setHtml	KEYWORD2
 
 readSample	KEYWORD2
 

@@ -55,6 +55,7 @@ class T6iot {
     char* _urlStatus;
     char* _urlOta;
     bool DEBUG;
+    String html;
 
     T6iot();
     T6iot(char* httpHost, int httpPort);
@@ -69,6 +70,8 @@ class T6iot {
     int startWebServer();
     int startWebServer(int port);
     int startWebServer(int port, const char* t6ObjectWww_username, const char* t6ObjectWww_password, const char* t6ObjectWww_realm);
+    int setHtml();
+    int setHtml(String html);
     void lockSleep(int timeout);
     void unlockSleep();
     void handleClient();
@@ -177,6 +180,7 @@ class T6iot {
     void _handleOTALatestVersionResponse();
     void _handleDatapointResponse();
     void _handleOTADeployResponse();
+    void _handleShowResponse();
 };
 
 #endif

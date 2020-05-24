@@ -36,25 +36,44 @@ float sensorValue = -1.0;                                         // Init the se
 unsigned long POSTlast = -1;                                      // This is just to know when last Post was called
 unsigned long READlast = -1;                                      // This is just to know when last sensor read was done
 
+String html = "<html>\n"
+  "<head></head>\n"
+  "<body>\n"
+  "<h1>ESP demo</h1>\n"
+  "<ul>\n"
+  "<li><a href='/open'>open</a></li>\n"
+  "<li><a href='/close'>close</a></li>\n"
+  "<li><a href='/getVal'>getVal</a></li>\n"
+  "<!--<li><a href='/setVal'>setVal</a></li>-->\n"
+  "<li><a href='/on'>on</a></li>\n"
+  "<li><a href='/off'>off</a></li>\n"
+  "<li><a href='/upper'>upper</a></li>\n"
+  "<li><a href='/lower'>lower</a></li>\n"
+  "<li><a href='/upgrade'>upgrade</a></li>\n"
+  "</ul>\n"
+  "</body>\n"
+  "</html>\n";
+
 T6iot t6Client;                                                   // Init T6iot Client named "t6Client"
 
 void setup() {
   Serial.println("Booting ESP..");
   Serial.begin(115200);
-  
+
   startWiFi();                                                    // Obviously, the wifi initialization :-)
 
   t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
-  t6Client.DEBUG = false;                                          // Activate or disable DEBUG mode
+  t6Client.DEBUG = true;                                          // Activate or disable DEBUG mode
   t6Client.setCredentials(t6Username, t6Password);                // This will define your own personal username/password to connect to t6
   t6Client.initObject(t6ObjectId, secret, t6UserAgent);           // 
   t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
-  t6Client.setWebServerCredentials(t6ObjectWww_username, t6ObjectWww_password); // Define redentials for webserver on the Object
+  t6Client.setWebServerCredentials(t6ObjectWww_username, t6ObjectWww_password); // Define credentials for webserver on the Object
+  //t6Client.setHtml(html);                                         // Set html into the Object
+  t6Client.setHtml();                                             // Or fetch it from t6 api
   t6Client.startWebServer();                                      // Starting to listen from the Object on Http Api
 }
 
 void loop() {
-
   if (millis() - READlast >= READInterval) {                      // Reading only when necessary
     readSample();
     READlast = millis();
