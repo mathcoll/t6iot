@@ -2,7 +2,7 @@
 	"name": "t6iot",
 	"keywords": "iot, things, api, rest",
 	"description": "Library to connect t6 iot platform.",
-	"version": "1.0.2",
+	"version": "1.0.3",
 	"frameworks": "arduino",
 	"platforms": "*",
 	"authors": [

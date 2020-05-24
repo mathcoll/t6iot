@@ -8,13 +8,22 @@
 # Datatypes (KEYWORD1)
 #######################################
 
-t6iot	KEYWORD1
+T6iot	KEYWORD1
 
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 
+init	KEYWORD2
+setWebServerCredentials	KEYWORD2
+webServerAllowCommand	KEYWORD2
+startWebServer	KEYWORD2
+lockSleep	KEYWORD2
+unlockSleep	KEYWORD2
+handleClient	KEYWORD2
+activateOTA	KEYWORD2
+sleep	KEYWORD2
 authenticate	KEYWORD2
 getStatus	KEYWORD2
 getDatatypes	KEYWORD2
