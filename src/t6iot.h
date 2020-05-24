@@ -11,13 +11,34 @@
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
 #include <ArduinoJson.h>
-#include <aREST.h>
+#include <ArduinoOTA.h>
 
-class t6iot {
+class T6Object {
+	public:
+		T6Object();
+		void setId(String id);
+		void setSecret(String secret);
+		void setUA(String ua);
+	private:
+		String id;
+		String secret;
+		String userAgent;
+		int httpPort;
+};
+class T6Flow {
+	public:
+		T6Flow();
+		void setId(String id);
+	private:
+		String id;
+		String mqtt_topic;
+		String unit;
+		boolean save;
+		boolean publish;
+};
+
+class T6iot {
   public:
-    int begin(char* httpHost, int httpPort);
-    int begin(char* httpHost, int httpPort, char* _userAgent);
-    int begin(char* httpHost, int httpPort, char* _userAgent, int timeout);
     char* _userAgent;
     char* _urlJWT;
     char* _urlIndex;
@@ -34,8 +55,33 @@ class t6iot {
     char* _urlStatus;
     char* _urlOta;
 
+    T6iot();
+    T6iot(char* httpHost, int httpPort);
+    T6iot(char* httpHost, int httpPort, char* _userAgent);
+    T6iot(char* httpHost, int httpPort, char* _userAgent, int timeout);
+    int init(char* host, int port);
+    int init(char* host, int port, char* ua);
+    int init(char* host, int port, char* userAgent, int timeout);
+    int setWebServerCredentials(const char* t6ObjectWww_username, const char* t6ObjectWww_password, const char* t6ObjectWww_realm);
+    int webServerAllowCommand(String command);
+    int startWebServer();
+    int startWebServer(int port);
+    int startWebServer(int port, const char* t6ObjectWww_username, const char* t6ObjectWww_password, const char* t6ObjectWww_realm);
+    void lockSleep(int timeout);
+    void unlockSleep();
+    void handleClient();
+    void activateOTA();
+    bool sleep(String command);
+
+    void setCredentials(const char* t6Username, const char* t6Password);
+
+    void authenticate();
     void authenticate(const char* t6Username, const char* t6Password);
     void authenticate(const char* t6Username, const char* t6Password, String* response);
+
+    void setObject(char* t6ObjectId);
+    void setObject(char* t6ObjectId, char* t6ObjectUA);
+    void setObject(char* t6ObjectId, char* t6ObjectSecret, char* t6ObjectUA);
 
     void authenticateKS(const char* t6Key, const char* t6Secret);
     void authenticateKS(const char* t6Key, const char* t6Secret, String* response);
@@ -83,24 +129,51 @@ class t6iot {
     void getMqtts();
     void editMqtt();
     void deleteMqtt();
-    
+
     void getOtaLatestVersion(char* objectId, String* response);
-		void otaDeploy(const char* sourceId, char* objectId, String* response);
-	
+    void otaDeploy(const char* sourceId, char* objectId, String* response);
+
+	void startRest();
+	void handle(WiFiClient& client);
+	int ledControl(String command);
+	int activateOTA(String command);
+	int deployOTA(String command);
+
+	T6Object initObject();
+	T6Object initObject(String id);
+	T6Object initObject(String id, String secret);
+	T6Object initObject(String id, String secret, String ua);
+
+	float getValue();
+	void setValue(float sensorValue);
+
   private:
+	float _sensorValue;
     char* _httpHost;
     int _httpPort;
     int _timeout;
+    bool _lockedSleep;
     const char* _t6Username;
     const char* _t6Password;
     const char* _t6Key;
     const char* _t6Secret;
+    char* _t6ObjectSecret;
+    char* _t6ObjectId;
+    char* _t6ObjectUA;
+    int _t6ObjectHttpPort;
+    const char* _t6ObjectWww_username;
+    const char* _t6ObjectWww_password;
+    const char* _t6ObjectWww_realm;
     void _getRequest(WiFiClient* client, String url);
     void _postRequest(WiFiClient* client, String url, JsonObject& payload);
     void _postRequest(WiFiClient* client, String url, JsonObject& payload, bool useSignature);
     void _putRequest(WiFiClient* client, String url, JsonObject& payload);
     void _deleteRequest(WiFiClient* client, String url);
     String _getSignedPayload(JsonObject& payload, char* objectId, char* secret);
+    void _handleAuthenticateResponse();
+    void _handleOTALatestVersionResponse();
+    void _handleDatapointResponse();
+    void _handleOTADeployResponse();
 };
 
 #endif
