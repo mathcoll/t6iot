@@ -19,22 +19,22 @@ class T6Object {
 		void setId(String id);
 		void setSecret(String secret);
 		void setUA(String ua);
-	private:
 		String id;
 		String secret;
 		String userAgent;
 		int httpPort;
+	private:
 };
 class T6Flow {
 	public:
 		T6Flow();
 		void setId(String id);
-	private:
 		String id;
 		String mqtt_topic;
 		String unit;
 		boolean save;
 		boolean publish;
+	private:
 };
 
 class T6iot {
@@ -54,6 +54,7 @@ class T6iot {
     char* _urlUnits;
     char* _urlStatus;
     char* _urlOta;
+    bool DEBUG;
 
     T6iot();
     T6iot(char* httpHost, int httpPort);
@@ -62,6 +63,7 @@ class T6iot {
     int init(char* host, int port);
     int init(char* host, int port, char* ua);
     int init(char* host, int port, char* userAgent, int timeout);
+    int setWebServerCredentials(const char* t6ObjectWww_username, const char* t6ObjectWww_password);
     int setWebServerCredentials(const char* t6ObjectWww_username, const char* t6ObjectWww_password, const char* t6ObjectWww_realm);
     int webServerAllowCommand(String command);
     int startWebServer();
@@ -82,6 +84,10 @@ class T6iot {
     void setObject(char* t6ObjectId);
     void setObject(char* t6ObjectId, char* t6ObjectUA);
     void setObject(char* t6ObjectId, char* t6ObjectSecret, char* t6ObjectUA);
+	T6Object initObject();
+	T6Object initObject(String id);
+	T6Object initObject(String id, String secret);
+	T6Object initObject(String id, String secret, String ua);
 
     void authenticateKS(const char* t6Key, const char* t6Secret);
     void authenticateKS(const char* t6Key, const char* t6Secret, String* response);
@@ -130,19 +136,16 @@ class T6iot {
     void editMqtt();
     void deleteMqtt();
 
-    void getOtaLatestVersion(char* objectId, String* response);
-    void otaDeploy(const char* sourceId, char* objectId, String* response);
+    void getOtaLatestVersion(String objectId, String* response);
+    void otaDeploy(const char* sourceId, String objectId, String* response);
 
 	void startRest();
 	void handle(WiFiClient& client);
 	int ledControl(String command);
 	int activateOTA(String command);
-	int deployOTA(String command);
-
-	T6Object initObject();
-	T6Object initObject(String id);
-	T6Object initObject(String id, String secret);
-	T6Object initObject(String id, String secret, String ua);
+	int deployOTA();
+	int deployOTA(String objectId);
+	int upgrade();
 
 	float getValue();
 	void setValue(float sensorValue);
