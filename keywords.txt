@@ -20,10 +20,12 @@ setWebServerCredentials	KEYWORD2
 webServerAllowCommand	KEYWORD2
 startWebServer	KEYWORD2
 setCredentials	KEYWORD2
+initObject	KEYWORD2
 lockSleep	KEYWORD2
 unlockSleep	KEYWORD2
 handleClient	KEYWORD2
 activateOTA	KEYWORD2
+upgrade	KEYWORD2
 sleep	KEYWORD2
 authenticate	KEYWORD2
 getStatus	KEYWORD2
@@ -59,16 +61,21 @@ createMqtt	KEYWORD2
 getMqtts	KEYWORD2
 editMqtt	KEYWORD2
 deleteMqtt	KEYWORD2
+setValue	KEYWORD2
+
+readSample	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
 #######################################
 
-t6iot_False	LITERAL1
-t6iot_True	LITERAL1
-t6iot_NULL	LITERAL1
-t6iot_Number	LITERAL1
-t6iot_String	LITERAL1
-t6iot_Array	LITERAL1
-t6iot_Object	LITERAL1
-t6iot_IsReference	LITERAL1
+False	LITERAL1
+True	LITERAL1
+NULL	LITERAL1
+Number	LITERAL1
+String	LITERAL1
+Array	LITERAL1
+Object	LITERAL1
+IsReference	LITERAL1
+DEBUG	LITERAL1
+t6Client	LITERAL1

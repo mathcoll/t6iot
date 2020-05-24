@@ -2,42 +2,41 @@
 #include <t6iot.h>
 
 // t6 Server
-char* t6HttpHost = "api.internetcollaboratif.info";            // t6 server IP Address
-int t6HttpPort = 443;                                          // t6 port
-int t6Timeout = 3000;                                          // t6 timeout to get an answer from server
+char* t6HttpHost = "192.168.0.15";                                // t6 server IP Address
+int t6HttpPort = 3000;                                            // t6 port
+int t6Timeout = 3000;                                             // t6 timeout to get an answer from server
 
 // t6 JWT Authentication
-const char* t6Username = "";                                   // Your t6 Username
-const char* t6Password = "";                                   // Your t6 Password
-                                                               // or :
-const char* t6Key = "";                                        // Your t6 Key
-const char* t6Secret = "";                                     // Your t6 Secret
+const char* t6Username = "demo";                                  // Your t6 Username
+const char* t6Password = "?[W{7kG'X63-e0N";                       // Your t6 Password
+                                                                  // or :
+const char* t6Key = "";                                           // Your t6 Key
+const char* t6Secret = "";                                        // Your t6 Secret
 
 // t6 Object
-char* secret = "";                                             // The current object secret for signature
-char* t6ObjectId = "d3ba128c-61c4-4110-8a71-2a83461b86ef";     // The Object uuid-v4 in t6
-char* t6UserAgent = "nodeMCU.28";                              // 
-const char* t6ObjectWww_username = "admin";                    // 
-const char* t6ObjectWww_password = "esp8266";                  // 
-const char* t6ObjectWww_realm = "ESP Auth Realm";              // 
+char* secret = "";                                                // The object secret, for signature
+char* t6ObjectId = "092579ba-3dd6-4c03-982e-0ecc66033609";        // The Object uuid-v4 in t6
+char* t6UserAgent = "nodeMCU.28";                                 // The userAgent used when calling t6 api
+const char* t6ObjectWww_username = "admin";                       // Optional Username to call Object Api, set to "" to disable this authentication
+const char* t6ObjectWww_password = "esp8266";                     // Optional Password to call Object Api, set to "" to disable this authentication
 
 // t6 Flow container for Sensor data
-char* t6FlowId = "75317bf5-001f-49cb-ad91-626cf43aa0cf";       // 
-char* t6Mqtt_topic = "";                                       // 
-char* t6Unit = "mBar";                                         // 
-char* t6Save = "true";                                         // 
-char* t6Publish = "true";                                      // 
+char* t6FlowId = "7774c70a-551a-4f1c-b78c-efa836835b14";          // 
+char* t6Mqtt_topic = "";                                          // 
+char* t6Unit = "%";                                               // 
+char* t6Save = "true";                                            // 
+char* t6Publish = "true";                                         // 
 
-const char* ssid = "";                                         // Your own Wifi ssi to connect to
-const char* password = "";                                     // Your wifi password
+const char* ssid = "";                                            // Your own Wifi ssi to connect to
+const char* password = "";                                        // Your wifi password
 
-const long POSTInterval = 180000;                              // interval between each POST -> 30 minutes
-const long READInterval = 60 * 1000;                           // interval between each READ -> 1 minute
-float sensorValue = -1.0;                                      // Init the sensor value
-unsigned long POSTlast = -1;
-unsigned long READlast = -1;
+const long POSTInterval = 180000;                                 // Interval between each POST -> 30 minutes
+const long READInterval = 60 * 1000;                              // Interval between each READ -> 1 minute
+float sensorValue = -1.0;                                         // Init the sensor value
+unsigned long POSTlast = -1;                                      // This is just to know when last Post was called
+unsigned long READlast = -1;                                      // This is just to know when last sensor read was done
 
-T6iot t6Client;                                                // Init T6iot Client named "t6Client"
+T6iot t6Client;                                                   // Init T6iot Client named "t6Client"
 
 void setup() {
   Serial.println("Booting ESP..");
@@ -46,11 +45,11 @@ void setup() {
   startWiFi();                                                    // Obviously, the wifi initialization :-)
 
   t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
+  t6Client.DEBUG = false;                                          // Activate or disable DEBUG mode
   t6Client.setCredentials(t6Username, t6Password);                // This will define your own personal username/password to connect to t6
-  t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
-  t6Client.setWebServerCredentials(t6ObjectWww_username, t6ObjectWww_password, t6ObjectWww_realm); // Define redentials for webserver on the Object
   t6Client.initObject(t6ObjectId, secret, t6UserAgent);           // 
-  //t6Client.setFlow();                                             // 
+  t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
+  t6Client.setWebServerCredentials(t6ObjectWww_username, t6ObjectWww_password); // Define redentials for webserver on the Object
   t6Client.startWebServer();                                      // Starting to listen from the Object on Http Api
 }
 
@@ -65,7 +64,7 @@ void loop() {
 
   if (sensorValue > -1 && ((millis() - POSTlast >= POSTInterval) || POSTlast == -1)) {
     t6Client.lockSleep(t6Timeout);                                // Lock the sleep, so the Object can't get into deep sleep mode when posting
-    
+
     t6Client.authenticate();                                      // Generate a JWT from your personnal credential on t6 server
 
     // Building payload to post
@@ -94,7 +93,7 @@ void readSample() {
 
 void startWiFi() {
   Serial.println();
-  Serial.print("Connecting to ");
+  Serial.print("Connecting to Wifi: ");
   Serial.println(ssid);
   
   WiFi.mode(WIFI_STA);
