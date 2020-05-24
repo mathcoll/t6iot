@@ -19,6 +19,7 @@ init	KEYWORD2
 setWebServerCredentials	KEYWORD2
 webServerAllowCommand	KEYWORD2
 startWebServer	KEYWORD2
+setCredentials	KEYWORD2
 lockSleep	KEYWORD2
 unlockSleep	KEYWORD2
 handleClient	KEYWORD2
