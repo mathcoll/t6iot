@@ -28,10 +28,10 @@ bool authenticated = false;
 const char* objectExpectedVersion;
 char* currentVersion = "3"; // the OTA source version
 unsigned long previousMillis = 0;
-const long interval = 1000;  // interval at which to blink (milliseconds)
-const long otaTimeout = 180000;  // interval at which to blink (milliseconds) - 3 minutes
+const long interval = 1000;
+const long otaTimeout = 180000;
 unsigned long latestPOSTCall = millis() + otaTimeout;
-int ledState = LOW;  // ledState used to set the LED
+int ledState = LOW;
 bool OTA_IN_Progress = false;
 bool OTA_activated = false;
 bool _lockedSleep = false;
@@ -56,9 +56,7 @@ String responseD; // for datapoints
 String responseDeploy; // for OTA Deploy
 String responseO; // for
 
-
 ESP8266WebServer server(_t6ObjectHttpPort);
-
 
 T6Object::T6Object() {
 
@@ -300,7 +298,6 @@ void T6iot::_handleOTADeployResponse() {
   }
 }
 
-
 void T6iot::setObject(char* t6ObjectSecret, char* t6ObjectId, char* t6ObjectUA) {
   _t6ObjectSecret = t6ObjectSecret;
   _t6ObjectId = t6ObjectId;
@@ -318,7 +315,7 @@ void T6iot::authenticate() {
 void T6iot::authenticate(const char* t6Username, const char* t6Password) {
   _t6Username = t6Username;
   _t6Password = t6Password;
-  authenticate(_t6Username, _t6Password, responseA);
+  authenticate(_t6Username, _t6Password, &responseA);
 }
 void T6iot::authenticate(const char* t6Username, const char* t6Password, String* res) {
   Serial.println("Authenticating to t6 using a Username/Password:");
@@ -335,7 +332,7 @@ void T6iot::authenticate(const char* t6Username, const char* t6Password, String*
   JsonObject& payload = jsonRequestBuffer.createObject();
   payload["username"] = _t6Username;
   payload["password"] = _t6Password;
-  
+
   _postRequest(&client, _urlJWT, payload, false);
   
   while (client.available()) {
@@ -502,10 +499,10 @@ void T6iot::editUser() {
 	
 }
 void T6iot::createDatapoint(char* flowId, JsonObject& payload) {
-	return createDatapoint(flowId, payload, &responseD, false);
+	return createDatapoint(flowId, payload, false, &responseD);
 }
 void T6iot::createDatapoint(char* flowId, JsonObject& payload, String* res) {
-	return createDatapoint(flowId, payload, res, false);
+	return createDatapoint(flowId, payload, false, res);
 }
 void T6iot::createDatapoint(char* flowId, JsonObject& payload, bool useSignature, String* res) {
   Serial.println("Adding datapoint to t6:");
@@ -707,7 +704,7 @@ bool T6iot::sleep(String command) {
 void T6iot::_postRequest(WiFiClient* client, String url, JsonObject& payload, bool useSignature) {
   String payloadStr;
   payload.printTo(payloadStr);
-  Serial.print("POSTing to: ");
+  Serial.print("POSTing (_postRequest) to: ");
   Serial.println(url);
 
   client->print("POST ");
