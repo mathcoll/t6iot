@@ -1,9 +1,12 @@
 #include <ESP8266WiFi.h>
 #include <t6iot.h>
+#define USING_AXTLS
+#include <WiFiClientSecureAxTLS.h>                                // Force use of AxTLS (BearSSL is now default)
+using namespace axTLS;
 
 // t6 Server
-char* t6HttpHost = "192.168.0.15";                                // t6 server IP Address
-int t6HttpPort = 3000;                                            // t6 port
+char* t6HttpHost = "api.internetcollaboratif.info";               // t6 server IP Address, actually, it can't be updated only from this parameter, require SSL fingerprint in the library too
+int t6HttpPort = 443;                                             // t6 port
 int t6Timeout = 3000;                                             // t6 timeout to get an answer from server
 
 // t6 JWT Authentication
@@ -61,6 +64,7 @@ void setup() {
   Serial.begin(115200);
 
   startWiFi();                                                    // Obviously, the wifi initialization :-)
+  printIPAddressOfHost(t6HttpHost);
 
   t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
   t6Client.DEBUG = true;                                          // Activate or disable DEBUG mode
@@ -110,16 +114,45 @@ void readSample() {
   t6Client.setValue(sensorValue);                                // Updating t6 with the sensor value
 }
 
+void printIPAddressOfHost(const char* host) {
+  IPAddress resolvedIP;
+  if (!WiFi.hostByName(host, resolvedIP)) {
+    Serial.print(F("Host lookup failed for "));
+    Serial.println(host);
+  }
+  Serial.print(F("Host: "));
+  Serial.print(host);
+  Serial.print(", IP: ");
+  Serial.println(resolvedIP.toString().c_str());
+}
 void startWiFi() {
   Serial.println();
-  Serial.print("Connecting to Wifi: ");
+  Serial.print("Connecting to Wifi SSID: ");
   Serial.println(ssid);
-  
+  /*
+  IPAddress ip(192, 168, 0, 100);
+  IPAddress gateway(192, 168, 0, 255);
+  IPAddress subnet(255, 255, 255, 0);
+  IPAddress dns1(8.8.8.8);
+  IPAddress dns2(8.8.8.4);
+  WiFi.config(ip, gateway, dns1, dns2);
+  */
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   if (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.println("WiFi Connect Failed! Rebooting...");
     delay(1000);
+    Serial.print(".");
     ESP.restart();
   }
+  Serial.println("Wifi: OK");
+  Serial.print("DNS address 1:");
+  Serial.println(WiFi.dnsIP(0));
+  Serial.print("DNS address 2:");
+  Serial.println(WiFi.dnsIP(1));
+  Serial.print("IP address:");
+  Serial.println(WiFi.localIP());
+  Serial.print("Signal Power:");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
 }

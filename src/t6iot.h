@@ -8,10 +8,13 @@
 
 #ifndef t6iot_h
 #define t6iot_h
-#include "Arduino.h"
-#include <ESP8266WiFi.h>
+#include <Arduino.h>
+#include <ArduinoJWT.h>
+#include <sha256.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
 
 class T6Object {
 	public:
@@ -171,6 +174,7 @@ class T6iot {
     const char* _t6ObjectWww_password;
     const char* _t6ObjectWww_realm;
     void _getRequest(WiFiClient* client, String url);
+    void _getHtmlRequest(WiFiClient* client, String url);
     void _postRequest(WiFiClient* client, String url, JsonObject& payload);
     void _postRequest(WiFiClient* client, String url, JsonObject& payload, bool useSignature);
     void _putRequest(WiFiClient* client, String url, JsonObject& payload);
