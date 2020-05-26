@@ -9,17 +9,9 @@
 /*#include <t6iot.h>*/
 #include "t6iot.h"
 
-#include <Arduino.h>
-#include <ArduinoJWT.h>
-#include <sha256.h>
-#include <ArduinoJson.h>
-#include <ESP8266mDNS.h>
-#include <ArduinoOTA.h>
-#include <ESP8266WebServer.h>
 
 #define SLEEP_DURATION  1800
 const size_t MAX_CONTENT_SIZE = 512;
-WiFiClient client;
 String _JWTToken;
 bool authorized = false;
 int processes = 0;
@@ -46,10 +38,15 @@ const char* www_username;
 const char* www_password;
 const char* www_realm;
 bool DEBUG = false;
+//const char* fingerprint = "6C:6C:63:F9:1D:92:30:28:55:44:38:D3:F5:54:E0:6F:F9:8F:D0:77"; // SHA1 fingerprint of the certificate / Use web browser to view and copy
+//const uint8_t fingerprint[20] = "0x6C, 0x6C, 0x63, 0xF9, 0x1D, 0x92, 0x30, 0x28, 0x55, 0x44, 0x38, 0xD3, 0xF5, 0x54, 0xE0, 0x6F, 0xF9, 0x8F, 0xD0, 0x77"; // SHA1 fingerprint of the certificate / Use web browser to view and copy
+
+WiFiClient client;
 
 String defaultHtml = "<html>\n"
 	"<head></head>\n"
 	"<body>\n"
+	"<h1>Default UI</h1>\n"
 	"<ul>\n"
 	"<li><a href='/open'>open</a></li>\n"
 	"<li><a href='/close'>close</a></li>\n"
@@ -120,10 +117,11 @@ int T6iot::setHtml() {
 		authenticate();
 	}
 	*/
-	_getRequest(&client, _urlObjects+String(object.id)+"/show");
+	_getHtmlRequest(&client, _urlObjects+String(object.id)+"/show");
 
 	while (client.available()) {
 		String line = client.readStringUntil('\n');
+		//Serial.println(line);
 		if (line.length() == 1) { //empty line means end of headers
 			break;
 		}
@@ -133,6 +131,14 @@ int T6iot::setHtml() {
 		//char c = client.read();
 		String line = client.readStringUntil('\n');
 		defaultHtml += line;
+	}
+	if (DEBUG) {
+		if (defaultHtml != "") {
+			Serial.println("Youooouuuu, I got some Html to serve.");
+			Serial.println(defaultHtml);
+		} else {
+			Serial.println("Oh nooooo, I don't have any Html to serve.");
+		}
 	}
 	return 1;
 }
@@ -156,51 +162,6 @@ int T6iot::startWebServer(int port) {
 		}
 		server.send(200, "text/html; charset=UTF-8", defaultHtml);
 	});
-	server.on("/open", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(200, "text/html; charset=UTF-8", defaultHtml);
-	});
-	server.on("/close", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(200, "text/html; charset=UTF-8", defaultHtml);
-	});
-	server.on("/getVal", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		float value = getValue();
-		server.send(200, "application/json", String("{\"value\": \"")+value+String("\"}"));
-	});
-	server.on("/setVal", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		float value = 10.00; //atof(server.arg("value"));
-		//setValue(value);
-		server.send(200, "application/json", String("{\"value\": \"")+value+String("\"}"));
-	});
-	server.on("/on", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(200, "text/html; charset=UTF-8", defaultHtml);
-	});
-	server.on("/off", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(200, "text/html; charset=UTF-8", defaultHtml);
-	});
-	server.on("/upper", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(200, "text/html; charset=UTF-8", defaultHtml);
-	});
-	server.on("/lower", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(200, "text/html; charset=UTF-8", defaultHtml);
-	});
-	server.on("/upgrade", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(201, "text/plain", "UNDERSTOOD, but this can take a while.. and might fail.");
-		upgrade();
-	});
-	server.on("/refresh", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(201, "text/plain", "UNDERSTOOD");
-		setHtml();
-	});
 	server.on("/favicon.ico", [=]() {
 		static const uint8_t ico[] PROGMEM = {
 			0x47, 0x49, 0x46, 0x38, 0x37, 0x61, 0x10, 0x00, 0x10, 0x00, 0x80, 0x01,
@@ -211,6 +172,61 @@ int T6iot::startWebServer(int port) {
 		};
 		server.send(200, "image/x-icon", ico, sizeof(ico));
 	});
+
+
+	/* MAINTENANCE ACTIONS ON OBJECT */
+	server.on("/upgrade", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(201, "text/plain", "UNDERSTOOD, but this can take a while.. and might fail.");
+		upgrade();
+	});
+	server.on("/refresh", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(201, "text/plain", "UNDERSTOOD");
+		setHtml();
+	});
+
+	/* ACTIONS ON OBJECT */
+	server.on("/open", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(200, "application/json", String("{\"action\": \"open\", \"status\": \"ok\", \"snack\": \"Opened\"}"));
+	});
+	server.on("/close", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(200, "application/json", String("{\"action\": \"close\", \"status\": \"ok\", \"snack\": \"Closed\"}"));
+	});
+	server.on("/on", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(200, "application/json", String("{\"action\": \"on\", \"status\": \"ok\", \"snack\": \"Switched On\"}"));
+	});
+	server.on("/off", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(200, "application/json", String("{\"action\": \"off\", \"status\": \"ok\", \"snack\": \"Switched Off\"}"));
+	});
+	server.on("/upper", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(200, "application/json", String("{\"action\": \"upper\", \"status\": \"ok\", \"snack\": \"Increased\"}"));
+	});
+	server.on("/lower", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(200, "application/json", String("{\"action\": \"lower\", \"status\": \"ok\", \"snack\": \"Decreased\"}"));
+	});
+
+
+	/* SETTER/GETTER ON OBJECT */
+	server.on("/getVal", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		float value = getValue();
+		server.send(200, "application/json", String("{\"action\": \"getVal\", \"value\": \"")+value+String("\"}"));
+	});
+	server.on("/setVal", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		float value = 10.00; //atof(server.arg("value"));
+		//setValue(value);
+		server.send(200, "application/json", String("{\"action\": \"setVal\", \"value\": \"")+value+String("\"}"));
+	});
+
+
 	server.onNotFound([]() {
 		String message = "File Not Found\n\n";
 		message += "URI: ";
@@ -280,9 +296,17 @@ int T6iot::init(char* host, int port, char* userAgent, int timeout) {
 
 	if (!client.connect(_httpHost, _httpPort)) {
 		if (DEBUG) {
-			Serial.println("Http connection failed");
+			Serial.println("Http connection failed during init");
 		}
 		return 0;
+	} else {
+		if (DEBUG) {
+			Serial.println("Http connection succeed");
+			Serial.print(_httpHost);
+			Serial.print(":");
+			Serial.println(_httpPort);
+		}
+		return 1;
 	}
 	return 1;
 }
@@ -437,7 +461,7 @@ void T6iot::authenticate(const char* t6Username, const char* t6Password, String*
 		Serial.println("Authenticating to t6 using a Username/Password:");
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed");
+		Serial.println("Http connection failed during authenticate");
 	}
 	_t6Username = t6Username;
 	_t6Password = t6Password;
@@ -475,7 +499,7 @@ void T6iot::authenticateKS(const char* t6Key, const char* t6Secret, String* res)
 		Serial.println("Authenticating to t6 using a Key/Secret:");
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed");
+		Serial.println("Http connection failed during authenticateKS");
 	}
 	_t6Key = t6Key;
 	_t6Secret = t6Secret;
@@ -509,7 +533,7 @@ void T6iot::getStatus(String* res) {
 		Serial.println("Getting t6 Api Status:");
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed");
+		Serial.println("Http connection failed during getStatus");
 	}
 	StaticJsonBuffer<400> jsonBuffer;
 	const int BUFFER_SIZE = JSON_OBJECT_SIZE(2);
@@ -535,7 +559,7 @@ void T6iot::getDatatypes(String* res) {
 		Serial.println("Getting datatypes:");
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed");
+		Serial.println("Http connection failed during getDatatypes");
 	}
 	StaticJsonBuffer<400> jsonBuffer;
 	const int BUFFER_SIZE = JSON_OBJECT_SIZE(2);
@@ -561,7 +585,7 @@ void T6iot::getUnits(String* res) {
 		Serial.println("Getting units:");
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed");
+		Serial.println("Http connection failed during getUnits");
 	}
 	StaticJsonBuffer<400> jsonBuffer;
 	const int BUFFER_SIZE = JSON_OBJECT_SIZE(2);
@@ -587,7 +611,7 @@ void T6iot::getIndex(String* res) {
 		Serial.println("Getting index:");
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed");
+		Serial.println("Http connection failed during getIndex");
 	}
 	StaticJsonBuffer<400> jsonBuffer;
 	const int BUFFER_SIZE = JSON_OBJECT_SIZE(2);
@@ -628,7 +652,7 @@ void T6iot::createDatapoint(char* flowId, JsonObject& payload, bool useSignature
 		Serial.println("Adding datapoint to t6:");
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed");
+		Serial.println("Http connection failed during createDatapoint");
 	}
 
 	_postRequest(&client, _urlDataPoint+String(flowId), payload, useSignature);
@@ -727,7 +751,7 @@ void T6iot::getOtaLatestVersion(String objectId, String* res) {
 		Serial.println("Getting t6 OTA Latest Version for an Object:");
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed");
+		Serial.println("Http connection failed during getOtaLatestVersion");
 	}
 	StaticJsonBuffer<400> jsonBuffer;
 	const int BUFFER_SIZE = JSON_OBJECT_SIZE(2);
@@ -754,7 +778,7 @@ void T6iot::otaDeploy(const char* sourceId, String objectId, String* res) {
 		Serial.println("Deploying a source to Object: "+String(objectId)+" ("+String(sourceId)+")");
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed");
+		Serial.println("Http connection failed during otaDeploy");
 	}
 
 	StaticJsonBuffer<400> jsonBuffer;
@@ -777,12 +801,32 @@ void T6iot::otaDeploy(const char* sourceId, String objectId, String* res) {
 	}
 	_handleOTADeployResponse();
 }
+void T6iot::_getHtmlRequest(WiFiClient* client, String url) {
+	if (DEBUG) {
+		Serial.print("GETing from: ");
+		Serial.println(url);
+	}
+	client->print("GET ");
+	client->print(url);
+	client->println(" HTTP/1.1");
+	client->print("Host: ");
+	client->println(_httpHost);
+	client->print("User-Agent: Arduino/2.2.0/t6iot-library/");
+	client->println(_userAgent);
+	if (_JWTToken) {
+		client->print("Authorization: Bearer ");
+		client->println(_JWTToken);
+	}
+	client->println("Connection: close");
+	client->println();
+
+	delay(_timeout);
+}
 void T6iot::_getRequest(WiFiClient* client, String url) {
 	if (DEBUG) {
 		Serial.print("GETing from: ");
 		Serial.println(url);
 	}
-
 	client->print("GET ");
 	client->print(url);
 	client->println(" HTTP/1.1");
@@ -834,7 +878,6 @@ void T6iot::_postRequest(WiFiClient* client, String url, JsonObject& payload, bo
 		Serial.print("POSTing (_postRequest) to: ");
 		Serial.println(url);
 	}
-
 	client->print("POST ");
 	client->print(url);
 	client->println(" HTTP/1.1");
