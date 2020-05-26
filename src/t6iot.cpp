@@ -38,10 +38,10 @@ const char* www_username;
 const char* www_password;
 const char* www_realm;
 bool DEBUG = false;
-//const char* fingerprint = "6C:6C:63:F9:1D:92:30:28:55:44:38:D3:F5:54:E0:6F:F9:8F:D0:77"; // SHA1 fingerprint of the certificate / Use web browser to view and copy
-//const uint8_t fingerprint[20] = "0x6C, 0x6C, 0x63, 0xF9, 0x1D, 0x92, 0x30, 0x28, 0x55, 0x44, 0x38, 0xD3, 0xF5, 0x54, 0xE0, 0x6F, 0xF9, 0x8F, 0xD0, 0x77"; // SHA1 fingerprint of the certificate / Use web browser to view and copy
+const char* fingerprint = "6C:6C:63:F9:1D:92:30:28:55:44:38:D3:F5:54:E0:6F:F9:8F:D0:77"; // SHA1 fingerprint of the certificate / Use web browser to view and copy
 
 WiFiClient client;
+HTTPClient https;
 
 String defaultHtml = "<html>\n"
 	"<head></head>\n"
@@ -60,7 +60,6 @@ String defaultHtml = "<html>\n"
 	"</ul>\n"
 	"</body>\n"
 	"</html>\n";
-
 
 String responseA; // for authentication
 String responseD; // for datapoints
@@ -112,34 +111,7 @@ int T6iot::setWebServerCredentials(const char* username, const char* password, c
 	www_realm = realm;
 }
 int T6iot::setHtml() {
-	/*
-	if (!authenticated) {
-		authenticate();
-	}
-	*/
 	_getHtmlRequest(&client, _urlObjects+String(object.id)+"/show");
-
-	while (client.available()) {
-		String line = client.readStringUntil('\n');
-		//Serial.println(line);
-		if (line.length() == 1) { //empty line means end of headers
-			break;
-		}
-	}
-	defaultHtml = "";
-	while (client.available()) {
-		//char c = client.read();
-		String line = client.readStringUntil('\n');
-		defaultHtml += line;
-	}
-	if (DEBUG) {
-		if (defaultHtml != "") {
-			Serial.println("Youooouuuu, I got some Html to serve.");
-			Serial.println(defaultHtml);
-		} else {
-			Serial.println("Oh nooooo, I don't have any Html to serve.");
-		}
-	}
 	return 1;
 }
 int T6iot::setHtml(String html) {
@@ -806,21 +778,29 @@ void T6iot::_getHtmlRequest(WiFiClient* client, String url) {
 		Serial.print("GETing from: ");
 		Serial.println(url);
 	}
-	client->print("GET ");
-	client->print(url);
-	client->println(" HTTP/1.1");
-	client->print("Host: ");
-	client->println(_httpHost);
-	client->print("User-Agent: Arduino/2.2.0/t6iot-library/");
-	client->println(_userAgent);
-	if (_JWTToken) {
-		client->print("Authorization: Bearer ");
-		client->println(_JWTToken);
+	// TODO: bearSSL is only being used in this _getHtmlRequest. It should also be used in all the other methods
+	BearSSL::WiFiClientSecure newSecure;
+	newSecure.setFingerprint(fingerprint);
+	int checkBegin = https.begin(newSecure, _httpHost, _httpPort, url, false);
+	int code = https.GET();
+	/*
+	Serial.print("checkBegin:");
+	Serial.println(checkBegin);
+	Serial.print("code:");
+	Serial.println(code);
+	*/
+	defaultHtml = https.getString();
+	if (DEBUG) {
+		if (defaultHtml != "") {
+			Serial.println("Youooouuuu, I got some Html to serve.");
+			Serial.println(defaultHtml);
+		} else {
+			Serial.println("Oh nooooo, I don't have any Html to serve.");
+		}
 	}
-	client->println("Connection: close");
-	client->println();
-
 	delay(_timeout);
+	https.end();
+	newSecure.stop();
 }
 void T6iot::_getRequest(WiFiClient* client, String url) {
 	if (DEBUG) {

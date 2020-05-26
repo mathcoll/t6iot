@@ -1,8 +1,5 @@
 #include <ESP8266WiFi.h>
 #include <t6iot.h>
-#define USING_AXTLS
-#include <WiFiClientSecureAxTLS.h>                                // Force use of AxTLS (BearSSL is now default)
-using namespace axTLS;
 
 // t6 Server
 char* t6HttpHost = "api.internetcollaboratif.info";               // t6 server IP Address, actually, it can't be updated only from this parameter, require SSL fingerprint in the library too
@@ -67,7 +64,7 @@ void setup() {
   printIPAddressOfHost(t6HttpHost);
 
   t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
-  t6Client.DEBUG = true;                                          // Activate or disable DEBUG mode
+  t6Client.DEBUG = false;                                         // Activate or disable DEBUG mode
   t6Client.setCredentials(t6Username, t6Password);                // This will define your own personal username/password to connect to t6
   t6Client.initObject(t6ObjectId, secret, t6UserAgent);           // 
   t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure

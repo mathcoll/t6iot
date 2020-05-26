@@ -14,6 +14,7 @@
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <WiFiClient.h>
+#include <ESP8266HTTPClient.h>
 #include <ESP8266WebServer.h>
 
 class T6Object {
