@@ -1,252 +1,155 @@
-/*
-  t6iot.ino - 
-  Created by mathieu@internetcollaboratif.info <Mathieu Lory>.
-  Sample file to connect t6 api
-  
-  - t6 iot: https://api.internetcollaboratif.info
-  - Api doc: https://api.internetcollaboratif.info/docs/
-*/
-
+#include <ESP8266WiFi.h>
 #include <t6iot.h>
-#include "settings.h"
 
-String responseA; // for authentication
-String responseD; // for datapoints
-String responseDT; // for datatypes
-String responseU; // for units
-String responseS; // for status
-String responseIndex; // for index
-t6iot t6Client;
+// t6 Server
+char* t6HttpHost = "api.internetcollaboratif.info";               // t6 server IP Address, actually, it can't be updated only from this parameter, require SSL fingerprint in the library too
+int t6HttpPort = 443;                                             // t6 port
+int t6Timeout = 3000;                                             // t6 timeout to get an answer from server
+
+// t6 JWT Authentication
+const char* t6Username = "demo";                                  // Your t6 Username
+const char* t6Password = "?[W{7kG'X63-e0N";                       // Your t6 Password
+                                                                  // or :
+const char* t6Key = "";                                           // Your t6 Key
+const char* t6Secret = "";                                        // Your t6 Secret
+
+// t6 Object
+char* secret = "";                                                // The object secret, for signature
+char* t6ObjectId = "092579ba-3dd6-4c03-982e-0ecc66033609";        // The Object uuid-v4 in t6
+char* t6UserAgent = "nodeMCU.28";                                 // The userAgent used when calling t6 api
+const char* t6ObjectWww_username = "admin";                       // Optional Username to call Object Api, set to "" to disable this authentication
+const char* t6ObjectWww_password = "esp8266";                     // Optional Password to call Object Api, set to "" to disable this authentication
+
+// t6 Flow container for Sensor data
+char* t6FlowId = "7774c70a-551a-4f1c-b78c-efa836835b14";          // 
+char* t6Mqtt_topic = "";                                          // 
+char* t6Unit = "%";                                               // 
+char* t6Save = "true";                                            // 
+char* t6Publish = "true";                                         // 
+
+const char* ssid = "";                                            // Your own Wifi ssi to connect to
+const char* password = "";                                        // Your wifi password
+
+const long POSTInterval = 180000;                                 // Interval between each POST -> 30 minutes
+const long READInterval = 60 * 1000;                              // Interval between each READ -> 1 minute
+float sensorValue = -1.0;                                         // Init the sensor value
+unsigned long POSTlast = -1;                                      // This is just to know when last Post was called
+unsigned long READlast = -1;                                      // This is just to know when last sensor read was done
+
+String html = "<html>\n"
+  "<head></head>\n"
+  "<body>\n"
+  "<h1>ESP demo</h1>\n"
+  "<ul>\n"
+  "<li><a href='/open'>open</a></li>\n"
+  "<li><a href='/close'>close</a></li>\n"
+  "<li><a href='/getVal'>getVal</a></li>\n"
+  "<!--<li><a href='/setVal'>setVal</a></li>-->\n"
+  "<li><a href='/on'>on</a></li>\n"
+  "<li><a href='/off'>off</a></li>\n"
+  "<li><a href='/upper'>upper</a></li>\n"
+  "<li><a href='/lower'>lower</a></li>\n"
+  "<li><a href='/upgrade'>upgrade</a></li>\n"
+  "</ul>\n"
+  "</body>\n"
+  "</html>\n";
+
+T6iot t6Client;                                                   // Init T6iot Client named "t6Client"
 
 void setup() {
+  Serial.println("Booting ESP..");
   Serial.begin(115200);
-  
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
-  Serial.println();
-  Serial.print("WiFi connected. IP address: ");
-  Serial.println(WiFi.localIP());
-  
-  t6Client.begin(httpHost, httpPort, userAgent, timeout);
 
-  // This Authentication method should not be used for an Object
-  //t6Client.authenticate(t6Username, t6Password, &responseA);
-  
-  // This Authentication method should be used to get a JWT from a Key/Secret
-  t6Client.authenticateKS(t6Key, t6Secret, &responseA);
-    handleAuthenticateResponse();
+  startWiFi();                                                    // Obviously, the wifi initialization :-)
+  printIPAddressOfHost(t6HttpHost);
+
+  t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
+  t6Client.DEBUG = false;                                         // Activate or disable DEBUG mode
+  t6Client.setCredentials(t6Username, t6Password);                // This will define your own personal username/password to connect to t6
+  t6Client.initObject(t6ObjectId, secret, t6UserAgent);           // 
+  t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
+  t6Client.setWebServerCredentials(t6ObjectWww_username, t6ObjectWww_password); // Define credentials for webserver on the Object
+  //t6Client.setHtml(html);                                         // Set html into the Object
+  t6Client.setHtml();                                             // Or fetch it from t6 api
+  t6Client.startWebServer();                                      // Starting to listen from the Object on Http Api
 }
 
-
-/*
-* set Arduino to sleep mode
-*/
-void pleaseGoToBed() {
-  Serial.println();
-  Serial.println();
-  Serial.println("Sleeping in few milliseconds...");
-  delay(500);
-  ESP.deepSleep(SLEEP_DELAY_IN_SECONDS * 1000000, WAKE_RF_DEFAULT);
-  delay(1500);
-}
-  
-/*
-* Use JWT token from Authenticate
-*/
-void handleAuthenticateResponse() {
-  const int A_BUFFER_SIZE = JSON_OBJECT_SIZE(2);
-  DynamicJsonBuffer A_jsonRequestBuffer(A_BUFFER_SIZE);
-  JsonObject& authenticate = A_jsonRequestBuffer.parseObject(responseA);
-  if (!authenticate.success()) {
-    Serial.println("Failure on parsing json.");
-    Serial.println(responseA);
-  } else {
-    const char* Aerror = authenticate["error"];
-    const char* Atoken = authenticate["token"];
-    const char* Astatus = authenticate["status"];
-    const char* Arefresh_token = authenticate["refresh_token"];
-    const char* ArefreshTokenExp = authenticate["refreshTokenExp"];
-    if ( Aerror ) {
-      Serial.println("Failure on:");
-      Serial.println(responseA);
-    }
-    Serial.println();
-    Serial.print("\tToken: ");
-    Serial.println( Atoken );
-    Serial.print("\tStatus: ");
-    Serial.println( Astatus );
-    Serial.print("\tRefresh Token: ");
-    Serial.println( Arefresh_token );
-    Serial.print("\tRefresh Token Exp: ");
-    Serial.println( ArefreshTokenExp );
-    Serial.println();
-  }
-} // handleAuthenticateResponse
-  
-/*
-* Retrieve and use t6 api Status
-*/
-void handlStatusResponse() {
-  const int S_BUFFER_SIZE = JSON_OBJECT_SIZE(2);
-  DynamicJsonBuffer S_jsonRequestBuffer(S_BUFFER_SIZE);
-  JsonObject& status = S_jsonRequestBuffer.parseObject(responseS);
-  if (!status.success()) {
-    Serial.println("Failure on parsing json.");
-    Serial.println(responseS);
-  } else {
-    const char* Serror = status["error"];
-    const char* Sstatus = status["status"];
-    const char* Sversion = status["version"];
-    if ( Serror ) {
-      Serial.println("Failure on:");
-      Serial.println(responseS);
-    }
-    Serial.println();
-    Serial.print("\tStatus: ");
-    Serial.println( Sstatus );
-    Serial.print("\tVersion: ");
-    Serial.println( Sversion );
-    Serial.println();
-  }
-} // handlStatusResponse
-
-/*
-* Retrieve and use t6 Datatypes
-*/
-void handleDatatypesResponse() {
-  const int DT_BUFFER_SIZE = JSON_OBJECT_SIZE(2);
-  DynamicJsonBuffer DT_jsonRequestBuffer(DT_BUFFER_SIZE);
-  JsonObject& datatypes = DT_jsonRequestBuffer.parseObject(responseDT);
-  if (!datatypes.success()) {
-    Serial.println("Failure on parsing json.");
-    Serial.println(responseDT);
-  } else {
-    const char* DTerror = datatypes["error"];
-    const char* DTstatus = datatypes["status"];
-    const char* DTversion = datatypes["version"];
-    if ( DTerror ) {
-      Serial.println("Failure on:");
-      Serial.println(responseDT);
-    }
-    Serial.println();
-    Serial.println();
-  }
-} // handleDatatypesResponse
-
-/*
-* Retrieve and use t6 units
-*/
-void handleUnitsResponse() {
-  Serial.println( "handleUnitsResponse" );
-} // handleUnitsResponse
-
-/*
-* Add data point to timeserie
-*/
-void handleDatapointResponse() {
-  const int D_BUFFER_SIZE = JSON_OBJECT_SIZE(2);
-  DynamicJsonBuffer D_jsonRequestBuffer(D_BUFFER_SIZE);
-  JsonObject& datapoint = D_jsonRequestBuffer.parseObject(responseD);
-  if (!datapoint.success()) {
-    Serial.println("Failure on parsing json.");
-    Serial.println(responseD);
-  } else {
-    const char* Derror = datapoint["error"];
-    if ( Derror ) {
-      Serial.println("Failure on:");
-      Serial.println(responseD);
-    }
-    Serial.println();
-    Serial.println();
-  }
-} // handleDatapointResponse
-
-
-
-/*
-* Loop
-*/
 void loop() {
+  if (millis() - READlast >= READInterval) {                      // Reading only when necessary
+    readSample();
+    READlast = millis();
+  }
   
-  /*
-  t6Client.getStatus(&responseS);
-    handlStatusResponse();
-    
-  t6Client.getDatatypes(&responseDT);
-    handleDatatypesResponse();
-    
-  t6Client.getUnits(&responseU);
-    handleUnitsResponse();
-    
-  t6Client.getIndex(&responseIndex);
-    ;
-  */
-  
-  const int BUFFER_SIZE = JSON_OBJECT_SIZE(6);
-  StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
-  JsonObject& payload = jsonBuffer.createObject();
-  payload["value"] = 12345;
-  payload["flow_id"] = t6FlowId;
-  payload["mqtt_topic"] = "ArduinoTest";
-  payload["unit"] = "";
-  payload["save"] = "true";
-  payload["publish"] = "true";
-  payload.prettyPrintTo(Serial);
-  t6Client.createDatapoint(t6FlowId, payload, false, &responseD);
-    handleDatapointResponse();
-  
-  // 0. Users
-  //Serial.println("0. Users");
-  //t6Client.createUser();
-  //t6Client.getUser();
-  //t6Client.editUser();
-  
-  // 1. Objects
-  //Serial.println("1. Objects");
-  //t6Client.createObject();
-  //t6Client.getObjects();
-  //t6Client.editObject();
-  //t6Client.deleteObject();
-  
-  // 2. Flows
-  //Serial.println("2. Flows");
-  //t6Client.createFlow();
-  //t6Client.getFlows();
-  //t6Client.editFlow();
-  //t6Client.deleteFlow();
-  
-  // 3. Dashboards
-  //Serial.println("3. Dashboards");
-  //t6Client.createDashboard();
-  //t6Client.getDashboards();
-  //t6Client.editDashboard();
-  //t6Client.deleteDashboard();
-  
-  // 4. Snippets
-  //Serial.println("4. Snippets");
-  //t6Client.createSnippet();
-  //t6Client.getSnippets();
-  //t6Client.editSnippet();
-  //t6Client.deleteSnippet();
-  
-  // 5. Rules
-  //Serial.println("5. Rules");
-  //t6Client.createRule();
-  //t6Client.getRules();
-  //t6Client.editRule();
-  //t6Client.deleteRule();
-  
-  // 6. Mqtts
-  //Serial.println("6. Mqtts");
-  //t6Client.createMqtt();
-  //t6Client.getMqtts();
-  //t6Client.editMqtt();
-  //t6Client.deleteMqtt();
+  t6Client.handleClient();                                        // Handling t6 Object http connexion, only when WebServer is activated
 
-  pleaseGoToBed();
-} // Loop
+  if (sensorValue > -1 && ((millis() - POSTlast >= POSTInterval) || POSTlast == -1)) {
+    t6Client.lockSleep(t6Timeout);                                // Lock the sleep, so the Object can't get into deep sleep mode when posting
+
+    t6Client.authenticate();                                      // Generate a JWT from your personnal credential on t6 server
+
+    // Building payload to post
+    const int BUFFER_SIZE = JSON_OBJECT_SIZE(6);
+    StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
+    JsonObject& payload = jsonBuffer.createObject();
+    payload["value"] = sensorValue;
+    payload["flow_id"] = t6FlowId;
+    payload["mqtt_topic"] = t6Mqtt_topic;
+    payload["unit"] = t6Unit;
+    payload["save"] = t6Save;
+    payload["publish"] = t6Publish;
+    t6Client.createDatapoint(t6FlowId, payload);                  // Create a datapoint on t6
+    t6Client.unlockSleep();                                       // Unlock the sleep mode
+
+    POSTlast = millis();
+  }
+}
+
+void readSample() {
+  Serial.println("readSample");
+  sensorValue++;                                                 // For the example file, the sensor read an incremented value
+  Serial.println(String("Updating sensorValue to: ")+sensorValue);
+  t6Client.setValue(sensorValue);                                // Updating t6 with the sensor value
+}
+
+void printIPAddressOfHost(const char* host) {
+  IPAddress resolvedIP;
+  if (!WiFi.hostByName(host, resolvedIP)) {
+    Serial.print(F("Host lookup failed for "));
+    Serial.println(host);
+  }
+  Serial.print(F("Host: "));
+  Serial.print(host);
+  Serial.print(", IP: ");
+  Serial.println(resolvedIP.toString().c_str());
+}
+void startWiFi() {
+  Serial.println();
+  Serial.print("Connecting to Wifi SSID: ");
+  Serial.println(ssid);
+  /*
+  IPAddress ip(192, 168, 0, 100);
+  IPAddress gateway(192, 168, 0, 255);
+  IPAddress subnet(255, 255, 255, 0);
+  IPAddress dns1(8.8.8.8);
+  IPAddress dns2(8.8.8.4);
+  WiFi.config(ip, gateway, dns1, dns2);
+  */
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  if (WiFi.waitForConnectResult() != WL_CONNECTED) {
+    Serial.println("WiFi Connect Failed! Rebooting...");
+    delay(1000);
+    Serial.print(".");
+    ESP.restart();
+  }
+  Serial.println("Wifi: OK");
+  Serial.print("DNS address 1:");
+  Serial.println(WiFi.dnsIP(0));
+  Serial.print("DNS address 2:");
+  Serial.println(WiFi.dnsIP(1));
+  Serial.print("IP address:");
+  Serial.println(WiFi.localIP());
+  Serial.print("Signal Power:");
+  Serial.print(WiFi.RSSI());
+  Serial.println(" dBm");
+}

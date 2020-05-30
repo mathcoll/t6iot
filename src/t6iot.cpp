@@ -121,6 +121,17 @@ int T6iot::setHtml(String html) {
 
 int T6iot::startWebServer(int port) {
 	_t6ObjectHttpPort = port;
+	
+	server.on("/favicon.ico", [=]() {
+		static const uint8_t ico[] PROGMEM = {
+			0x47, 0x49, 0x46, 0x38, 0x37, 0x61, 0x10, 0x00, 0x10, 0x00, 0x80, 0x01,
+			0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x2c, 0x00, 0x00, 0x00, 0x00,
+			0x10, 0x00, 0x10, 0x00, 0x00, 0x02, 0x19, 0x8c, 0x8f, 0xa9, 0xcb, 0x9d,
+			0x00, 0x5f, 0x74, 0xb4, 0x56, 0xb0, 0xb0, 0xd2, 0xf2, 0x35, 0x1e, 0x4c,
+			0x0c, 0x24, 0x5a, 0xe6, 0x89, 0xa6, 0x4d, 0x01, 0x00, 0x3b
+		};
+		server.send(200, "image/x-icon", ico, sizeof(ico));
+	});
 	server.on("/", [=]() {
 		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) {
 			//Basic Auth Method with Custom realm and Failure Response
@@ -134,27 +145,16 @@ int T6iot::startWebServer(int port) {
 		}
 		server.send(200, "text/html; charset=UTF-8", defaultHtml);
 	});
-	server.on("/favicon.ico", [=]() {
-		static const uint8_t ico[] PROGMEM = {
-			0x47, 0x49, 0x46, 0x38, 0x37, 0x61, 0x10, 0x00, 0x10, 0x00, 0x80, 0x01,
-			0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x2c, 0x00, 0x00, 0x00, 0x00,
-			0x10, 0x00, 0x10, 0x00, 0x00, 0x02, 0x19, 0x8c, 0x8f, 0xa9, 0xcb, 0x9d,
-			0x00, 0x5f, 0x74, 0xb4, 0x56, 0xb0, 0xb0, 0xd2, 0xf2, 0x35, 0x1e, 0x4c,
-			0x0c, 0x24, 0x5a, 0xe6, 0x89, 0xa6, 0x4d, 0x01, 0x00, 0x3b
-		};
-		server.send(200, "image/x-icon", ico, sizeof(ico));
-	});
-
 
 	/* MAINTENANCE ACTIONS ON OBJECT */
 	server.on("/upgrade", [=]() {
 		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(201, "text/plain", "UNDERSTOOD, but this can take a while.. and might fail.");
-		upgrade();
+		server.send(201, "application/json", String("{\"action\": \"upgrade\", \"status\": \"UNDERSTOOD\", \"snack\": \"Upgrade OTA is pending. It might take a long time.\"}"));
+				upgrade();
 	});
 	server.on("/refresh", [=]() {
 		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
-		server.send(201, "text/plain", "UNDERSTOOD");
+		server.send(201, "application/json", String("{\"action\": \"refresh\", \"status\": \"UNDERSTOOD\", \"snack\": \"Refresh is pending. It might take a long time.\"}"));
 		setHtml();
 	});
 
@@ -182,6 +182,14 @@ int T6iot::startWebServer(int port) {
 	server.on("/lower", [=]() {
 		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
 		server.send(200, "application/json", String("{\"action\": \"lower\", \"status\": \"ok\", \"snack\": \"Decreased\"}"));
+	});
+	server.on("/true", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(200, "application/json", String("{\"action\": \"true\", \"status\": \"ok\", \"snack\": \"True\"}"));
+	});
+	server.on("/false", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		server.send(200, "application/json", String("{\"action\": \"false\", \"status\": \"ok\", \"snack\": \"False\"}"));
 	});
 
 
@@ -781,7 +789,7 @@ void T6iot::_getHtmlRequest(WiFiClient* client, String url) {
 	// TODO: bearSSL is only being used in this _getHtmlRequest. It should also be used in all the other methods
 	BearSSL::WiFiClientSecure newSecure;
 	newSecure.setFingerprint(fingerprint);
-	int checkBegin = https.begin(newSecure, _httpHost, _httpPort, url, false);
+	int checkBegin = https.begin(newSecure, _httpHost, _httpPort, url, false); // User-agent seems to be "ESP8266HTTPClient"
 	int code = https.GET();
 	/*
 	Serial.print("checkBegin:");
