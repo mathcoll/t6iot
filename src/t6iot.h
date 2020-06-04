@@ -16,6 +16,7 @@
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WebServer.h>
+#include <TaskManager.h>
 
 class T6Object {
 	public:
@@ -41,7 +42,7 @@ class T6Flow {
 	private:
 };
 
-class T6iot {
+class T6iot: public TaskManager {
   public:
     char* _userAgent;
     char* _urlJWT;
@@ -60,6 +61,7 @@ class T6iot {
     char* _urlOta;
     bool DEBUG;
     String html;
+    String _messageArrived;
 
     T6iot();
     T6iot(char* httpHost, int httpPort);
@@ -71,6 +73,7 @@ class T6iot {
     int setWebServerCredentials(const char* t6ObjectWww_username, const char* t6ObjectWww_password);
     int setWebServerCredentials(const char* t6ObjectWww_username, const char* t6ObjectWww_password, const char* t6ObjectWww_realm);
     int webServerAllowCommand(String command);
+    String pollWebServer();
     int startWebServer();
     int startWebServer(int port);
     int startWebServer(int port, const char* t6ObjectWww_username, const char* t6ObjectWww_password, const char* t6ObjectWww_realm);
@@ -84,9 +87,11 @@ class T6iot {
 
     void setCredentials(const char* t6Username, const char* t6Password);
 
+    void refreshToken();
     void authenticate();
     void authenticate(const char* t6Username, const char* t6Password);
-    void authenticate(const char* t6Username, const char* t6Password, String* response);
+    void authenticateKS();
+    void authenticateKS(const char* t6Key, const char* t6Secret);
 
     void setObject(char* t6ObjectId);
     void setObject(char* t6ObjectId, char* t6ObjectUA);
@@ -96,21 +101,17 @@ class T6iot {
 	T6Object initObject(String id, String secret);
 	T6Object initObject(String id, String secret, String ua);
 
-    void authenticateKS(const char* t6Key, const char* t6Secret);
-    void authenticateKS(const char* t6Key, const char* t6Secret, String* response);
-
-    void getStatus(String* response);
-    void getDatatypes(String* response);
-    void getUnits(String* response);
-    void getIndex(String* response);
+    void getStatus();
+    void getDatatypes();
+    void getUnits();
+    void getIndex();
 
     void createUser();
     void getUser(char* userId);
     void editUser();
 
-    void createDatapoint(char* flowId, JsonObject& payload);
-    void createDatapoint(char* flowId, JsonObject& payload, String* response);
-    void createDatapoint(char* flowId, JsonObject& payload, bool useSignature, String* response);
+    void createDatapoint(char* flowId, DynamicJsonDocument& payload);
+    void createDatapoint(char* flowId, DynamicJsonDocument& payload, bool useSignature);
     void getDatapoints();
 
     void createObject();
@@ -143,8 +144,8 @@ class T6iot {
     void editMqtt();
     void deleteMqtt();
 
-    void getOtaLatestVersion(String objectId, String* response);
-    void otaDeploy(const char* sourceId, String objectId, String* response);
+    void getOtaLatestVersion(String objectId);
+    void otaDeploy(const char* sourceId, String objectId);
 
 	void startRest();
 	void handle(WiFiClient& client);
@@ -156,6 +157,8 @@ class T6iot {
 
 	float getValue();
 	void setValue(float sensorValue);
+	
+    void log(const char* logLine);
 
   private:
 	float _sensorValue;
@@ -176,16 +179,10 @@ class T6iot {
     const char* _t6ObjectWww_realm;
     void _getRequest(WiFiClient* client, String url);
     void _getHtmlRequest(WiFiClient* client, String url);
-    void _postRequest(WiFiClient* client, String url, JsonObject& payload);
-    void _postRequest(WiFiClient* client, String url, JsonObject& payload, bool useSignature);
     void _putRequest(WiFiClient* client, String url, JsonObject& payload);
     void _deleteRequest(WiFiClient* client, String url);
-    String _getSignedPayload(JsonObject& payload, char* objectId, char* secret);
-    void _handleAuthenticateResponse();
-    void _handleOTALatestVersionResponse();
-    void _handleDatapointResponse();
-    void _handleOTADeployResponse();
-    void _handleShowResponse();
+    String _getSignedPayload(String& payload, String& objectId, String& secret);
+    String _urlEncode(String str);
 };
 
 #endif
