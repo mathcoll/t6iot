@@ -19,6 +19,7 @@ init	KEYWORD2
 setWebServerCredentials	KEYWORD2
 webServerAllowCommand	KEYWORD2
 startWebServer	KEYWORD2
+pollWebServer	KEYWORD2
 setCredentials	KEYWORD2
 initObject	KEYWORD2
 lockSleep	KEYWORD2
@@ -65,6 +66,7 @@ setValue	KEYWORD2
 setHtml	KEYWORD2
 
 readSample	KEYWORD2
+postSample	KEYWORD2
 
 #######################################
 # Constants (LITERAL1)
