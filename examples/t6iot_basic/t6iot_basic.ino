@@ -17,24 +17,26 @@ const char* t6Secret = "";                                        // Your t6 Sec
 char* secret = "";                                                // The object secret, for signature
 char* t6ObjectId = "092579ba-3dd6-4c03-982e-0ecc66033609";        // The Object uuid-v4 in t6
 char* t6UserAgent = "nodeMCU.28";                                 // The userAgent used when calling t6 api
-const char* t6ObjectWww_username = "admin";                       // Optional Username to call Object Api, set to "" to disable this authentication
-const char* t6ObjectWww_password = "esp8266";                     // Optional Password to call Object Api, set to "" to disable this authentication
+const char* wwwUsername = "admin";                                // Optional Username to call Object Api, set to "" to disable this authentication
+const char* wwwPassword = "esp8266";                              // Optional Password to call Object Api, set to "" to disable this authentication
 
 // t6 Flow container for Sensor data
 char* t6FlowId = "7774c70a-551a-4f1c-b78c-efa836835b14";          // 
 char* t6Mqtt_topic = "";                                          // 
 char* t6Unit = "%";                                               // 
-char* t6Save = "true";                                            // 
-char* t6Publish = "true";                                         // 
+char* t6Save = "false";                                           // 
+char* t6Publish = "false";                                        // 
 
-const char* ssid = "";                                            // Your own Wifi ssi to connect to
+const char* ssid = "";                                            // Your own Wifi ssid to connect to
 const char* password = "";                                        // Your wifi password
 
-const long POSTInterval = 180000;                                 // Interval between each POST -> 30 minutes
-const long READInterval = 60 * 1000;                              // Interval between each READ -> 1 minute
-float sensorValue = -1.0;                                         // Init the sensor value
-unsigned long POSTlast = -1;                                      // This is just to know when last Post was called
-unsigned long READlast = -1;                                      // This is just to know when last sensor read was done
+const long READInterval = 3 * 60;                                 // Interval between each READ -> 3 minutes
+const long JWTRefreshInterval = 4 * 60;                           // Should be less than server -> 4 minutes are fair
+const long POSTInterval = 30 * 60;                                // Interval between each POST -> 30 minutes
+const long POLLInterval = 100;                                    // Interval for polling ; it should be short -> 100ms
+float sensorValue = -1.0;                                         // Value read from the sensor
+
+uint8_t jwtrTask, pollTask, postTask, readTask;                   // All tasks that can be cancelled
 
 String html = "<html>\n"
   "<head></head>\n"
@@ -49,7 +51,10 @@ String html = "<html>\n"
   "<li><a href='/off'>off</a></li>\n"
   "<li><a href='/upper'>upper</a></li>\n"
   "<li><a href='/lower'>lower</a></li>\n"
-  "<li><a href='/upgrade'>upgrade</a></li>\n"
+  "<li><a href='/true'>True</a></li>\n"
+  "<li><a href='/false'>False</a></li>\n"
+  "<li><a href='/refresh'>Refresh UI</a></li>\n"
+  "<li><a href='/upgrade'>Upgrade OTA</a></li>\n"
   "</ul>\n"
   "</body>\n"
   "</html>\n";
@@ -62,53 +67,117 @@ void setup() {
 
   startWiFi();                                                    // Obviously, the wifi initialization :-)
   printIPAddressOfHost(t6HttpHost);
+ 
+  t6Client.DEBUG = false;                                         // Activate or disable DEBUG mode
 
   t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
-  t6Client.DEBUG = false;                                         // Activate or disable DEBUG mode
   t6Client.setCredentials(t6Username, t6Password);                // This will define your own personal username/password to connect to t6
-  t6Client.initObject(t6ObjectId, secret, t6UserAgent);           // 
+  t6Client.authenticate();                                        // Generate a JWT from your personnal credential on t6 server
+
+  t6Client.initObject(t6ObjectId, secret, t6UserAgent);           // Initialize t6 Object with its uuid-v4, it's secret if you need to sign payload
   t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
-  t6Client.setWebServerCredentials(t6ObjectWww_username, t6ObjectWww_password); // Define credentials for webserver on the Object
+  t6Client.setWebServerCredentials(wwwUsername, wwwPassword);   // Define credentials for webserver on the Object
   //t6Client.setHtml(html);                                         // Set html into the Object
   t6Client.setHtml();                                             // Or fetch it from t6 api
   t6Client.startWebServer();                                      // Starting to listen from the Object on Http Api
+
+  setOn();
+  uint8_t setTask = t6Client.scheduleOnce(0, setupComplete, TIME_SECONDS);                         // Run only once the setup Complete method
 }
 
 void loop() {
-  if (millis() - READlast >= READInterval) {                      // Reading only when necessary
-    readSample();
-    READlast = millis();
-  }
-  
+  t6Client.runLoop();                                             // taskManager
   t6Client.handleClient();                                        // Handling t6 Object http connexion, only when WebServer is activated
+}
 
-  if (sensorValue > -1 && ((millis() - POSTlast >= POSTInterval) || POSTlast == -1)) {
-    t6Client.lockSleep(t6Timeout);                                // Lock the sleep, so the Object can't get into deep sleep mode when posting
+void refreshToken() {
+  Serial.println("refreshToken() called");
+  t6Client.refreshToken();
+}
 
-    t6Client.authenticate();                                      // Generate a JWT from your personnal credential on t6 server
+void setOn() {
+  Serial.println("setOn() called");
+  jwtrTask = t6Client.scheduleFixedRate(JWTRefreshInterval, refreshToken, TIME_SECONDS);   // Refresh JWT and must be after an authenticate
+  pollTask = t6Client.scheduleFixedRate(POLLInterval, doServerQueries, TIME_MILLIS);       // Polling library, using milliseconds as TimerUnit
+  readTask = t6Client.scheduleFixedRate(READInterval, readSample, TIME_SECONDS);           // Read sensor Value regularly
+  postTask = t6Client.scheduleFixedRate(POSTInterval, postSample, TIME_SECONDS);           // POST Value regularly
+}
 
-    // Building payload to post
-    const int BUFFER_SIZE = JSON_OBJECT_SIZE(6);
-    StaticJsonBuffer<BUFFER_SIZE> jsonBuffer;
-    JsonObject& payload = jsonBuffer.createObject();
-    payload["value"] = sensorValue;
-    payload["flow_id"] = t6FlowId;
-    payload["mqtt_topic"] = t6Mqtt_topic;
-    payload["unit"] = t6Unit;
-    payload["save"] = t6Save;
-    payload["publish"] = t6Publish;
-    t6Client.createDatapoint(t6FlowId, payload);                  // Create a datapoint on t6
-    t6Client.unlockSleep();                                       // Unlock the sleep mode
-
-    POSTlast = millis();
-  }
+void setOff() {
+  Serial.println("setOff() called");
+  t6Client.cancelTask(readTask);                                // Stop a task from executing again if it is a repeating task
+  t6Client.cancelTask(postTask);                                // Stop a task from executing again if it is a repeating task
+  t6Client.cancelTask(jwtrTask);                                // Stop a task from executing again if it is a repeating task
 }
 
 void readSample() {
-  Serial.println("readSample");
-  sensorValue++;                                                 // For the example file, the sensor read an incremented value
+  Serial.println("readSample() called");
+  sensorValue++;
   Serial.println(String("Updating sensorValue to: ")+sensorValue);
   t6Client.setValue(sensorValue);                                // Updating t6 with the sensor value
+}
+
+void postSample() {
+  Serial.println(String("Posting sensorValue to t6: ")+sensorValue);
+  readSample();
+  if (sensorValue > -1) {
+    t6Client.lockSleep(t6Timeout);                                // Lock the sleep, so the Object can't get into deep sleep mode when posting
+    
+    DynamicJsonDocument payload(1024);                            // Building payload to post
+    payload[String("value")] = sensorValue;
+    payload[String("flow_id")] = t6FlowId;
+    payload[String("mqtt_topic")] = t6Mqtt_topic;
+    payload[String("unit")] = t6Unit;
+    payload[String("save")] = t6Save;
+    payload[String("publish")] = t6Publish;
+    t6Client.createDatapoint(t6FlowId, payload);                  // Create a datapoint on t6
+    t6Client.unlockSleep();                                       // Unlock the sleep mode
+  }
+}
+
+void doServerQueries() {                                          // This section contains the triggers on www events
+  String messageArrived = t6Client.pollWebServer();               // Poll Web Server to check if something happened
+  if(messageArrived == "on") {                                    // Trigger if message is on
+    postSample();                                                 // Trigger postSample()
+    setOff();
+
+  } else if(messageArrived == "off") {                            // Trigger if message is off
+    Serial.println("Set OFF and cancel all t6 api calls");
+    setOff();
+    //analog.digitalWrite();
+
+  } else if(messageArrived == "open") {                           // Trigger if message is open
+    Serial.println("Opening something");
+    //analog.digitalWrite(); 
+
+  } else if(messageArrived == "close") {                          // Trigger if message is close
+    Serial.println("Closing something");
+    //analog.digitalWrite();
+
+  } else if(messageArrived == "upper") {                          // Trigger if message is upper
+    Serial.println("Increase volume");
+    //analog.digitalWrite();
+
+  } else if(messageArrived == "lower") {                          // Trigger if message is lower
+    Serial.println("Decrease volume");
+    //analog.digitalWrite();
+
+  } else if(messageArrived == "true") {                           // Trigger if message is true
+    Serial.println("Boolean value is Activated");
+    //analog.digitalWrite();
+
+  } else if(messageArrived == "false") {                          // Trigger if message is false
+    Serial.println("Boolean value is Disabled");
+    //analog.digitalWrite();
+
+  } else if(messageArrived != "") {
+    Serial.print("UKN message arrived: ");
+    Serial.println(messageArrived);
+  }
+}
+
+void setupComplete() {
+  Serial.println("Ready.");
 }
 
 void printIPAddressOfHost(const char* host) {
