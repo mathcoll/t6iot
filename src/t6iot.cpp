@@ -8,6 +8,7 @@
 
 #include <t6iot.h>
 #include <IoAbstraction.h>
+#include <FS.h>
 
 #define SLEEP_DURATION  1800
 const size_t MAX_CONTENT_SIZE = 512;
@@ -101,7 +102,7 @@ void T6iot::log(const char* logLine) {
 
 /* t6 IoT constructor */
 T6iot::T6iot(): TaskManager() {
-	T6iot("192.168.0.15", 3000, "", 10000);
+	T6iot("api.internetcollaboratif.info", 443, "", 10000);
 }
 T6iot::T6iot(char* httpHost, int httpPort): TaskManager() {
 	T6iot(httpHost, httpPort, "", 10000);
@@ -140,17 +141,8 @@ int T6iot::setHtml(String html) {
 
 int T6iot::startWebServer(int port) {
 	_t6ObjectHttpPort = port;
-	
-	server.on("/favicon.ico", [=]() {
-		static const uint8_t ico[] PROGMEM = {
-			0x47, 0x49, 0x46, 0x38, 0x37, 0x61, 0x10, 0x00, 0x10, 0x00, 0x80, 0x01,
-			0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0x2c, 0x00, 0x00, 0x00, 0x00,
-			0x10, 0x00, 0x10, 0x00, 0x00, 0x02, 0x19, 0x8c, 0x8f, 0xa9, 0xcb, 0x9d,
-			0x00, 0x5f, 0x74, 0xb4, 0x56, 0xb0, 0xb0, 0xd2, 0xf2, 0x35, 0x1e, 0x4c,
-			0x0c, 0x24, 0x5a, 0xe6, 0x89, 0xa6, 0x4d, 0x01, 0x00, 0x3b
-		};
-		server.send(200, "image/x-icon", ico, sizeof(ico));
-	});
+	SPIFFS.begin();
+	server.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
 	server.on("/", [=]() {
 		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) {
 			//Basic Auth Method with Custom realm and Failure Response
