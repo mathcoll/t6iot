@@ -115,6 +115,7 @@ T6iot::T6iot(char* httpHost, int httpPort, char* userAgent, int timeout): TaskMa
 	_httpPort = httpPort;
 	_userAgent = userAgent;
 	_timeout = timeout;
+	https.setTimeout(_timeout);
 }
 
 
@@ -295,6 +296,7 @@ int T6iot::init(char* host, int port, char* userAgent, int timeout) {
 	_httpPort = port;
 	_userAgent = userAgent;
 	_timeout = timeout;
+	https.setTimeout(_timeout);
 	_urlJWT = "/v2.0.1/authenticate";
 	_urlStatus = "/v2.0.1/status";
 	_urlIndex = "/v2.0.1/index";
@@ -339,7 +341,7 @@ void T6iot::setCredentials(const char* t6Username, const char* t6Password) {
 }
 void T6iot::refreshToken() {
 	if (DEBUG) {
-		Serial.println("Refreshing JWT using a a refresh Token:"+_refreshToken);
+		Serial.println("Refreshing JWT using a refresh Token:"+_refreshToken);
 	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
 		Serial.println("Http connection failed during authenticate");
@@ -382,10 +384,11 @@ void T6iot::refreshToken() {
 				return;
 			} else {
 				_JWTToken = (doc["token"]).as<String>();
-				_refreshToken = (doc["_refreshToken"]).as<String>();
+				_refreshToken = (doc["refresh_token"]).as<String>();
 				if (DEBUG) {
 					Serial.print(F("deserializeJson() succeed: "));
 					Serial.println(_JWTToken);
+					Serial.println(_refreshToken);
 				}
 			}
 		} else {
@@ -512,7 +515,7 @@ void T6iot::authenticateKS(const char* t6Key, const char* t6Secret) {
 				return;
 			} else {
 				_JWTToken = (doc["token"]).as<String>();
-				_refreshToken = (doc["_refreshToken"]).as<String>();
+				_refreshToken = (doc["refresh_token"]).as<String>();
 				if (DEBUG) {
 					Serial.print(F("deserializeJson() succeed: "));
 					Serial.println(_JWTToken);
@@ -591,7 +594,7 @@ void T6iot::getDatatypes() {
 			Serial.println("Result HTTP Status=200");
 			Serial.println(payload);
 		}
-		DynamicJsonDocument doc(1500);
+		DynamicJsonDocument doc(500);
 		DeserializationError error = deserializeJson(doc, payload);
 		if (error && DEBUG) {
 			Serial.print(F("deserializeJson() failed: "));
@@ -629,7 +632,7 @@ void T6iot::getUnits() {
 			Serial.println("Result HTTP Status=200");
 			Serial.println(payload);
 		}
-		DynamicJsonDocument doc(35000);
+		DynamicJsonDocument doc(500);
 		DeserializationError error = deserializeJson(doc, payload);
 		if (error && DEBUG) {
 			Serial.print(F("deserializeJson() failed: "));
@@ -872,7 +875,6 @@ void T6iot::_getHtmlRequest(WiFiClient* client, String url) {
 			Serial.println("Oh nooooo, I don't have any Html to serve.");
 		}
 	}
-	delay(_timeout);
 	https.end();
 	newSecure.stop();
 }
