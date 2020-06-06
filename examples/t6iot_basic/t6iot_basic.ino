@@ -69,14 +69,19 @@ void setup() {
   printIPAddressOfHost(t6HttpHost);
  
   t6Client.DEBUG = false;                                         // Activate or disable DEBUG mode
-
   t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
+  t6Client.initObject(t6ObjectId, secret, t6UserAgent);           // Initialize t6 Object with its uuid-v4, it's secret if you need to sign payload
+
+  //t6Client.getStatus();                                           // Get t6 Status
+  //t6Client.getDatatypes();
+  //t6Client.getUnits();
+  //t6Client.getIndex();
+  
   t6Client.setCredentials(t6Username, t6Password);                // This will define your own personal username/password to connect to t6
   t6Client.authenticate();                                        // Generate a JWT from your personnal credential on t6 server
 
-  t6Client.initObject(t6ObjectId, secret, t6UserAgent);           // Initialize t6 Object with its uuid-v4, it's secret if you need to sign payload
   t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
-  t6Client.setWebServerCredentials(wwwUsername, wwwPassword);   // Define credentials for webserver on the Object
+  t6Client.setWebServerCredentials(wwwUsername, wwwPassword);     // Define credentials for webserver on the Object
   //t6Client.setHtml(html);                                         // Set html into the Object
   t6Client.setHtml();                                             // Or fetch it from t6 api
   t6Client.startWebServer();                                      // Starting to listen from the Object on Http Api

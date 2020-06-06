@@ -284,7 +284,6 @@ void T6iot::activateOTA() {
 	OTA_activated = true;
 	ArduinoOTA.begin();
 }
-
 int T6iot::init(char* host, int port) {
 	init(host, port, "", 3000);
 }
@@ -327,7 +326,6 @@ int T6iot::init(char* host, int port, char* userAgent, int timeout) {
 	}
 	return 1;
 }
-
 void T6iot::setObject(char* t6ObjectSecret, char* t6ObjectId, char* t6ObjectUA) {
 	_t6ObjectSecret = t6ObjectSecret;
 	_t6ObjectId = t6ObjectId;
@@ -352,7 +350,7 @@ void T6iot::refreshToken() {
 		newSecure.setFingerprint(fingerprint);
 		int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _urlJWT);
 		newSecure.setFingerprint(fingerprint);
-		https.addHeader("User-Agent", "Arduino/2.2.0/t6iot-library/");
+		https.setUserAgent("Arduino/2.2.0/t6iot-library/"+String(object.id));
 		https.addHeader("Accept", "application/json");
 		https.addHeader("Content-Type", "application/json");
 
@@ -417,7 +415,7 @@ void T6iot::authenticate(const char* t6Username, const char* t6Password) {
 		newSecure.setFingerprint(fingerprint);
 		int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _urlJWT);
 		newSecure.setFingerprint(fingerprint);
-		https.addHeader("User-Agent", "Arduino/2.2.0/t6iot-library/");
+		https.setUserAgent("Arduino/2.2.0/t6iot-library/"+String(object.id));
 		https.addHeader("Accept", "application/json");
 		https.addHeader("Content-Type", "application/json");
 
@@ -464,7 +462,6 @@ void T6iot::authenticate(const char* t6Username, const char* t6Password) {
 		}
 	}
 }
-
 void T6iot::authenticateKS() {
 	return authenticateKS(_t6Key, _t6Secret);
 }
@@ -483,7 +480,7 @@ void T6iot::authenticateKS(const char* t6Key, const char* t6Secret) {
 		newSecure.setFingerprint(fingerprint);
 		int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _urlJWT);
 		newSecure.setFingerprint(fingerprint);
-		https.addHeader("User-Agent", "Arduino/2.2.0/t6iot-library/");
+		https.setUserAgent("Arduino/2.2.0/t6iot-library/"+String(object.id));
 		https.addHeader("Accept", "application/json");
 		https.addHeader("Content-Type", "application/json");
 
@@ -538,6 +535,43 @@ void T6iot::getStatus() {
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
 		Serial.println("Http connection failed during getStatus");
 	}
+	BearSSL::WiFiClientSecure newSecure;
+	newSecure.setFingerprint(fingerprint);
+	int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _urlStatus, false);
+	https.setUserAgent("Arduino/2.2.0/t6iot-library/"+String(object.id));
+	int httpCode = https.GET();
+	if (httpCode == 200) {
+		String payload = https.getString();
+		if (DEBUG) {
+			Serial.println("Result HTTP Status=200");
+			Serial.println(payload);
+		}
+		DynamicJsonDocument doc(750);
+		DeserializationError error = deserializeJson(doc, payload);
+		if (error && DEBUG) {
+			Serial.print(F("deserializeJson() failed: "));
+			Serial.println(error.c_str());
+			return;
+		} else {
+			String version = (doc["version"]).as<String>();
+			String t6BuildVersion = (doc["t6BuildVersion"]).as<String>();
+			String t6BuildDate = (doc["t6BuildDate"]).as<String>();
+			String status = (doc["status"]).as<String>();
+			String mqttInfo = (doc["mqttInfo"]).as<String>();
+			String appName = (doc["appName"]).as<String>();
+			String started_at = (doc["started_at"]).as<String>();
+			if (DEBUG) {
+				Serial.print(F("deserializeJson() succeed: "));
+			}
+		}
+	} else {
+		if (DEBUG) {
+			Serial.print("Result HTTP Status=");
+			Serial.println(httpCode);
+		}
+	}
+	https.end();
+	newSecure.stop();
 }
 void T6iot::getDatatypes() {
 	if (DEBUG) {
@@ -546,6 +580,36 @@ void T6iot::getDatatypes() {
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
 		Serial.println("Http connection failed during getDatatypes");
 	}
+	BearSSL::WiFiClientSecure newSecure;
+	newSecure.setFingerprint(fingerprint);
+	int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _urlDatatypes, false);
+	https.setUserAgent("Arduino/2.2.0/t6iot-library/"+String(object.id));
+	int httpCode = https.GET();
+	if (httpCode == 200) {
+		String payload = https.getString();
+		if (DEBUG) {
+			Serial.println("Result HTTP Status=200");
+			Serial.println(payload);
+		}
+		DynamicJsonDocument doc(1500);
+		DeserializationError error = deserializeJson(doc, payload);
+		if (error && DEBUG) {
+			Serial.print(F("deserializeJson() failed: "));
+			Serial.println(error.c_str());
+			return;
+		} else {
+			if (DEBUG) {
+				Serial.print(F("deserializeJson() succeed: "));
+			}
+		}
+	} else {
+		if (DEBUG) {
+			Serial.print("Result HTTP Status=");
+			Serial.println(httpCode);
+		}
+	}
+	https.end();
+	newSecure.stop();
 }
 void T6iot::getUnits() {
 	if (DEBUG) {
@@ -554,6 +618,36 @@ void T6iot::getUnits() {
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
 		Serial.println("Http connection failed during getUnits");
 	}
+	BearSSL::WiFiClientSecure newSecure;
+	newSecure.setFingerprint(fingerprint);
+	int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _urlUnits, false);
+	https.setUserAgent("Arduino/2.2.0/t6iot-library/"+String(object.id));
+	int httpCode = https.GET();
+	if (httpCode == 200) {
+		String payload = https.getString();
+		if (DEBUG) {
+			Serial.println("Result HTTP Status=200");
+			Serial.println(payload);
+		}
+		DynamicJsonDocument doc(35000);
+		DeserializationError error = deserializeJson(doc, payload);
+		if (error && DEBUG) {
+			Serial.print(F("deserializeJson() failed: "));
+			Serial.println(error.c_str());
+			return;
+		} else {
+			if (DEBUG) {
+				Serial.print(F("deserializeJson() succeed: "));
+			}
+		}
+	} else {
+		if (DEBUG) {
+			Serial.print("Result HTTP Status=");
+			Serial.println(httpCode);
+		}
+	}
+	https.end();
+	newSecure.stop();
 }
 void T6iot::getIndex() {
 	if (DEBUG) {
@@ -562,6 +656,36 @@ void T6iot::getIndex() {
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
 		Serial.println("Http connection failed during getIndex");
 	}
+	BearSSL::WiFiClientSecure newSecure;
+	newSecure.setFingerprint(fingerprint);
+	int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _urlIndex, false);
+	https.setUserAgent("Arduino/2.2.0/t6iot-library/"+String(object.id));
+	int httpCode = https.GET();
+	if (httpCode == 200) {
+		String payload = https.getString();
+		if (DEBUG) {
+			Serial.println("Result HTTP Status=200");
+			Serial.println(payload);
+		}
+		DynamicJsonDocument doc(5000);
+		DeserializationError error = deserializeJson(doc, payload);
+		if (error && DEBUG) {
+			Serial.print(F("deserializeJson() failed: "));
+			Serial.println(error.c_str());
+			return;
+		} else {
+			if (DEBUG) {
+				Serial.print(F("deserializeJson() succeed: "));
+			}
+		}
+	} else {
+		if (DEBUG) {
+			Serial.print("Result HTTP Status=");
+			Serial.println(httpCode);
+		}
+	}
+	https.end();
+	newSecure.stop();
 }
 void T6iot::createUser() {
 
@@ -588,7 +712,7 @@ void T6iot::createDatapoint(char* flowId, DynamicJsonDocument& payload, bool use
 		newSecure.setFingerprint(fingerprint);
 		int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _urlDataPoint+String(flowId));
 		newSecure.setFingerprint(fingerprint);
-		https.addHeader("User-Agent", "Arduino/2.2.0/t6iot-library/");
+		https.setUserAgent("Arduino/2.2.0/t6iot-library/"+String(object.id));
 		https.addHeader("Accept", "application/json");
 		https.addHeader("Content-Type", "application/json");
 		if(_JWTToken) {
@@ -737,7 +861,7 @@ void T6iot::_getHtmlRequest(WiFiClient* client, String url) {
 	BearSSL::WiFiClientSecure newSecure;
 	newSecure.setFingerprint(fingerprint);
 	int checkBegin = https.begin(newSecure, _httpHost, _httpPort, url, false);
-	https.addHeader("User-Agent", "Arduino/2.2.0/t6iot-library/");
+	https.setUserAgent("Arduino/2.2.0/t6iot-library/"+String(object.id));
 	int code = https.GET();
 	defaultHtml = https.getString();
 	if (DEBUG) {
