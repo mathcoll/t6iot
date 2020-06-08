@@ -44,7 +44,6 @@ class T6Flow {
 
 class T6iot: public TaskManager {
   public:
-    char* _userAgent;
     char* _urlJWT;
     char* _urlIndex;
     char* _urlDataPoint;
@@ -61,7 +60,9 @@ class T6iot: public TaskManager {
     char* _urlOta;
     bool DEBUG;
     String html;
+    String defaultHtml;
     String _messageArrived;
+    String _userAgent;
 
     T6iot();
     T6iot(char* httpHost, int httpPort);
@@ -102,50 +103,15 @@ class T6iot: public TaskManager {
 	T6Object initObject(String id, String secret, String ua);
 
     void getStatus();
-    void getDatatypes();
-    void getUnits();
-    void getIndex();
-
-    void createUser();
-    void getUser(char* userId);
-    void editUser();
 
     void createDatapoint(char* flowId, DynamicJsonDocument& payload);
     void createDatapoint(char* flowId, DynamicJsonDocument& payload, bool useSignature);
     void getDatapoints();
 
-    void createObject();
-    void getObjects();
-    void editObject();
-    void deleteObject();
-
-    void createFlow();
-    void getFlows();
-    void editFlow();
-    void deleteFlow();
-
-    void createDashboard();
-    void getDashboards();
-    void editDashboard();
-    void deleteDashboard();
-
-    void createSnippet();
-    void getSnippets();
-    void editSnippet();
-    void deleteSnippet();
-
-    void createRule();
-    void getRules();
-    void editRule();
-    void deleteRule();
-
-    void createMqtt();
-    void getMqtts();
-    void editMqtt();
-    void deleteMqtt();
-
     void getOtaLatestVersion(String objectId);
     void otaDeploy(const char* sourceId, String objectId);
+
+    String getShowUIHtml(String url);
 
 	void startRest();
 	void handle(WiFiClient& client);
@@ -172,15 +138,10 @@ class T6iot: public TaskManager {
     const char* _t6Secret;
     char* _t6ObjectSecret;
     char* _t6ObjectId;
-    char* _t6ObjectUA;
     int _t6ObjectHttpPort;
     const char* _t6ObjectWww_username;
     const char* _t6ObjectWww_password;
     const char* _t6ObjectWww_realm;
-    void _getRequest(WiFiClient* client, String url);
-    void _getHtmlRequest(WiFiClient* client, String url);
-    void _putRequest(WiFiClient* client, String url, JsonObject& payload);
-    void _deleteRequest(WiFiClient* client, String url);
     String _getSignedPayload(String& payload, String& objectId, String& secret);
     String _urlEncode(String str);
 };

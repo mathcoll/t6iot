@@ -1,3 +1,10 @@
+/*
+ * 
+ * 
+ * FS 256kb / OTA 374kb
+ * 
+ * 
+*/
 #include <ESP8266WiFi.h>
 #include <t6iot.h>
 
@@ -36,12 +43,12 @@ const long POSTInterval = 30 * 60;                                // Interval be
 const long POLLInterval = 100;                                    // Interval for polling ; it should be short -> 100ms
 float sensorValue = -1.0;                                         // Value read from the sensor
 
-uint8_t jwtrTask, pollTask, postTask, readTask;                   // All tasks that can be cancelled
+uint8_t jwtrTask, pollTask, readTask, postTask;                   // All tasks that can be cancelled
 
 String html = "<html>\n"
   "<head></head>\n"
   "<body>\n"
-  "<h1>ESP demo</h1>\n"
+  "<h1>ESP demo FROM ino file</h1>\n"
   "<ul>\n"
   "<li><a href='/open'>open</a></li>\n"
   "<li><a href='/close'>close</a></li>\n"
@@ -70,28 +77,31 @@ void setup() {
  
   t6Client.DEBUG = false;                                         // Activate or disable DEBUG mode
   t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
-  t6Client.initObject(t6ObjectId, secret, t6UserAgent);           // Initialize t6 Object with its uuid-v4, it's secret if you need to sign payload
+  t6Client.initObject(t6ObjectId, secret);                        // Initialize t6 Object with its uuid-v4, it's secret if you need to sign payload
 
   //t6Client.getStatus();                                           // Get t6 Status
-  //t6Client.getDatatypes();
-  //t6Client.getUnits();
-  //t6Client.getIndex();
   
   t6Client.setCredentials(t6Username, t6Password);                // This will define your own personal username/password to connect to t6
   t6Client.authenticate();                                        // Generate a JWT from your personnal credential on t6 server
 
-  t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
-  t6Client.setWebServerCredentials(wwwUsername, wwwPassword);     // Define credentials for webserver on the Object
   //t6Client.setHtml(html);                                         // Set html into the Object
-  t6Client.setHtml();                                             // Or fetch it from t6 api
+  t6Client.setHtml();                                             // Or Fetch it from t6 api
+  //t6Client.scheduleOnce(2, setHtml, TIME_SECONDS);                // Or delay it to few seconds
+
+  //t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
+
+  t6Client.setWebServerCredentials(wwwUsername, wwwPassword);     // Define credentials for webserver on the Object
   t6Client.startWebServer();                                      // Starting to listen from the Object on Http Api
 
-  setOn();
-  uint8_t setTask = t6Client.scheduleOnce(0, setupComplete, TIME_SECONDS);                         // Run only once the setup Complete method
+  jwtrTask = t6Client.scheduleFixedRate(JWTRefreshInterval, refreshToken, TIME_SECONDS);   // Refresh JWT and must be after an authenticate
+  pollTask = t6Client.scheduleFixedRate(POLLInterval, doServerQueries, TIME_MILLIS);       // Polling library, using milliseconds as TimerUnit
+  readTask = t6Client.scheduleFixedRate(READInterval, readSample, TIME_SECONDS);           // Read sensor Value regularly
+  postTask = t6Client.scheduleFixedRate(POSTInterval, postSample, TIME_SECONDS);           // POST Value regularly
+  t6Client.scheduleOnce(0, setupComplete, TIME_SECONDS); // Run only once the setup Complete method
 }
 
 void loop() {
-  t6Client.runLoop();                                             // taskManager
+  t6Client.runLoop();                                             // t6 TaskManager
   t6Client.handleClient();                                        // Handling t6 Object http connexion, only when WebServer is activated
 }
 
@@ -200,14 +210,6 @@ void startWiFi() {
   Serial.println();
   Serial.print("Connecting to Wifi SSID: ");
   Serial.println(ssid);
-  /*
-  IPAddress ip(192, 168, 0, 100);
-  IPAddress gateway(192, 168, 0, 255);
-  IPAddress subnet(255, 255, 255, 0);
-  IPAddress dns1(8.8.8.8);
-  IPAddress dns2(8.8.8.4);
-  WiFi.config(ip, gateway, dns1, dns2);
-  */
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   if (WiFi.waitForConnectResult() != WL_CONNECTED) {
@@ -216,14 +218,4 @@ void startWiFi() {
     Serial.print(".");
     ESP.restart();
   }
-  Serial.println("Wifi: OK");
-  Serial.print("DNS address 1:");
-  Serial.println(WiFi.dnsIP(0));
-  Serial.print("DNS address 2:");
-  Serial.println(WiFi.dnsIP(1));
-  Serial.print("IP address:");
-  Serial.println(WiFi.localIP());
-  Serial.print("Signal Power:");
-  Serial.print(WiFi.RSSI());
-  Serial.println(" dBm");
 }
