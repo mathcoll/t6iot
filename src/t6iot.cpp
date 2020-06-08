@@ -342,11 +342,7 @@ void T6iot::refreshToken() {
 			}
 			DynamicJsonDocument doc(1500);
 			DeserializationError error = deserializeJson(doc, payload);
-			if (error && DEBUG) {
-				Serial.print(F("deserializeJson() failed: "));
-				Serial.println(error.c_str());
-				return;
-			} else {
+			if (!error) {
 				_JWTToken = (doc["token"]).as<String>();
 				_refreshToken = (doc["refresh_token"]).as<String>();
 				if (DEBUG) {
@@ -354,8 +350,15 @@ void T6iot::refreshToken() {
 					Serial.println(_JWTToken);
 					Serial.println(_refreshToken);
 				}
+			} else {
+				if (DEBUG) {
+					Serial.print(F("deserializeJson() failed: "));
+					Serial.println(error.c_str());
+					return;
+				}
 			}
-		} else if (httpCode == 403 || httpCode == 403) {
+			doc.clear();
+		} else if (httpCode == 401 || httpCode == 403) {
 			authenticate(_t6Username, _t6Password);
 		} else {
 			if (DEBUG) {
@@ -424,6 +427,7 @@ void T6iot::authenticate(const char* t6Username, const char* t6Password) {
 					Serial.println(_refreshToken);
 				}
 			}
+			doc.clear();
 		} else {
 			if (DEBUG) {
 				Serial.print("Error using payloadStr: ");
@@ -492,6 +496,7 @@ void T6iot::authenticateKS(const char* t6Key, const char* t6Secret) {
 					Serial.println(_refreshToken);
 				}
 			}
+			doc.clear();
 		} else {
 			if (DEBUG) {
 				Serial.print("Error using payloadStr: ");
