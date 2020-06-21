@@ -1,8 +1,8 @@
 {
 	"name": "t6iot",
-	"keywords": "iot, things, api, rest",
-	"description": "Library to connect t6 iot platform.",
-	"version": "1.1.0",
+	"keywords": "iot, things, api, rest, object, connect",
+	"description": "Library to connect t6 iot platform https://api.internetcollaboratif.info",
+	"version": "1.2.0",
 	"frameworks": "arduino",
 	"platforms": "*",
 	"authors": [
