@@ -16,6 +16,7 @@
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WebServer.h>
+#include <ESP8266WebServerSecure.h>
 #include <TaskManager.h>
 
 class T6Object {
@@ -77,6 +78,7 @@ class T6iot: public TaskManager {
     String pollWebServer();
     int startWebServer();
     int startWebServer(int port);
+    int startWebServer(const char* cert, const char* key);
     int startWebServer(int port, const char* t6ObjectWww_username, const char* t6ObjectWww_password, const char* t6ObjectWww_realm);
     int setHtml();
     int setHtml(String html);
@@ -124,7 +126,7 @@ class T6iot: public TaskManager {
 	float getValue();
 	void setValue(float sensorValue);
 	
-    void log(const char* logLine);
+	void log(const char* logLine);
 
   private:
 	float _sensorValue;
@@ -142,6 +144,8 @@ class T6iot: public TaskManager {
     const char* _t6ObjectWww_username;
     const char* _t6ObjectWww_password;
     const char* _t6ObjectWww_realm;
+    const char* _serverCert;
+    const char* _serverKey;
     String _getSignedPayload(String& payload, String& objectId, String& secret);
     String _urlEncode(String str);
 };
