@@ -63,9 +63,21 @@ String defaultHtml = "<html>\n"
 WiFiClient client;
 HTTPClient https;
 
-ESP8266WebServer server(_t6ObjectHttpPort);
+ESP8266WebServer serverHttp(_t6ObjectHttpPort);
+BearSSL::ESP8266WebServerSecure server(443);
 T6Object object;
 
+static const char serverCert[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+
+-----END CERTIFICATE-----
+)EOF";
+
+static const char serverKey[] PROGMEM =  R"EOF(
+-----BEGIN PRIVATE KEY-----
+
+-----END PRIVATE KEY-----
+)EOF";
 
 
 /* t6 IoT constructor */
@@ -103,10 +115,14 @@ int T6iot::setHtml(String html) {
 	defaultHtml = html;
 	return 1;
 }
-
 int T6iot::startWebServer(int port) {
 	_t6ObjectHttpPort = port;
 	SPIFFS.begin();
+
+	serverHttp.on("/", [=]() {
+		serverHttp.sendHeader("Location", String("https://"+WiFi.localIP()), true);
+		serverHttp.send(301, "text/plain", "");
+	});
 	server.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
 	server.on("/", [=]() {
 		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) {
@@ -215,8 +231,11 @@ int T6iot::startWebServer(int port) {
 		}
 		server.send(404, "text/plain", message);
 	});
+	serverHttp.begin();
+
+	server.getServer().setRSACert(new BearSSL::X509List(_serverCert), new BearSSL::PrivateKey(_serverKey));
 	server.begin();
-	Serial.print("ESP available at http://");
+	Serial.print("ESP available at https://");
 	Serial.println(WiFi.localIP());
 	return 1;
 }
@@ -228,6 +247,11 @@ int T6iot::startWebServer(int port, const char* username, const char* password, 
 	startWebServer(port);
 }
 int T6iot::startWebServer() {
+	startWebServer(_t6ObjectHttpPort);
+}
+int T6iot::startWebServer(const char* cert, const char* key) {
+	_serverCert = cert;
+	_serverKey = key;
 	startWebServer(_t6ObjectHttpPort);
 }
 String T6iot::pollWebServer() {
@@ -244,6 +268,7 @@ void T6iot::handleClient() {
 		ArduinoOTA.handle();
 	}
 	server.handleClient();
+	serverHttp.handleClient();
 }
 void T6iot::activateOTA() {
 	OTA_activated = true;

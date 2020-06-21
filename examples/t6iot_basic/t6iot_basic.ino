@@ -2,6 +2,8 @@
  * 
  * 
  * FS 256kb / OTA 374kb
+ * openssl
+ * req -x509 -newkey rsa:1024 -sha256 -keyout key.txt -out cert.txt -days 365 -nodes -subj "/C=FR/ST=CA/L=Paris/O=ESP [FR]/OU=ESP/CN=esp8266.local" -addext subjectAltName=DNS:esp8266.local,IP:192.168.0.28
  * 
  * 
 */
@@ -66,15 +68,28 @@ String html = "<html>\n"
   "</body>\n"
   "</html>\n";
 
+static const char serverCert[] PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+-----END CERTIFICATE-----
+)EOF";
+
+static const char serverKey[] PROGMEM =  R"EOF(
+-----BEGIN PRIVATE KEY-----
+-----END PRIVATE KEY-----
+)EOF";
+
 T6iot t6Client;                                                   // Init T6iot Client named "t6Client"
 
 void setup() {
   Serial.println("Booting ESP..");
   Serial.begin(115200);
+  pinMode(LED_BUILTIN, OUTPUT);
 
+  digitalWrite(LED_BUILTIN, LOW);                                 // Turn the LED on ...
   startWiFi();                                                    // Obviously, the wifi initialization :-)
-  printIPAddressOfHost(t6HttpHost);
- 
+  printIPAddressOfHost(t6HttpHost);                               // Some custom wifi logs :-)
+  digitalWrite(LED_BUILTIN, HIGH);                                // ... and then, wifi is set, turn light off
+
   t6Client.DEBUG = false;                                         // Activate or disable DEBUG mode
   t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
   t6Client.initObject(t6ObjectId, secret);                        // Initialize t6 Object with its uuid-v4, it's secret if you need to sign payload
@@ -91,7 +106,7 @@ void setup() {
   //t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
 
   t6Client.setWebServerCredentials(wwwUsername, wwwPassword);     // Define credentials for webserver on the Object
-  t6Client.startWebServer();                                      // Starting to listen from the Object on Http Api
+  t6Client.startWebServer(serverCert, serverKey);                 // Starting to listen from the Object on Http Api
 
   jwtrTask = t6Client.scheduleFixedRate(JWTRefreshInterval, refreshToken, TIME_SECONDS);   // Refresh JWT and must be after an authenticate
   pollTask = t6Client.scheduleFixedRate(POLLInterval, doServerQueries, TIME_MILLIS);       // Polling library, using milliseconds as TimerUnit
@@ -120,7 +135,6 @@ void setOn() {
 
 void setOff() {
   Serial.println("setOff() called");
-  t6Client.cancelTask(readTask);                                // Stop a task from executing again if it is a repeating task
   t6Client.cancelTask(postTask);                                // Stop a task from executing again if it is a repeating task
   t6Client.cancelTask(jwtrTask);                                // Stop a task from executing again if it is a repeating task
 }
@@ -153,37 +167,32 @@ void postSample() {
 void doServerQueries() {                                          // This section contains the triggers on www events
   String messageArrived = t6Client.pollWebServer();               // Poll Web Server to check if something happened
   if(messageArrived == "on") {                                    // Trigger if message is on
-    postSample();                                                 // Trigger postSample()
-    setOff();
+    //postSample();                                                 // Trigger postSample()
+    setOn();
 
   } else if(messageArrived == "off") {                            // Trigger if message is off
-    Serial.println("Set OFF and cancel all t6 api calls");
+    Serial.println("Set OFF and cancel all t6 api calls");        // But still readTask remain active so we can turn it on again
     setOff();
-    //analog.digitalWrite();
 
   } else if(messageArrived == "open") {                           // Trigger if message is open
     Serial.println("Opening something");
-    //analog.digitalWrite(); 
 
   } else if(messageArrived == "close") {                          // Trigger if message is close
     Serial.println("Closing something");
-    //analog.digitalWrite();
 
   } else if(messageArrived == "upper") {                          // Trigger if message is upper
     Serial.println("Increase volume");
-    //analog.digitalWrite();
 
   } else if(messageArrived == "lower") {                          // Trigger if message is lower
     Serial.println("Decrease volume");
-    //analog.digitalWrite();
 
   } else if(messageArrived == "true") {                           // Trigger if message is true
     Serial.println("Boolean value is Activated");
-    //analog.digitalWrite();
+    digitalWrite(LED_BUILTIN, LOW);                               // Turn the LED on
 
   } else if(messageArrived == "false") {                          // Trigger if message is false
     Serial.println("Boolean value is Disabled");
-    //analog.digitalWrite();
+    digitalWrite(LED_BUILTIN, HIGH);                              // Turn the LED off
 
   } else if(messageArrived != "") {
     Serial.print("UKN message arrived: ");
