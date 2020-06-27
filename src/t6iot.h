@@ -1,7 +1,6 @@
 /*
-  t6iot.h - 
+  t6iot.h - v1.3.0
   Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
-  Sample file to connect t6 api
   - t6 iot: https://api.internetcollaboratif.info
   - Api doc: https://api.internetcollaboratif.info/docs/
 */
@@ -63,15 +62,16 @@ class T6iot: public TaskManager {
     String html;
     String defaultHtml;
     String _messageArrived;
+    String _parameterArrived;
     String _userAgent;
 
     T6iot();
     T6iot(char* httpHost, int httpPort);
     T6iot(char* httpHost, int httpPort, char* _userAgent);
     T6iot(char* httpHost, int httpPort, char* _userAgent, int timeout);
-    int init(char* host, int port);
-    int init(char* host, int port, char* ua);
-    int init(char* host, int port, char* userAgent, int timeout);
+    int init(const char* host, int port);
+    int init(const char* host, int port, const char* ua);
+    int init(const char* host, int port, const char* userAgent, int timeout);
     int setWebServerCredentials(const char* t6ObjectWww_username, const char* t6ObjectWww_password);
     int setWebServerCredentials(const char* t6ObjectWww_username, const char* t6ObjectWww_password, const char* t6ObjectWww_realm);
     int webServerAllowCommand(String command);
@@ -106,8 +106,8 @@ class T6iot: public TaskManager {
 
     void getStatus();
 
-    void createDatapoint(char* flowId, DynamicJsonDocument& payload);
-    void createDatapoint(char* flowId, DynamicJsonDocument& payload, bool useSignature);
+    void createDatapoint(const char* flowId, DynamicJsonDocument& payload);
+    void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useSignature);
     void getDatapoints();
 
     void getOtaLatestVersion(String objectId);
@@ -130,7 +130,7 @@ class T6iot: public TaskManager {
 
   private:
 	float _sensorValue;
-    char* _httpHost;
+	const char* _httpHost;
     int _httpPort;
     int _timeout;
     bool _lockedSleep;

@@ -1,11 +1,12 @@
 /*
- * 
- * 
- * FS 256kb / OTA 374kb
- * openssl
- * req -x509 -newkey rsa:1024 -sha256 -keyout key.txt -out cert.txt -days 365 -nodes -subj "/C=FR/ST=CA/L=Paris/O=ESP [FR]/OU=ESP/CN=esp8266.local" -addext subjectAltName=DNS:esp8266.local,IP:192.168.0.28
- * 
- * 
+
+
+    1M - FS 256kb / OTA 374kb
+    2M - FS 512kb / OTA 768kb
+   openssl
+   req -x509 -newkey rsa:1024 -sha256 -keyout key.txt -out cert.txt -days 365 -nodes -subj "/C=FR/ST=CA/L=Paris/O=ESP [FR]/OU=ESP/CN=esp8266.local" -addext subjectAltName=DNS:esp8266.local,IP:192.168.0.28
+
+
 */
 #include <ESP8266WiFi.h>
 #include <t6iot.h>
@@ -18,7 +19,7 @@ int t6Timeout = 3000;                                             // t6 timeout 
 // t6 JWT Authentication
 const char* t6Username = "demo";                                  // Your t6 Username
 const char* t6Password = "?[W{7kG'X63-e0N";                       // Your t6 Password
-                                                                  // or :
+// or :
 const char* t6Key = "";                                           // Your t6 Key
 const char* t6Secret = "";                                        // Your t6 Secret
 
@@ -30,14 +31,14 @@ const char* wwwUsername = "admin";                                // Optional Us
 const char* wwwPassword = "esp8266";                              // Optional Password to call Object Api, set to "" to disable this authentication
 
 // t6 Flow container for Sensor data
-char* t6FlowId = "7774c70a-551a-4f1c-b78c-efa836835b14";          // 
-char* t6Mqtt_topic = "";                                          // 
-char* t6Unit = "%";                                               // 
-char* t6Save = "false";                                           // 
-char* t6Publish = "false";                                        // 
+char* t6FlowId = "7774c70a-551a-4f1c-b78c-efa836835b14";          //
+char* t6Mqtt_topic = "";                                          //
+char* t6Unit = "%";                                               //
+char* t6Save = "false";                                           //
+char* t6Publish = "false";                                        //
 
-const char* ssid = "";                                            // Your own Wifi ssid to connect to
-const char* password = "";                                        // Your wifi password
+const char* ssid = "couleurs";                                            // Your own Wifi ssid to connect to
+const char* password = "u14nP5X>PWS9fZuw1}CR:~v8>~:uN)m={ozKSKoA7e_,oMF^m-1F?xiUwB&hkQ0";                                        // Your wifi password
 
 const long READInterval = 3 * 60;                                 // Interval between each READ -> 3 minutes
 const long JWTRefreshInterval = 4 * 60;                           // Should be less than server -> 4 minutes are fair
@@ -48,33 +49,64 @@ float sensorValue = -1.0;                                         // Value read 
 uint8_t jwtrTask, pollTask, readTask, postTask;                   // All tasks that can be cancelled
 
 String html = "<html>\n"
-  "<head></head>\n"
-  "<body>\n"
-  "<h1>ESP demo FROM ino file</h1>\n"
-  "<ul>\n"
-  "<li><a href='/open'>open</a></li>\n"
-  "<li><a href='/close'>close</a></li>\n"
-  "<li><a href='/getVal'>getVal</a></li>\n"
-  "<!--<li><a href='/setVal'>setVal</a></li>-->\n"
-  "<li><a href='/on'>on</a></li>\n"
-  "<li><a href='/off'>off</a></li>\n"
-  "<li><a href='/upper'>upper</a></li>\n"
-  "<li><a href='/lower'>lower</a></li>\n"
-  "<li><a href='/true'>True</a></li>\n"
-  "<li><a href='/false'>False</a></li>\n"
-  "<li><a href='/refresh'>Refresh UI</a></li>\n"
-  "<li><a href='/upgrade'>Upgrade OTA</a></li>\n"
-  "</ul>\n"
-  "</body>\n"
-  "</html>\n";
+              "<head></head>\n"
+              "<body>\n"
+              "<h1>ESP demo FROM ino file</h1>\n"
+              "<ul>\n"
+              "<li><a href='/open'>open</a></li>\n"
+              "<li><a href='/close'>close</a></li>\n"
+              "<li><a href='/getVal'>getVal</a></li>\n"
+              "<!--<li><a href='/setVal'>setVal</a></li>-->\n"
+              "<li><a href='/on'>on</a></li>\n"
+              "<li><a href='/off'>off</a></li>\n"
+              "<li><a href='/upper'>upper</a></li>\n"
+              "<li><a href='/lower'>lower</a></li>\n"
+              "<li><a href='/true'>True</a></li>\n"
+              "<li><a href='/false'>False</a></li>\n"
+              "<li><a href='/refresh'>Refresh UI</a></li>\n"
+              "<li><a href='/upgrade'>Upgrade OTA</a></li>\n"
+              "</ul>\n"
+              "</body>\n"
+              "</html>\n";
 
 static const char serverCert[] PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
+MIIDDDCCAnWgAwIBAgIUX1K4eXt2f611tVzU41xhF7Q5bhMwDQYJKoZIhvcNAQEL
+BQAwgYcxCzAJBgNVBAYTAkZSMQswCQYDVQQIDAJDQTEOMAwGA1UEBwwFUGFyaXMx
+IzAhBgNVBAoMGkludGVybmV0IENvbGxhYm9yYXRpZiBbRlJdMR4wHAYDVQQLDBVJ
+bnRlcm5ldCBDb2xsYWJvcmF0aWYxFjAUBgNVBAMMDWVzcDgyNjYubG9jYWwwHhcN
+MjAwNjIxMTM1NzI3WhcNMjEwNjIxMTM1NzI3WjCBhzELMAkGA1UEBhMCRlIxCzAJ
+BgNVBAgMAkNBMQ4wDAYDVQQHDAVQYXJpczEjMCEGA1UECgwaSW50ZXJuZXQgQ29s
+bGFib3JhdGlmIFtGUl0xHjAcBgNVBAsMFUludGVybmV0IENvbGxhYm9yYXRpZjEW
+MBQGA1UEAwwNZXNwODI2Ni5sb2NhbDCBnzANBgkqhkiG9w0BAQEFAAOBjQAwgYkC
+gYEAxrTYiPXKvnXIvXpPZNpjewXwocdSkIZZrl3UjinSj+BKNzUjDJ90qiS5D5hp
+qc7tkIbC/XRm8XiiwGrbfalTYiG/QktyuJETUDYAUbsgAU9XCUx/IPu5tyIYacYd
+vlyjK1ziswICFyt+qeyTSNFVFeiRaCD+BzfF6sJ8GnN7HkUCAwEAAaNzMHEwHQYD
+VR0OBBYEFJTlkmBa3+TJDIDirw7XtyYgqvtaMB8GA1UdIwQYMBaAFJTlkmBa3+TJ
+DIDirw7XtyYgqvtaMA8GA1UdEwEB/wQFMAMBAf8wHgYDVR0RBBcwFYINZXNwODI2
+Ni5sb2NhbIcEwKgAHDANBgkqhkiG9w0BAQsFAAOBgQC2tmTOFGOmWW0msc0nJOaH
+TbDicznr1LQ+0/HrliFkMd+zhVD+bv31Us+OUIvH5YLDd1YgGdXOYwev1jsFQ/b9
+3li61MrdC8tGdg2IgR0MMwm0YFBo7UMHSINsbQQJNn2kvEYd1SQXW0tnLHCB6B/5
+E0JSXTdcu5KoXcyi6Fs6SA==
 -----END CERTIFICATE-----
 )EOF";
 
 static const char serverKey[] PROGMEM =  R"EOF(
 -----BEGIN PRIVATE KEY-----
+MIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAMa02Ij1yr51yL16
+T2TaY3sF8KHHUpCGWa5d1I4p0o/gSjc1IwyfdKokuQ+YaanO7ZCGwv10ZvF4osBq
+232pU2Ihv0JLcriRE1A2AFG7IAFPVwlMfyD7ubciGGnGHb5coytc4rMCAhcrfqns
+k0jRVRXokWgg/gc3xerCfBpzex5FAgMBAAECgYEAl2hbiljHaML097PH5VAm9ym6
+hnsLpYZJtXxXpw+lGu5Lfq+likvCKJcc0A5RjQtYp4SX9WqJujsywC1sG9824bjQ
+2KSI3zVTL1YGhjT2rJ/hit/6UyNJ0NlE4tBC4kcdMTiQJcXACRhU9tqpB2+XxAvd
+dWR3mQcwfx7hgs5W7aECQQD555gy3S9YStOIbvjBFPuf5H8tCYjad98A1VCabYEI
+W18fKP1qsI4XYPXb1+bCOGBzTYdgfwdCkq1o0w+jLdttAkEAy42Rwj8tUEqEKqti
+N5zI8bdfrvKrRNsG/D7L+xYFzKcGdAxy3EkmPRItmvpQoYnFXgt5rgKX8BtdODEJ
+3wVvOQJBANHIR2yTXpYoojBKr8kt+xi7MMM22MpEjFBfwX0RZZsFUPGQcENqmK0p
+eNonAJCT0OuZ7oXjvM124dk4LE1YRnUCQBYgaXvIClD0CLHqt158OIut90S5NEzj
+0jqRSPMeTbsVXOo4gDPZ78Iru7FhDGrC4yV58dwsg/+hudxl2EDaAmECQQDIdY0m
+nq6N58GZS17fI5oizTTabZ4g6MtLZS4rzA5yXI6c8ih9cNOQbTGlXHm+JmM0TwBJ
+ex3TqsepYTCaDVbE
 -----END PRIVATE KEY-----
 )EOF";
 
@@ -166,6 +198,7 @@ void postSample() {
 
 void doServerQueries() {                                          // This section contains the triggers on www events
   String messageArrived = t6Client.pollWebServer();               // Poll Web Server to check if something happened
+  String parameterArrived = t6Client._parameterArrived;
   if(messageArrived == "on") {                                    // Trigger if message is on
     //postSample();                                                 // Trigger postSample()
     setOn();
@@ -187,17 +220,26 @@ void doServerQueries() {                                          // This sectio
     Serial.println("Decrease volume");
 
   } else if(messageArrived == "true") {                           // Trigger if message is true
-    Serial.println("Boolean value is Activated");
     digitalWrite(LED_BUILTIN, LOW);                               // Turn the LED on
+    Serial.println("Boolean value is Activated");
 
   } else if(messageArrived == "false") {                          // Trigger if message is false
-    Serial.println("Boolean value is Disabled");
     digitalWrite(LED_BUILTIN, HIGH);                              // Turn the LED off
+    Serial.println("Boolean value is Disabled");
 
+  } else if(messageArrived == "setLight") {
+    Serial.println("setLight ---->");
+    Serial.println(parameterArrived);
+    //analogWrite(LED_BUILTIN, parameterArrived.toInt());
+    
   } else if(messageArrived != "") {
     Serial.print("UKN message arrived: ");
     Serial.println(messageArrived);
   }
+  
+  // reset value
+  t6Client._messageArrived = "";
+  t6Client._parameterArrived = "";
 }
 
 void setupComplete() {
@@ -217,7 +259,7 @@ void printIPAddressOfHost(const char* host) {
 }
 void startWiFi() {
   Serial.println();
-  Serial.print("Connecting to Wifi SSID: ");
+  Serial.print("Connecting to Wifi SSID:");
   Serial.println(ssid);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);

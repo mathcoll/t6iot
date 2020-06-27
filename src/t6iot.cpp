@@ -1,7 +1,6 @@
 /*
-  t6iot.cpp - 
+  t6iot.cpp - v1.3.0
   Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
-  Sample file to connect t6 api
   - t6 iot: https://api.internetcollaboratif.info
   - Api doc: https://api.internetcollaboratif.info/docs/
  */
@@ -37,6 +36,7 @@ const char* defaultReal = "t6 Auth Realm";
 String authFailResponse = "Authentication Failed";
 String _userAgent;
 String _messageArrived = "";
+String _parameterArrived = "";
 const char* www_username;
 const char* www_password;
 const char* www_realm;
@@ -124,6 +124,8 @@ int T6iot::startWebServer(int port) {
 		serverHttp.send(301, "text/plain", "");
 	});
 	server.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
+	server.serveStatic("/favicon-16x16.png", SPIFFS, "/favicon-16x16.png");
+	server.serveStatic("/favicon-32x32.png", SPIFFS, "/favicon-32x32.png");
 	server.on("/", [=]() {
 		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) {
 			//Basic Auth Method with Custom realm and Failure Response
@@ -209,6 +211,15 @@ int T6iot::startWebServer(int port) {
 		server.send(200, "application/json", String("{\"action\": \"setVal\", \"value\": \"")+value+String("\"}"));
 		_messageArrived = "setVal";
 	});
+	server.on("/setLight", [=]() {
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		//String variable = server.pathArg(0);
+		String value = server.arg("value");
+		//setValue(value);
+		server.send(200, "application/json", String("{\"action\": \"setLight\", \"value\": \"")+value+String("\"}"));
+		_messageArrived = "setLight";
+		_parameterArrived = value;
+	});
 	/*
 	server.on(UriRegex("^\\/users\\/([0-9]+)\\/devices\\/([0-9]+)$"), [=]() {
 		String user = server.pathArg(0);
@@ -258,6 +269,7 @@ String T6iot::pollWebServer() {
 	if(_messageArrived) {
 		String msg = _messageArrived;
 		_messageArrived = "";
+		//_parameterArrived = "";
 		return msg;
 	} else {
 		return "";
@@ -274,13 +286,13 @@ void T6iot::activateOTA() {
 	OTA_activated = true;
 	ArduinoOTA.begin();
 }
-int T6iot::init(char* host, int port) {
+int T6iot::init(const char* host, int port) {
 	init(host, port, "", 3000);
 }
-int T6iot::init(char* host, int port, char* ua) {
+int T6iot::init(const char* host, int port, const char* ua) {
 	init(host, port, ua, 3000);
 }
-int T6iot::init(char* host, int port, char* userAgent, int timeout) {
+int T6iot::init(const char* host, int port, const char* userAgent, int timeout) {
 	_httpHost = host;
 	_httpPort = port;
 	_userAgent = "Arduino/2.2.0/t6iot-library/"+String(userAgent);
@@ -581,10 +593,10 @@ void T6iot::getStatus() {
 		newSecure.stop();
 	}
 }
-void T6iot::createDatapoint(char* flowId, DynamicJsonDocument& payload) {
+void T6iot::createDatapoint(const char* flowId, DynamicJsonDocument& payload) {
 	return createDatapoint(flowId, payload, false);
 }
-void T6iot::createDatapoint(char* flowId, DynamicJsonDocument& payload, bool useSignature) {
+void T6iot::createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useSignature) {
 	if (DEBUG) {
 		Serial.println("Adding datapoint to t6:");
 	}
