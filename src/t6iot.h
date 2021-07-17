@@ -1,5 +1,5 @@
 /*
-  t6iot.h - v1.3.0
+  t6iot.h - v1.4.3
   Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
   - t6 iot: https://api.internetcollaboratif.info
   - Api doc: https://api.internetcollaboratif.info/docs/
@@ -8,15 +8,16 @@
 #ifndef t6iot_h
 #define t6iot_h
 #include <Arduino.h>
-#include <ArduinoJWT.h>
-#include <sha256.h>
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
+#include <ArduinoJWT.h>
 #include <WiFiClient.h>
 #include <ESP8266HTTPClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WebServerSecure.h>
 #include <TaskManager.h>
+#include <LittleFS.h>
+#include <sha256.h>
 
 class T6Object {
 	public:
@@ -59,11 +60,13 @@ class T6iot: public TaskManager {
     char* _urlStatus;
     char* _urlOta;
     bool DEBUG;
+    bool LOGS;
     String html;
     String defaultHtml;
     String _messageArrived;
     String _parameterArrived;
     String _userAgent;
+    unsigned long timestamp;
 
     T6iot();
     T6iot(char* httpHost, int httpPort);
@@ -87,6 +90,7 @@ class T6iot: public TaskManager {
     void handleClient();
     void activateOTA();
     bool sleep(String command);
+    String getTimeDateString();
 
     void setCredentials(const char* t6Username, const char* t6Password);
 

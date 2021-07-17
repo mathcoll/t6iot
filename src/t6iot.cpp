@@ -1,5 +1,5 @@
 /*
-  t6iot.cpp - v1.3.0
+  t6iot.cpp - v1.4.3
   Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
   - t6 iot: https://api.internetcollaboratif.info
   - Api doc: https://api.internetcollaboratif.info/docs/
@@ -7,7 +7,6 @@
 
 #include <t6iot.h>
 #include <IoAbstraction.h>
-#include <FS.h>
 
 #define SLEEP_DURATION  1800
 const size_t MAX_CONTENT_SIZE = 512;
@@ -41,7 +40,7 @@ const char* www_username;
 const char* www_password;
 const char* www_realm;
 bool DEBUG = false;
-const char* fingerprint = "6C:6C:63:F9:1D:92:30:28:55:44:38:D3:F5:54:E0:6F:F9:8F:D0:77"; // SHA1 fingerprint of the certificate
+bool LOGS = false;
 String defaultHtml = "<html>\n"
 	"<head></head>\n"
 	"<body>\n"
@@ -67,18 +66,12 @@ ESP8266WebServer serverHttp(_t6ObjectHttpPort);
 BearSSL::ESP8266WebServerSecure server(443);
 T6Object object;
 
+const char* fingerprint = "21:A0:B8:05:89:6E:69:74:02:1B:BF:05:B3:09:E5:46:E2:B8:94:08"; // SHA1 fingerprint of the certificate sni.cloudflaressl.com // valid until Tue, 12 Jul 2022 23:59:59 GMT
 static const char serverCert[] PROGMEM = R"EOF(
------BEGIN CERTIFICATE-----
-
------END CERTIFICATE-----
 )EOF";
 
 static const char serverKey[] PROGMEM =  R"EOF(
------BEGIN PRIVATE KEY-----
-
------END PRIVATE KEY-----
 )EOF";
-
 
 /* t6 IoT constructor */
 T6iot::T6iot(): TaskManager() {
@@ -108,115 +101,284 @@ int T6iot::setWebServerCredentials(const char* username, const char* password, c
 	www_realm = realm;
 }
 int T6iot::setHtml() {
-	defaultHtml = getShowUIHtml(_urlObjects+String(object.id)+"/show");
+	LittleFS.begin();
+	if (LittleFS.exists("/ui.html")) {
+		File UIFile = LittleFS.open("/ui.html", "r");
+		Serial.println("UIFile=");
+		Serial.println(UIFile);
+		defaultHtml = UIFile.readString();
+		Serial.println("defaultHtml from FS=");
+		Serial.println(defaultHtml);
+		UIFile.close();
+	} else {
+		defaultHtml = getShowUIHtml(_urlObjects+String(object.id)+"/show");
+		if (DEBUG) {
+			Serial.print("getShowUIHtml=");
+			Serial.println(_urlObjects+String(object.id)+"/show");
+			Serial.print("defaultHtml=");
+			Serial.println(defaultHtml);
+		}
+	}
 	return 1;
 }
 int T6iot::setHtml(String html) {
 	defaultHtml = html;
 	return 1;
 }
+String T6iot::getTimeDateString() {
+	/*
+	if (DEBUG) {
+		Serial.print("timeClient.getEpochTime()=");
+		Serial.println(timeClient.getEpochTime());
+	}
+	*/
+	//"dd/mmm/YYYY:HH:mm:ss -Z";
+	return String(timestamp + millis()/1000);
+	//return (timeClient.getEpochTime() / 86400)%7+" "+timeClient.getFormattedTime();
+}
 int T6iot::startWebServer(int port) {
 	_t6ObjectHttpPort = port;
-	SPIFFS.begin();
+	LittleFS.begin();
+	//timeClient.begin();
 
 	serverHttp.on("/", [=]() {
-		serverHttp.sendHeader("Location", String("https://"+WiFi.localIP()), true);
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+" -> Redirecting to https.");
+		}
+		serverHttp.sendHeader("Location ", "https://"+String(WiFi.localIP().toString().c_str()), true);
 		serverHttp.send(301, "text/plain", "");
 	});
-	server.serveStatic("/favicon.ico", SPIFFS, "/favicon.ico");
-	server.serveStatic("/favicon-16x16.png", SPIFFS, "/favicon-16x16.png");
-	server.serveStatic("/favicon-32x32.png", SPIFFS, "/favicon-32x32.png");
+
 	server.on("/", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) {
-			//Basic Auth Method with Custom realm and Failure Response
-			//return server.requestAuthentication(BASIC_AUTH, www_realm, authFailResponse);
-			//Digest Auth Method with realm="Login Required" and empty Failure Response
-			//return server.requestAuthentication(DIGEST_AUTH);
-			//Digest Auth Method with Custom realm and empty Failure Response
-			//return server.requestAuthentication(DIGEST_AUTH, www_realm);
-			//Digest Auth Method with Custom realm and Failure Response
-			return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse);
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+" -"+www_username+" ["+getTimeDateString()+"] \"GET / HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
 		}
 		server.send(200, "text/html; charset=UTF-8", defaultHtml);
+	});
+	
+	server.on("/favicon.ico", [=]() {
+		if (LittleFS.exists("/favicon.ico")) {
+			File f = LittleFS.open("/favicon.ico", "r");
+			server.send(200, "image/x-icon", f.readString());
+			if (LOGS) {
+				String IPaddrstr = server.client().remoteIP().toString().c_str();
+				String headerReferer = server.header("Referer");
+				String headerUA = server.header("User-Agent");
+				Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /favicon.ico HTTP/1.1\" 201 - \""+headerReferer+"\" \""+headerUA+"\"");
+			}
+			f.close();
+		} else {
+			server.send(404, "text/plain", "Not found");
+		}
+	});
+	server.on("/icon-16x16.png", [=]() {
+		if (LittleFS.exists("/icon-16x16.png")) {
+			File f = LittleFS.open("/icon-16x16.png", "r");
+			server.send(200, "image/png", f.readString());
+			if (LOGS) {
+				String IPaddrstr = server.client().remoteIP().toString().c_str();
+				String headerReferer = server.header("Referer");
+				String headerUA = server.header("User-Agent");
+				Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /icon-16x16.png HTTP/1.1\" 201 - \""+headerReferer+"\" \""+headerUA+"\"");
+			}
+			f.close();
+		} else {
+			server.send(404, "text/plain", "Not found");
+		}
+	});
+	server.on("/icon-32x32.png", [=]() {
+		if (LittleFS.exists("/icon-32x32.png")) {
+			File f = LittleFS.open("/icon-32x32.png", "r");
+			server.send(200, "image/png", f.readString());
+			if (LOGS) {
+				String IPaddrstr = server.client().remoteIP().toString().c_str();
+				String headerReferer = server.header("Referer");
+				String headerUA = server.header("User-Agent");
+				Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /icon-32x32.png HTTP/1.1\" 201 - \""+headerReferer+"\" \""+headerUA+"\"");
+			}
+			f.close();
+		} else {
+			server.send(404, "text/plain", "Not found");
+		}
+	});
+	server.on("/sw.js", [=]() {
+		if (LittleFS.exists("/sw.js")) {
+			File f = LittleFS.open("/sw.js", "r");
+			server.send(200, "application/javascript", f.readString());
+			if (LOGS) {
+				String IPaddrstr = server.client().remoteIP().toString().c_str();
+				String headerReferer = server.header("Referer");
+				String headerUA = server.header("User-Agent");
+				Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /sw.js HTTP/1.1\" 201 - \""+headerReferer+"\" \""+headerUA+"\"");
+			}
+			f.close();
+		} else {
+			server.send(404, "text/plain", "Not found");
+		}
 	});
 
 	/* MAINTENANCE ACTIONS ON OBJECT */
 	server.on("/upgrade", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /upgrade HTTP/1.1\" 201 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(201, "application/json", String("{\"action\": \"upgrade\", \"status\": \"UNDERSTOOD\", \"snack\": \"Upgrade OTA is pending. It might take a long time.\"}"));
 		upgrade();
 	});
 	server.on("/refresh", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /refresh HTTP/1.1\" 201 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(201, "application/json", String("{\"action\": \"refresh\", \"status\": \"UNDERSTOOD\", \"snack\": \"Refresh is pending. It might take a long time.\"}"));
 		setHtml();
 	});
 
 	/* ACTIONS ON OBJECT */
 	server.on("/open", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /open HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(200, "application/json", String("{\"action\": \"open\", \"status\": \"ok\", \"snack\": \"Opened\"}"));
 		_messageArrived = "open";
 	});
 	server.on("/close", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /close HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(200, "application/json", String("{\"action\": \"close\", \"status\": \"ok\", \"snack\": \"Closed\"}"));
 		_messageArrived = "close";
 	});
 	server.on("/on", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /on HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(200, "application/json", String("{\"action\": \"on\", \"status\": \"ok\", \"snack\": \"Switched On\"}"));
 		_messageArrived = "on";
 	});
 	server.on("/off", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /off HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(200, "application/json", String("{\"action\": \"off\", \"status\": \"ok\", \"snack\": \"Switched Off\"}"));
 		_messageArrived = "off";
 	});
 	server.on("/upper", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /upper HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(200, "application/json", String("{\"action\": \"upper\", \"status\": \"ok\", \"snack\": \"Increased\"}"));
 		_messageArrived = "upper";
 	});
 	server.on("/lower", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /lower HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(200, "application/json", String("{\"action\": \"lower\", \"status\": \"ok\", \"snack\": \"Decreased\"}"));
 		_messageArrived = "lower";
 	});
 	server.on("/true", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /true HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(200, "application/json", String("{\"action\": \"true\", \"status\": \"ok\", \"snack\": \"True\"}"));
 		_messageArrived = "true";
 	});
 	server.on("/false", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /false HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(200, "application/json", String("{\"action\": \"false\", \"status\": \"ok\", \"snack\": \"False\"}"));
 		_messageArrived = "false";
 	});
 
 	/* SETTER/GETTER ON OBJECT */
 	server.on("/getVal", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /getVal HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		float value = getValue();
-		server.send(200, "application/json", String("{\"action\": \"getVal\", \"value\": \"")+value+String("\"}"));
+		server.send(200, "application/json", String("{\"action\": \"getVal\", \"status\": \"ok\", \"sensorValue\": \"")+value+String("\", \"value\": \"")+value+String("\"}"));
 		_messageArrived = "getVal";
 	});
 	//server.on(UriBraces("/setVal/{}/{}"), [=]() {
 	server.on("/setVal", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /setVal HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		//String variable = server.pathArg(0);
 		//float value = server.pathArg(1);
 		float value = 10.0;
 		//setValue(value);
-		server.send(200, "application/json", String("{\"action\": \"setVal\", \"value\": \"")+value+String("\"}"));
+		server.send(200, "application/json", String("{\"action\": \"setVal\", \"status\": \"ok\", \"value\": \"")+value+String("\"}"));
 		_messageArrived = "setVal";
 	});
 	server.on("/setLight", [=]() {
-		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); }
+		if (www_username!="" && www_password!="" && !server.authenticate(www_username, www_password)) { return server.requestAuthentication(DIGEST_AUTH, www_realm, authFailResponse); /* BASIC_AUTH */ }
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \"GET /setLight HTTP/1.1\" 200 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		//String variable = server.pathArg(0);
 		String value = server.arg("value");
 		//setValue(value);
-		server.send(200, "application/json", String("{\"action\": \"setLight\", \"value\": \"")+value+String("\"}"));
+		server.send(200, "application/json", String("{\"action\": \"setLight\", \"status\": \"ok\", \"value\": \"")+value+String("\"}"));
 		_messageArrived = "setLight";
 		_parameterArrived = value;
 	});
@@ -228,7 +390,13 @@ int T6iot::startWebServer(int port) {
 	});
 	*/
 
-	server.onNotFound([]() {
+	//server.serveStatic("/favicon.ico", LittleFS, "/favicon.ico");
+	//server.serveStatic("/icon-16x16.png", LittleFS, "/icon-16x16.png");
+	//server.serveStatic("/icon-32x32.png", LittleFS, "/icon-32x32.png");
+	//server.serveStatic("/sw.js", LittleFS, "/sw.js");
+	//server.serveStatic("/", LittleFS, "/");
+
+	server.onNotFound([=]() {
 		String message = "File Not Found\n\n";
 		message += "URI: ";
 		message += server.uri();
@@ -240,6 +408,12 @@ int T6iot::startWebServer(int port) {
 		for (uint8_t i = 0; i < server.args(); i++) {
 			message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
 		}
+		if (LOGS) {
+			String IPaddrstr = server.client().remoteIP().toString().c_str();
+			String headerReferer = server.header("Referer");
+			String headerUA = server.header("User-Agent");
+			Serial.println(IPaddrstr+www_username+" ["+getTimeDateString()+"] \""+((server.method() == HTTP_GET) ? "GET" : "POST")+" "+server.uri()+" HTTP/1.1\" 404 - \""+headerReferer+"\" \""+headerUA+"\"");
+		}
 		server.send(404, "text/plain", message);
 	});
 	serverHttp.begin();
@@ -248,6 +422,7 @@ int T6iot::startWebServer(int port) {
 	server.begin();
 	Serial.print("ESP available at https://");
 	Serial.println(WiFi.localIP());
+
 	return 1;
 }
 int T6iot::startWebServer(int port, const char* username, const char* password, const char* realm) {
@@ -374,7 +549,7 @@ void T6iot::refreshToken() {
 		if (httpCode == 200 && payloadStr != "") {
 			String payload = https.getString();
 			if (DEBUG) {
-				Serial.println("Result HTTP Status=200");
+				Serial.println("Result HTTP Code=200");
 				Serial.println(payload);
 			}
 			DynamicJsonDocument doc(1500);
@@ -401,6 +576,8 @@ void T6iot::refreshToken() {
 			if (DEBUG) {
 				Serial.print("Error using payloadStr on refreshAuth: ");
 				Serial.println(payloadStr);
+				Serial.print("Result HTTP Code=");
+				Serial.println(httpCode);
 			}
 			_JWTToken = "";
 		}
@@ -446,7 +623,7 @@ void T6iot::authenticate(const char* t6Username, const char* t6Password) {
 		if (httpCode == 200 && payloadStr != "") {
 			String payload = https.getString();
 			if (DEBUG) {
-				Serial.println("Result HTTP Status=200");
+				Serial.println("Result HTTP Code=200");
 				Serial.println(payload);
 			}
 			DynamicJsonDocument doc(1500);
@@ -469,6 +646,8 @@ void T6iot::authenticate(const char* t6Username, const char* t6Password) {
 			if (DEBUG) {
 				Serial.print("Error using payloadStr: ");
 				Serial.println(payloadStr);
+				Serial.print("Result HTTP Code=");
+				Serial.println(httpCode);
 			}
 			_JWTToken = "";
 		}
@@ -679,43 +858,57 @@ void T6iot::otaDeploy(const char* sourceId, String objectId) {
 	//_urlOta+String(sourceId)+String("/deploy/")+String(objectId)
 }
 String T6iot::getShowUIHtml(String url) {
-	if (DEBUG) {
-		Serial.print("GETing from: ");
-		Serial.println(url);
-	}
 	if (!client.connect(_httpHost, _httpPort) && DEBUG) {
-		Serial.println("Http connection failed during _getHtmlRequest");
+		Serial.println("Http connection failed during getShowUIHtml");
 	}
 	{
-		HTTPClient https;
-		BearSSL::WiFiClientSecure newSecure;
-		newSecure.setFingerprint(fingerprint);
-		int checkBegin = https.begin(newSecure, _httpHost, _httpPort, url, true);
-		https.setUserAgent(String(_userAgent));
-		https.addHeader("Accept", "text/html");
-		https.addHeader("Content-Type", "text/html; charset=UTF-8");
-		if(_JWTToken) {
-			https.addHeader("Authorization", "Bearer "+String(_JWTToken));
+		WiFiClientSecure httpsClient;
+		if (DEBUG) { Serial.printf("Using fingerprint '%s'\n", fingerprint); }
+		httpsClient.setFingerprint(fingerprint);
+		httpsClient.setTimeout(15000); // 15 Seconds
+		delay(1000);
+		if (DEBUG) { Serial.println("HTTPS Connecting"); }
+		int r=0; //retry counter
+		while((!httpsClient.connect(_httpHost, _httpPort)) && (r < 30)){
+			delay(100);
+			Serial.print(".");
+			r++;
 		}
-		int httpCode = https.GET();
-		String result = https.getString();
-		if (httpCode == 200 && result != "") {
-			defaultHtml = result;
-			if (DEBUG) {
-				Serial.println("Youooouuuu, I got some Html to serve.");
-				Serial.println(result);
-				Serial.println(defaultHtml);
+		if (DEBUG) {
+			if(r==30) {
+				Serial.println("Connection failed");
+			} else {
+				Serial.println("Connected to web");
 			}
-			defaultHtml = result;
-		} else {
-			if (DEBUG) {
-				Serial.println("Oh nooooo, I will serve default Html.");
-				Serial.println(result);
+			Serial.print("GETing from: ");
+			Serial.print(_httpHost);
+			Serial.println(url);
+		}
+		httpsClient.print(String("GET ") + url + " HTTP/1.1\r\n" +
+				"Host: " + _httpHost + "\r\n" +
+				"User-Agent: " + String(_userAgent) + "\r\n" +
+				"Accept: text/html\r\n" +
+				"Content-Type: text/html; charset=UTF-8\r\n" +
+				"Authorization: Bearer "+String(_JWTToken)+"\r\n" +
+				"Connection: close\r\n\r\n");
+		if (DEBUG) { Serial.println("Request sent."); }
+		while (httpsClient.connected()) {
+			String lineH = httpsClient.readStringUntil('\n');
+			if (lineH == "\r") {
+				if (DEBUG) { Serial.println("headers received :"); }
+				break;
 			}
 		}
-		https.end();
-		newSecure.stop();
-		return result;
+		if (DEBUG) {
+		}
+		String line;
+		Serial.println("reply was: ->");
+		while(httpsClient.available()){
+			line += httpsClient.readStringUntil('\n');
+			if (DEBUG) { Serial.println(line); }
+		}
+		Serial.println("<-");
+		return line;
 	}
 }
 

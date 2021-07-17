@@ -1,6 +1,7 @@
 /*
 
 
+    1M - FS 64kb / OTA 470kb
     1M - FS 256kb / OTA 374kb
     2M - FS 512kb / OTA 768kb
    openssl
@@ -27,8 +28,8 @@ const char* t6Secret = "";                                        // Your t6 Sec
 char* secret = "";                                                // The object secret, for signature
 char* t6ObjectId = "092579ba-3dd6-4c03-982e-0ecc66033609";        // The Object uuid-v4 in t6
 char* t6UserAgent = "nodeMCU.28";                                 // The userAgent used when calling t6 api
-const char* wwwUsername = "admin";                                // Optional Username to call Object Api, set to "" to disable this authentication
-const char* wwwPassword = "esp8266";                              // Optional Password to call Object Api, set to "" to disable this authentication
+const char* wwwUsername = "";                                     // Optional Username to call Object Api, set to "" to disable this authentication
+const char* wwwPassword = "";                                     // Optional Password to call Object Api, set to "" to disable this authentication
 
 // t6 Flow container for Sensor data
 char* t6FlowId = "7774c70a-551a-4f1c-b78c-efa836835b14";          //
@@ -37,13 +38,13 @@ char* t6Unit = "%";                                               //
 char* t6Save = "false";                                           //
 char* t6Publish = "false";                                        //
 
-const char* ssid = "couleurs";                                            // Your own Wifi ssid to connect to
-const char* password = "u14nP5X>PWS9fZuw1}CR:~v8>~:uN)m={ozKSKoA7e_,oMF^m-1F?xiUwB&hkQ0";                                        // Your wifi password
+const char* ssid PROGMEM = "";                                            // Your own Wifi ssid to connect to
+const char* password PROGMEM = "";                                        // Your wifi password
 
-const long READInterval = 3 * 60;                                 // Interval between each READ -> 3 minutes
-const long JWTRefreshInterval = 4 * 60;                           // Should be less than server -> 4 minutes are fair
-const long POSTInterval = 30 * 60;                                // Interval between each POST -> 30 minutes
-const long POLLInterval = 100;                                    // Interval for polling ; it should be short -> 100ms
+const long READInterval PROGMEM = 3 * 60;                                 // Interval between each READ -> 3 minutes
+const long JWTRefreshInterval PROGMEM = 4 * 60;                           // Should be less than server -> 4 minutes are fair
+const long POSTInterval PROGMEM = 30 * 60;                                // Interval between each POST -> 30 minutes
+const long POLLInterval PROGMEM = 100;                                    // Interval for polling ; it should be short -> 100ms
 float sensorValue = -1.0;                                         // Value read from the sensor
 
 uint8_t jwtrTask, pollTask, readTask, postTask;                   // All tasks that can be cancelled
@@ -53,6 +54,7 @@ String html = "<html>\n"
               "<body>\n"
               "<h1>ESP demo FROM ino file</h1>\n"
               "<ul>\n"
+              "<li><a href='/'>Home</a></li>\n"
               "<li><a href='/open'>open</a></li>\n"
               "<li><a href='/close'>close</a></li>\n"
               "<li><a href='/getVal'>getVal</a></li>\n"
@@ -91,7 +93,7 @@ E0JSXTdcu5KoXcyi6Fs6SA==
 -----END CERTIFICATE-----
 )EOF";
 
-static const char serverKey[] PROGMEM =  R"EOF(
+static const char serverKey[] PROGMEM = R"EOF(
 -----BEGIN PRIVATE KEY-----
 MIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAMa02Ij1yr51yL16
 T2TaY3sF8KHHUpCGWa5d1I4p0o/gSjc1IwyfdKokuQ+YaanO7ZCGwv10ZvF4osBq
@@ -110,7 +112,7 @@ ex3TqsepYTCaDVbE
 -----END PRIVATE KEY-----
 )EOF";
 
-T6iot t6Client;                                                   // Init T6iot Client named "t6Client"
+T6iot t6Client;                                                 // Init T6iot Client
 
 void setup() {
   Serial.println("Booting ESP..");
@@ -118,11 +120,13 @@ void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
 
   digitalWrite(LED_BUILTIN, LOW);                                 // Turn the LED on ...
-  startWiFi();                                                    // Obviously, the wifi initialization :-)
+  startWiFi(ssid, password);                            	  // Obviously, the wifi initialization :-)
   printIPAddressOfHost(t6HttpHost);                               // Some custom wifi logs :-)
   digitalWrite(LED_BUILTIN, HIGH);                                // ... and then, wifi is set, turn light off
 
   t6Client.DEBUG = false;                                         // Activate or disable DEBUG mode
+  t6Client.LOGS = true;                                           // Activate or disable LOGS on Serial
+  t6Client.timestamp = 1593370431;                                // 
   t6Client.init(t6HttpHost, t6HttpPort, t6UserAgent, t6Timeout);  // This will initialize the t6 Client according to server
   t6Client.initObject(t6ObjectId, secret);                        // Initialize t6 Object with its uuid-v4, it's secret if you need to sign payload
 
@@ -133,11 +137,13 @@ void setup() {
 
   //t6Client.setHtml(html);                                         // Set html into the Object
   t6Client.setHtml();                                             // Or Fetch it from t6 api
-  //t6Client.scheduleOnce(2, setHtml, TIME_SECONDS);                // Or delay it to few seconds
 
   //t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
 
-  t6Client.setWebServerCredentials(wwwUsername, wwwPassword);     // Define credentials for webserver on the Object
+  t6Client.setWebServerCredentials(                               // Define credentials for webserver on the Object
+    wwwUsername,
+    wwwPassword
+  );
   t6Client.startWebServer(serverCert, serverKey);                 // Starting to listen from the Object on Http Api
 
   jwtrTask = t6Client.scheduleFixedRate(JWTRefreshInterval, refreshToken, TIME_SECONDS);   // Refresh JWT and must be after an authenticate
@@ -175,16 +181,16 @@ void readSample() {
   Serial.println("readSample() called");
   sensorValue++;
   Serial.println(String("Updating sensorValue to: ")+sensorValue);
-  t6Client.setValue(sensorValue);                                // Updating t6 with the sensor value
+  t6Client.setValue(sensorValue);                               // Updating t6 with the sensor value
 }
 
 void postSample() {
   Serial.println(String("Posting sensorValue to t6: ")+sensorValue);
   readSample();
   if (sensorValue > -1) {
-    t6Client.lockSleep(t6Timeout);                                // Lock the sleep, so the Object can't get into deep sleep mode when posting
+    t6Client.lockSleep(t6Timeout);                              // Lock the sleep, so the Object can't get into deep sleep mode when posting
     
-    DynamicJsonDocument payload(1024);                            // Building payload to post
+    DynamicJsonDocument payload(1024);                          // Building payload to post
     payload[String("value")] = sensorValue;
     payload[String("flow_id")] = t6FlowId;
     payload[String("mqtt_topic")] = t6Mqtt_topic;
@@ -251,22 +257,31 @@ void printIPAddressOfHost(const char* host) {
   if (!WiFi.hostByName(host, resolvedIP)) {
     Serial.print(F("Host lookup failed for "));
     Serial.println(host);
+  } else {
+    Serial.print(F("Host lookup success for "));
+    Serial.println(host);
   }
   Serial.print(F("Host: "));
   Serial.print(host);
   Serial.print(", IP: ");
   Serial.println(resolvedIP.toString().c_str());
 }
-void startWiFi() {
+
+void startWiFi(const char* ssid, const char* pswd) {
   Serial.println();
   Serial.print("Connecting to Wifi SSID:");
   Serial.println(ssid);
   WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password);
+  WiFi.begin(ssid, pswd);
   if (WiFi.waitForConnectResult() != WL_CONNECTED) {
     Serial.println("WiFi Connect Failed! Rebooting...");
     delay(1000);
     Serial.print(".");
-    ESP.restart();
+    //ESP.restart();
+  } else {
+    Serial.println("WiFi Connected...");
+    Serial.print("WiFi.getPhyMode()=");
+    Serial.println(WiFi.getPhyMode());
+    delay(1000);
   }
 }
