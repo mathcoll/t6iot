@@ -1,12 +1,13 @@
 /*
- * 
- * 
- *  1M - FS 256kb / OTA 374kb
- *  2M - FS 512kb / OTA 768kb
- * openssl
- * req -x509 -newkey rsa:1024 -sha256 -keyout key.txt -out cert.txt -days 365 -nodes -subj "/C=FR/ST=CA/L=Paris/O=ESP [FR]/OU=ESP/CN=esp8266.local" -addext subjectAltName=DNS:esp8266.local,IP:192.168.0.28
- * 
- * 
+
+
+    1M - FS 64kb / OTA 470kb
+    1M - FS 256kb / OTA 374kb
+    2M - FS 512kb / OTA 768kb
+   openssl
+   req -x509 -newkey rsa:1024 -sha256 -keyout key.txt -out cert.txt -days 365 -nodes -subj "/C=FR/ST=CA/L=Paris/O=ESP [FR]/OU=ESP/CN=esp8266.local" -addext subjectAltName=DNS:esp8266.local,IP:192.168.0.28
+
+
 */
 #include <ESP8266WiFi.h>
 #include <t6iot.h>
@@ -50,6 +51,7 @@ String html = "<html>\n"
               "<body>\n"
               "<h1>ESP demo FROM ino file</h1>\n"
               "<ul>\n"
+              "<li><a href='/'>Home</a></li>\n"
               "<li><a href='/open'>open</a></li>\n"
               "<li><a href='/close'>close</a></li>\n"
               "<li><a href='/getVal'>getVal</a></li>\n"
@@ -88,7 +90,7 @@ E0JSXTdcu5KoXcyi6Fs6SA==
 -----END CERTIFICATE-----
 )EOF";
 
-static const char serverKey[] PROGMEM =  R"EOF(
+static const char serverKey[] PROGMEM = R"EOF(
 -----BEGIN PRIVATE KEY-----
 MIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAMa02Ij1yr51yL16
 T2TaY3sF8KHHUpCGWa5d1I4p0o/gSjc1IwyfdKokuQ+YaanO7ZCGwv10ZvF4osBq
@@ -109,7 +111,7 @@ ex3TqsepYTCaDVbE
 
 T6iot t6Client;                                                 // Init T6iot Client
 
-void loadConfig() {
+sConfig loadConfig() {
   if (!SPIFFS.exists(fileconfig)) {
     Serial.println("No config file");
     config.loaded = false;
@@ -177,6 +179,7 @@ void loadConfig() {
       }
     }
   }
+  return config;
 }
 
 void setup() {
@@ -186,7 +189,7 @@ void setup() {
 
   digitalWrite(LED_BUILTIN, LOW);                                 // Turn the LED on ...
   SPIFFS.begin();
-  loadConfig();                                                   // Loading configuration from file
+  config = loadConfig();                                          // Loading configuration from file
   digitalWrite(LED_BUILTIN, HIGH);                                // ... and then, turn light off
   delay(1000);
 
@@ -197,6 +200,7 @@ void setup() {
       printIPAddressOfHost(config.t6HttpHost);                    // Some custom wifi logs :-)
 
       t6Client.DEBUG = false;                                         // Activate or disable DEBUG mode
+      t6Client.LOGS = true;                                           // Activate or disable LOGS on Serial
       t6Client.init(config.t6HttpHost, config.t6HttpPort, config.object_t6UserAgent, config.t6Timeout); // This will initialize the t6 Client according to server
       t6Client.initObject(config.object_t6ObjectId, config.object_secret); // Initialize t6 Object with its uuid-v4, it's secret if you need to sign payload
     
@@ -205,9 +209,8 @@ void setup() {
       t6Client.setCredentials(config.t6Username, config.t6Password);  // This will define your own personal username/password to connect to t6
       t6Client.authenticate();                                        // Generate a JWT from your personnal credential on t6 server
     
-      //t6Client.setHtml(html);                                         // Set html into the Object
-      t6Client.setHtml();                                             // Or Fetch it from t6 api
-      //t6Client.scheduleOnce(2, setHtml, TIME_SECONDS);                // Or delay it to few seconds
+      t6Client.setHtml(html);                                         // Set html into the Object
+      //t6Client.setHtml();                                             // Or Fetch it from t6 api
     
       //t6Client.activateOTA();                                         // Activating Over The Air (OTA) update procedure
     
@@ -260,24 +263,24 @@ void setOn() {
 
 void setOff() {
   Serial.println("setOff() called");
-  t6Client.cancelTask(postTask);                                  // Stop a task from executing again if it is a repeating task
-  t6Client.cancelTask(jwtrTask);                                  // Stop a task from executing again if it is a repeating task
+  t6Client.cancelTask(postTask);                                // Stop a task from executing again if it is a repeating task
+  t6Client.cancelTask(jwtrTask);                                // Stop a task from executing again if it is a repeating task
 }
 
 void readSample() {
   Serial.println("readSample() called");
   sensorValue++;
   Serial.println(String("Updating sensorValue to: ")+sensorValue);
-  t6Client.setValue(sensorValue);                                 // Updating t6 with the sensor value
+  t6Client.setValue(sensorValue);                               // Updating t6 with the sensor value
 }
 
 void postSample() {
   Serial.println(String("Posting sensorValue to t6: ")+sensorValue);
   readSample();
   if (sensorValue > -1) {
-    t6Client.lockSleep(config.t6Timeout);                         // Lock the sleep, so the Object can't get into deep sleep mode when posting
+    t6Client.lockSleep(config.t6Timeout);                       // Lock the sleep, so the Object can't get into deep sleep mode when posting
     
-    DynamicJsonDocument payload(1024);                            // Building payload to post
+    DynamicJsonDocument payload(1024);                          // Building payload to post
     payload[String("value")] = sensorValue;
     payload[String("flow_id")] = config.flow_t6FlowId;
     payload[String("mqtt_topic")] = config.flow_t6Mqtt_topic;
