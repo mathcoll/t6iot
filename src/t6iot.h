@@ -1,5 +1,5 @@
 /*
-  t6iot.h - v1.4.3
+  t6iot.h - v1.4.4
   Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
   - t6 iot: https://api.internetcollaboratif.info
   - Api doc: https://api.internetcollaboratif.info/docs/
