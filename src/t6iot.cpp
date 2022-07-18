@@ -66,7 +66,7 @@ ESP8266WebServer serverHttp(_t6ObjectHttpPort);
 BearSSL::ESP8266WebServerSecure server(443);
 T6Object object;
 
-const char* fingerprint = "21:A0:B8:05:89:6E:69:74:02:1B:BF:05:B3:09:E5:46:E2:B8:94:08"; // SHA1 fingerprint of the certificate sni.cloudflaressl.com // valid until Tue, 12 Jul 2022 23:59:59 GMT
+const char* fingerprint = "4A F8 05 93 7E 1B 59 0F CA 2C E4 C3 CB 9A 19 96 24 5D 56 05"; // SHA1 fingerprint of the certificate sni.cloudflaressl.com // valid until Tue, 13 Jun 2023 23:59:59 GMT
 static const char serverCert[] PROGMEM = R"EOF(
 )EOF";
 
