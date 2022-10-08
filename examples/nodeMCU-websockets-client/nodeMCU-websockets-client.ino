@@ -1,35 +1,44 @@
 /*
- *
- * 
+ * https://www.internetcollaboratif.info/features/sockets-connection/
+ * https://github.com/mathcoll/t6iot/blob/master/examples/nodeMCU-websockets-client/nodeMCU-websockets-client.ino
  *
  */
- 
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <WebSocketsClient.h>
+#include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
- 
-WebSocketsClient webSocket;
+#include <base64.h>
+#include <ArduinoJWT.h>
+#include <pins_arduino.h>
 
-const char *ssid     = "cxxxxxxxxxxxxxxxxxxxxxxxxxxs";
-const char *password = "uxxxxxxxxxxxxxxxxxxxxxxxxxx0";
-char wsHost[] = "ws.internetcollaboratif.info"; // "192.168.0.15"; //
-uint16_t wsPort = 80; // 4000;
-char wsPath[] = "/ws";
-const char * wsKey    = "TSxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxaf";
-const char * wsSecret = "RBxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxkS";
-long expiration = 1695062423073;
-const char * wsBase64Auth = "Basic VFxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxtT";
-const char * t6Object_id = "aaaaaaaa-aaaa-4bbb-8888-aaaaaaaaaaaa";
-const char * t6ObjectSecretKey = "FxxxxxxxxxxxxxxxxxxxxxxxxxxkeJ@@.@n'.@?o.%xxxxxxxxxxxxxxxxxxxxxxxxxxd?w*@y-f";
+const char *ssid                = "";
+const char *password            = "";
+char wsHost[]                   = "ws.internetcollaboratif.info";
+uint16_t wsPort                 = 80;
+char wsPath[]                   = "/ws";
+String t6wsKey                  = "";
+String t6wsSecret               = "";
+long expiration                 = 1695148112505;
+const char * t6Object_id        = "";
+const char * t6ObjectSecretKey  = "";
+unsigned long messageInterval   = 15000; // 15 secs
+unsigned long reconnectInterval = 5000;  //  5 secs
+unsigned long timeoutInterval   = 3000;  //  3 secs
+int disconnectAfterFailure      = 2;     // consider connection disconnected if pong is not received 2 times
+const char* PARAM_INPUT_1       = "pin";
+const char* PARAM_INPUT_2       = "value";
 
-unsigned long messageInterval = 15000;   // 15 secs
-unsigned long reconnectInterval = 5000; // 5 secs
+String basic_token;
+const char * t6wsBase64Auth;
 bool connected = false;
- 
+unsigned long lastUpdate = millis();
+
 #define serial Serial
-#define UNKNOWN_PIN 0xFF
- 
+WebSocketsClient webSocket;
+ArduinoJWT jwt = ArduinoJWT(t6ObjectSecretKey);
+AsyncWebServer server(80);
+
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
         case WStype_DISCONNECTED: {
@@ -112,6 +121,21 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
           break;
     }
 }
+
+String processor(const String& var) {
+  Serial.println(var);
+}
+
+String getPinMode(int pin) {
+  uint32_t bit = digitalPinToBitMask(pin);
+  uint32_t port = digitalPinToPort(pin);
+  volatile uint32_t *reg = portModeRegister(port);
+  if (*reg & bit) {
+      return "OUTPUT";
+  } else {
+      return "INPUT";
+  }
+}
  
 void setup() {
     serial.begin(115200);
@@ -120,27 +144,188 @@ void setup() {
     serial.println("[SETUP] BOOT");
     pinMode(LED_BUILTIN, OUTPUT);
     digitalWrite(LED_BUILTIN, LOW);
+    delay(500);
+    digitalWrite(LED_BUILTIN, HIGH);
+
+    if(!SPIFFS.begin()){
+      Serial.println("An Error has occurred while mounting SPIFFS");
+      return;
+    }
  
     WiFi.begin(ssid, password);
     while ( WiFi.status() != WL_CONNECTED ) {
-      delay ( 500 );
-      Serial.print ( "." );
+      delay(500);
+      Serial.print(".");
     }
-    digitalWrite(LED_BUILTIN, HIGH);
     serial.print("Local IP: ");
     serial.println(WiFi.localIP());
 
-    webSocket.begin(wsHost, wsPort, wsPath);
-    delay ( 500 );
-    webSocket.onEvent(webSocketEvent);
-    webSocket.setAuthorization(wsBase64Auth);
-    webSocket.setReconnectInterval(reconnectInterval);
-    webSocket.enableHeartbeat(messageInterval, 3000, 2);
-    delay ( 500 );
-    claimObject( t6Object_id );
-}
+    server.begin();
+    /*
+    server.onNotFound("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+      request->send(SPIFFS, "/404.html", "text/html");
+    });
+    */
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+      request->send(SPIFFS, "/index.html", String(), false, processor);
+    });
+    server.on("/digitalWrite", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String inputMessage1;
+      String inputMessage2;
+      // GET input1 value on <ESP_IP>/digitalWrite?pin=<inputMessage1>&value=<inputMessage2>
+      if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
+        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
+        inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
+        digitalWrite(inputMessage1.toInt(), inputMessage2.toInt());
+      }
+      Serial.print("GPIO: ");
+      Serial.print(inputMessage1);
+      Serial.print(" - Set to: ");
+      Serial.println(inputMessage2.toInt());
+      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+String(inputMessage1.toInt())+"\", \"value\": \""+String(inputMessage2.toInt())+"\"}");
+    });
 
-unsigned long lastUpdate = millis();
+    server.on("/analogWrite", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String inputMessage1;
+      String inputMessage2;
+      // GET input1 value on <ESP_IP>/analogWrite?pin=<inputMessage1>&value=<inputMessage2>
+      if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
+        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
+        inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
+        analogWrite(inputMessage1.toInt(), inputMessage2.toInt());
+      }
+      Serial.print("GPIO: ");
+      Serial.print(inputMessage1);
+      Serial.print(" - Set to: ");
+      Serial.println(inputMessage2.toInt());
+      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+String(inputMessage1.toInt())+"\", \"value\": \""+String(inputMessage2.toInt())+"\"}");
+    });
+
+    server.on("/setPinModeOutput", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String inputMessage1;
+      // GET input1 value on <ESP_IP>/setPinModeOutput?pin=<inputMessage1>
+      if (request->hasParam(PARAM_INPUT_1)) {
+        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
+        pinMode(inputMessage1.toInt(), OUTPUT);
+      }
+      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \"OUTPUT\"}");
+    });
+
+    server.on("/setPinModeInput", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String inputMessage1;
+      // GET input1 value on <ESP_IP>/setPinModeOutput?pin=<inputMessage1>
+      if (request->hasParam(PARAM_INPUT_1)) {
+        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
+        pinMode(inputMessage1.toInt(), INPUT);
+      }
+      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \"INPUT\"}");
+    });
+
+    server.on("/analogRead", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String inputMessage1;
+      String currentVal;
+      // GET input1 value on <ESP_IP>/analogRead?pin=<inputMessage1>
+      if (request->hasParam(PARAM_INPUT_1)) {
+        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
+        currentVal = String(analogRead(inputMessage1.toInt()), DEC);
+      }
+      serial.println("analogRead: "+currentVal);
+      request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \""+currentVal+"\"}");
+    });
+
+    server.on("/digitalRead", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String inputMessage1;
+      String currentVal;
+      // GET input1 value on <ESP_IP>/digitalRead?pin=<inputMessage1>
+      if (request->hasParam(PARAM_INPUT_1)) {
+        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
+        currentVal = String(digitalRead(inputMessage1.toInt()), DEC);
+      }
+      serial.println("digitalRead: "+currentVal);
+      request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \""+currentVal.toInt()+"\"}");
+    });
+
+    server.on("/getValues", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String inputMessage1;
+      String currentVal;
+      String output;
+      const byte allPins[] = {0, 1, 2, 3, 4, 5, 6, 7, 8};
+      const byte COUNT = sizeof(allPins);
+      // GET input1 value on <ESP_IP>/getValues?pin=<inputMessage1>
+      if (request->hasParam(PARAM_INPUT_1)) {
+        inputMessage1 = ( request->getParam(PARAM_INPUT_1)->value() ).c_str();
+        StaticJsonDocument<1024> jsonValues;
+        JsonArray pins = jsonValues.createNestedArray("pins");
+        for (int p = 0; p < COUNT; p++) {
+          JsonObject npin = pins[p].createNestedObject("pin"+String(allPins[p]));
+          npin["mode"] = getPinMode(allPins[p]);
+          npin["type"] = "digital";
+          npin["value"] = String(digitalRead((allPins[p])), DEC);
+        }
+        serializeJson(jsonValues, output);
+        serial.println("");
+        serial.println(output);
+      }
+      request->send(200, "application/json", output);
+    });
+
+    server.on("/sw.js", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/sw.js", "text/javascript");
+    });
+
+    server.on("/t6show-min.js", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/t6show-min.js", "text/javascript");
+    });
+
+    server.on("/t6show-min.js.map", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/t6show-min.js.map", "application/json");
+    });
+
+    server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/style.css", "text/css");
+    });
+
+    server.on("/t6app.min.css", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/t6app.min.css", "text/css");
+    });
+
+    server.on("/object.css", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/object.css", "text/css");
+    });
+
+    server.on("/ui.json", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/ui.json", "application/json");
+    });
+
+    server.on("/robots.txt", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/robots.txt", "plain/text");
+    });
+
+    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/favicon.ico", "image/x-icon");
+    });
+
+    server.on("/icon-16x16.png", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/icon-16x16.png", "image/x-png");
+    });
+
+    server.on("/icon-32x32.png", HTTP_GET, [](AsyncWebServerRequest *request){
+      request->send(SPIFFS, "/icon-32x32.png", "image/x-png");
+    });
+    
+    webSocket.begin(wsHost, wsPort, wsPath);
+    delay(500);
+    webSocket.onEvent(webSocketEvent);
+
+    basic_token = String("Basic " + base64::encode(String(t6wsKey+":"+t6wsSecret).c_str()));
+    t6wsBase64Auth = basic_token.c_str();
+    webSocket.setAuthorization(t6wsBase64Auth);
+    
+    webSocket.setReconnectInterval(reconnectInterval);
+    webSocket.enableHeartbeat(messageInterval, timeoutInterval, disconnectAfterFailure);
+    delay(500);
+    claimObject(t6Object_id);
+}
 
 void claimObject(const char * id) {
   serial.println("[WSc] claimObject to WS server: " + String(id));
@@ -148,38 +333,12 @@ void claimObject(const char * id) {
   String databuf;
   json["command"] = "claimObject";
   json["object_id"] = String(id);
-  // We should use secret (t6ObjectSecretKey) to sign a payload: {"object_id": t6Object_id}
-  json["signature"] = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJvYmplY3RfaWQiOiJhMDZkZmE4YS1kZGViLTRiZjYtODg1YS02ZmI0ZjFmODRiMDEifQ.o_HkV9U8GKRdzq0S-5pFBlzkz38kcAb3VFkLTqtHKQc";
+  String payload = "{\"object_id\": \""+String(t6Object_id)+"\"}";
+  String signature = jwt.encodeJWT(payload);
+  json["signature"] = signature;
   serializeJson(json, databuf);
   webSocket.sendTXT(databuf);
 }
-
-/*
-uint8_t getPinMode(uint8_t pin) {
-  uint8_t bit = digitalPinToBitMask(pin);
-  uint8_t port = digitalPinToPort(pin);
-
-  // I don't see an option for mega to return this, but whatever...
-  if (NOT_A_PIN == port) return UNKNOWN_PIN;
-
-  // Is there a bit we can check?
-  if (0 == bit) return UNKNOWN_PIN;
-
-  // Is there only a single bit set?
-  if (bit & bit - 1) return UNKNOWN_PIN;
-
-  volatile uint8_t *reg, *out;
-  reg = portModeRegister(port);
-  out = portOutputRegister(port);
-
-  if (*reg & bit)
-    return OUTPUT;
-  else if (*out & bit)
-    return INPUT_PULLUP;
-  else
-    return INPUT;
-}
-*/
 
 void loop() {
     webSocket.loop();

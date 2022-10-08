@@ -1,0 +1,44 @@
+.mdl-switch, .mdl-slider {
+	height: 64px;
+	margin: 0;
+	width: calc(100% - 10px);
+}
+.mdl-switch__label, .mdl-slider__label {
+	left: 0px !important;
+	display: block;
+	width: 100%;
+}
+.mdl-switch__track {
+	left: calc(50% - 20px) !important;
+	top: 32px;
+}
+.mdl-switch__thumb {
+	left: calc(50% - 24px) !important;
+	top: 28px;
+}
+.mdl-switch.is-checked .mdl-switch__thumb {
+	left: calc(50% - 0px) !important;
+}
+.switchLabels, .sliderLabels {
+	font-size: 8px;
+}
+.mdl-slider__container {
+	position: relative;
+	width: calc(100% - 56px);
+	display: inline-flex;
+	margin-left: 26px;
+}
+.mdl-slider__label {
+	position: relative;
+	display: block;
+	text-align: left;
+	font-size: 12px;
+	visibility: visible !important;
+	color: rgba(121,85,72,1);
+	cursor: pointer;
+	line-height: 24px;
+}
+.mdl-slider__background-flex {
+	width: calc(100% - 26px);
+	left: -22px;
+}
