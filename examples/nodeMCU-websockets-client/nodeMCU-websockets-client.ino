@@ -4,19 +4,25 @@
  *
  */
 #include <Arduino.h>
-#include <ESP8266WiFi.h>
+#include <ArduinoJson.h>
+#include <ArduinoJWT.h>
 #include <WebSocketsClient.h>
 #include <ESPAsyncWebServer.h>
-#include <ArduinoJson.h>
+#include <StreamString.h>
 #include <base64.h>
-#include <ArduinoJWT.h>
 #include <pins_arduino.h>
+#include <ESP8266WiFi.h>
+#include <ESP8266mDNS.h>
+#include <ESP8266SSDP.h>
 
 #include <ESP8266SAM.h>
 #include "AudioOutputI2SNoDAC.h"
 
+// Wifi
 const char *ssid                = "";
 const char *password            = "";
+
+// t6
 char wsHost[]                   = "ws.internetcollaboratif.info";
 uint16_t wsPort                 = 80;
 char wsPath[]                   = "/ws";
@@ -25,8 +31,10 @@ String t6wsSecret               = "";
 long expiration                 = 1695148112505;
 const char * t6Object_id        = "";
 const char * t6ObjectSecretKey  = "";
-unsigned long messageInterval   = 15000; //  15 secs
-              // Once Claimed, reschedule next message not before on long time
+
+// t6 web sockets
+unsigned long messageInterval   = 15000; //  15 secs // 10000 * 60 * 10; // 10 mins
+              // Once Claimed, reschedule next message not before a long time
 unsigned long messageIntervalOnceClaimed   = 60000 * 10; //  15 secs // 60000 * 10; // 10 mins
 unsigned long reconnectInterval = 5000;  //  5  secs
 unsigned long timeoutInterval   = 3000;  //  3  secs
@@ -34,18 +42,52 @@ int disconnectAfterFailure      = 2;     // consider connection disconnected if 
 const char* PARAM_INPUT_1       = "pin";
 const char* PARAM_INPUT_2       = "value";
 
+// SSDP
+int localPort                   = 80;
+const char * presentationURL    = "/";
+const char * friendlyName       = "t6Object";
+const char * modelName          = "t6 IoT";
+const char * modelNumber        = "1.0.0";
+const char * deviceType         = "upnp:rootdevice";
+const char * modelURL           = "https://github.com/mathcoll/t6iot";
+const char * manufacturer       = "Internet Collaboratif";
+const char * manufacturerURL    = "https://www.internetcollaboratif.info";
+
 String basic_token;
 const char * t6wsBase64Auth;
 bool connected = false;
 bool claimed = false;
 unsigned long lastUpdate = millis();
 
-String numbers[] = {"zero", "one", "two", "three", "four", "five", "six", "seven", "height", "nine", "ten"};
+String numbers[] = {"zero", "one", "two", "three", "four", "five", "six", "seven", "height", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "heighteen", "nineteen", "twenty", "twenty one"};
 #define serial Serial
 WebSocketsClient webSocket;
 ArduinoJWT jwt = ArduinoJWT(t6ObjectSecretKey);
-AsyncWebServer server(80);
+AsyncWebServer server(localPort);
 AudioOutputI2SNoDAC *audioOutput = NULL;
+
+static const char* ssdpTemplate =
+  "<?xml version=\"1.0\"?>"
+  "<root xmlns=\"urn:schemas-upnp-org:device-1-0\">"
+    "<specVersion>"
+      "<major>1</major>"
+      "<minor>0</minor>"
+    "</specVersion>"
+    "<URLBase>http://%s/</URLBase>"
+    "<device>"
+      "<deviceType>%s</deviceType>"
+      "<friendlyName>%s</friendlyName>"
+      "<presentationURL>%s</presentationURL>"
+      "<serialNumber>%u</serialNumber>"
+      "<modelName>%s</modelName>"
+      "<modelNumber>%s</modelNumber>"
+      "<modelURL>%s</modelURL>"
+      "<manufacturer>%s</manufacturer>"
+      "<manufacturerURL>%s</manufacturerURL>"
+      "<UDN>uuid:a774f8f2-c180-4e26-8544-cda0e6%02x%02x%02x</UDN>"
+    "</device>"
+  "</root>\r\n"
+  "\r\n";
 
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
@@ -85,6 +127,10 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                   serial.println("[WSc] claimObject is accepted on WS server. socket_id: " + String(doc["socket_id"]));
                   messageInterval = messageIntervalOnceClaimed;
                   claimed = true;
+
+              } else if (strcmp(arduinoCommand, "claimRequest") == 0) {
+                serial.println("claimRequest");
+                claimObject( t6Object_id );
 
               } else if (strcmp(arduinoCommand, "analogWrite") == 0) {
                 serial.println("analogWrite");
@@ -180,16 +226,18 @@ void setup() {
     }
     serial.print("Local IP: ");
     serial.println(WiFi.localIP());
+    
+    MDNS.begin(friendlyName);
+    MDNS.addService("http", "tcp", localPort);
 
-    server.begin();
-    /*
-    server.onNotFound("/update", HTTP_GET, [] (AsyncWebServerRequest *request) {
+    server.onNotFound([] (AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/404.html", "text/html");
     });
-    */
+
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/index.html", String(), false, processor);
     });
+
     server.on("/digitalWrite", HTTP_GET, [](AsyncWebServerRequest *request) {
       String inputMessage1;
       String inputMessage2;
@@ -333,7 +381,47 @@ void setup() {
     server.on("/icon-32x32.png", HTTP_GET, [](AsyncWebServerRequest *request){
       request->send(SPIFFS, "/icon-32x32.png", "image/x-png");
     });
-    
+
+    server.on("/description.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
+      StreamString output;
+      //t6Object_id
+      if(output.reserve(1024)) {
+        uint32_t chipId = ESP.getChipId();
+        output.printf(ssdpTemplate,
+          WiFi.localIP().toString().c_str(),
+          deviceType,
+          friendlyName,
+          presentationURL,
+          String(ESP.getChipId()),
+          modelName,
+          modelNumber,
+          modelURL,
+          manufacturer,
+          manufacturerURL,
+          (uint8_t) ((chipId >> 16) & 0xff),
+          (uint8_t) ((chipId >>  8) & 0xff),
+          (uint8_t)   chipId        & 0xff
+        );
+        request->send(200, "text/xml", (String)output);
+      } else {
+        request->send(500);
+      }
+    });
+
+    SSDP.setSchemaURL("description.xml");
+    SSDP.setHTTPPort(localPort);
+    SSDP.setDeviceType(deviceType);
+    SSDP.setName(friendlyName);
+    SSDP.setSerialNumber(String(ESP.getChipId()));
+    SSDP.setModelName(modelName);
+    SSDP.setModelNumber(modelNumber);
+    SSDP.setModelURL(modelURL);
+    SSDP.setManufacturer(manufacturer);
+    SSDP.setManufacturerURL(manufacturerURL);
+    SSDP.setURL("/");
+    SSDP.begin();
+
+    server.begin();
     webSocket.begin(wsHost, wsPort, wsPath);
     delay(500);
     webSocket.onEvent(webSocketEvent);
@@ -345,7 +433,6 @@ void setup() {
     webSocket.setReconnectInterval(reconnectInterval);
     webSocket.enableHeartbeat(messageInterval, timeoutInterval, disconnectAfterFailure);
     delay(500);
-    claimObject( t6Object_id );
 }
 
 void claimObject(const char * id) {
