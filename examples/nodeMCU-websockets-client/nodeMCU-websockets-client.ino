@@ -12,6 +12,9 @@
 #include <ArduinoJWT.h>
 #include <pins_arduino.h>
 
+#include <ESP8266SAM.h>
+#include "AudioOutputI2SNoDAC.h"
+
 const char *ssid                = "";
 const char *password            = "";
 char wsHost[]                   = "ws.internetcollaboratif.info";
@@ -22,9 +25,11 @@ String t6wsSecret               = "";
 long expiration                 = 1695148112505;
 const char * t6Object_id        = "";
 const char * t6ObjectSecretKey  = "";
-unsigned long messageInterval   = 15000; // 15 secs
-unsigned long reconnectInterval = 5000;  //  5 secs
-unsigned long timeoutInterval   = 3000;  //  3 secs
+unsigned long messageInterval   = 15000; //  15 secs
+              // Once Claimed, reschedule next message not before on long time
+unsigned long messageIntervalOnceClaimed   = 60000 * 10; //  15 secs // 60000 * 10; // 10 mins
+unsigned long reconnectInterval = 5000;  //  5  secs
+unsigned long timeoutInterval   = 3000;  //  3  secs
 int disconnectAfterFailure      = 2;     // consider connection disconnected if pong is not received 2 times
 const char* PARAM_INPUT_1       = "pin";
 const char* PARAM_INPUT_2       = "value";
@@ -32,12 +37,15 @@ const char* PARAM_INPUT_2       = "value";
 String basic_token;
 const char * t6wsBase64Auth;
 bool connected = false;
+bool claimed = false;
 unsigned long lastUpdate = millis();
 
+String numbers[] = {"zero", "one", "two", "three", "four", "five", "six", "seven", "height", "nine", "ten"};
 #define serial Serial
 WebSocketsClient webSocket;
 ArduinoJWT jwt = ArduinoJWT(t6ObjectSecretKey);
 AsyncWebServer server(80);
+AudioOutputI2SNoDAC *audioOutput = NULL;
 
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
@@ -73,7 +81,12 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
               serial.printf("- value: %s\n", val);
               serial.println();
 
-              if (strcmp(arduinoCommand, "analogWrite") == 0) {
+              if (strcmp(arduinoCommand, "claimed") == 0) {
+                  serial.println("[WSc] claimObject is accepted on WS server. socket_id: " + String(doc["socket_id"]));
+                  messageInterval = messageIntervalOnceClaimed;
+                  claimed = true;
+
+              } else if (strcmp(arduinoCommand, "analogWrite") == 0) {
                 serial.println("analogWrite");
                 analogWrite(pin, atoi(val));
 
@@ -100,6 +113,11 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 serial.println("setPinMode");
                 pinMode(pin, atoi(val));
                 
+              } else if (strcmp(arduinoCommand, "audioOutput") == 0) {
+                serial.println("audioOutput");
+                ESP8266SAM *sam = new ESP8266SAM;
+                sam->Say(audioOutput, val);
+                delete sam;   
               }
             }
           }
@@ -151,6 +169,9 @@ void setup() {
       Serial.println("An Error has occurred while mounting SPIFFS");
       return;
     }
+    
+    audioOutput = new AudioOutputI2SNoDAC();
+    audioOutput->begin();
  
     WiFi.begin(ssid, password);
     while ( WiFi.status() != WL_CONNECTED ) {
@@ -324,11 +345,11 @@ void setup() {
     webSocket.setReconnectInterval(reconnectInterval);
     webSocket.enableHeartbeat(messageInterval, timeoutInterval, disconnectAfterFailure);
     delay(500);
-    claimObject(t6Object_id);
+    claimObject( t6Object_id );
 }
 
 void claimObject(const char * id) {
-  serial.println("[WSc] claimObject to WS server: " + String(id));
+  serial.println("[WSc] claimObject to WS server. object_id: " + String(id));
   DynamicJsonDocument json(256);
   String databuf;
   json["command"] = "claimObject";
@@ -343,7 +364,6 @@ void claimObject(const char * id) {
 void loop() {
     webSocket.loop();
     if ( connected && lastUpdate+messageInterval<millis() ) {
-      // Do whatever is necessary based on the time interval
       claimObject( t6Object_id );
       lastUpdate = millis();
     }
