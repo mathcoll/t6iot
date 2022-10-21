@@ -1,17 +1,23 @@
 /*
  * https://www.internetcollaboratif.info/features/sockets-connection/
  * https://github.com/mathcoll/t6iot/blob/master/examples/nodeMCU-websockets-client/nodeMCU-websockets-client.ino
- *
+ * 
+ * Set CPU Frequency to 160MHz
  */
 #include <Arduino.h>
 #include <ArduinoJson.h>
 #include <ArduinoJWT.h>
 #include <WebSocketsClient.h>
-#include <ESPAsyncWebServer.h>
 #include <StreamString.h>
 #include <base64.h>
 #include <pins_arduino.h>
 #include <ESP8266WiFi.h>
+#define ASYNC_TCP_SSL_ENABLED true
+#include <ESPAsyncWebServer.h>
+/*
+#include <ESP8266WebServer.h>
+#include <uri/UriBraces.h>
+ */
 #include <ESP8266mDNS.h>
 #include <ESP8266SSDP.h>
 
@@ -37,13 +43,14 @@ unsigned long messageInterval   = 15000; //  15 secs // 10000 * 60 * 10; // 10 m
               // Once Claimed, reschedule next message not before a long time
 unsigned long messageIntervalOnceClaimed   = 60000 * 10; //  15 secs // 60000 * 10; // 10 mins
 unsigned long reconnectInterval = 5000;  //  5  secs
-unsigned long timeoutInterval   = 3000;  //  3  secs
+unsigned long timeoutInterval   = 3000;  //  3  secs, { method: "GET", mode: "no-cors", headers: {"Content-Type": "application/json"}
 int disconnectAfterFailure      = 2;     // consider connection disconnected if pong is not received 2 times
 const char* PARAM_INPUT_1       = "pin";
 const char* PARAM_INPUT_2       = "value";
 
 // SSDP
 int localPort                   = 80;
+int advertiseInterval           = 60 * 10;
 const char * presentationURL    = "/";
 const char * friendlyName       = "t6Object";
 const char * modelName          = "t6 IoT";
@@ -64,7 +71,45 @@ String numbers[] = {"zero", "one", "two", "three", "four", "five", "six", "seven
 WebSocketsClient webSocket;
 ArduinoJWT jwt = ArduinoJWT(t6ObjectSecretKey);
 AsyncWebServer server(localPort);
+//ESP8266WebServer server(localPort);
 AudioOutputI2SNoDAC *audioOutput = NULL;
+
+static const char* configTemplate =
+  "let config={"
+    "\"object_ip\": \"%s\","
+    "\"object_port\": \"%s\","
+    "\"wsHost\": \"%s\","
+    "\"wsPort\": \"%s\","
+    "\"wsPath\": \"%s\","
+    "\"t6Object_id\": \"%s\""
+  "};"
+  "window.onload = function() {"
+  "  if(typeof config!==\"undefined\") {"
+  "    let socket = new WebSocket(`ws://${config.wsHost}:${config.wsPort}${config.wsPath}?BASIC_TOKEN=%s`);"
+  "    socket.onopen = function(e) {"
+  "      console.log(\"[Ws] Connection established\");"
+  "    };"
+  "    socket.onmessage = function(event) {"
+  "      console.log(`[Ws] Data received from server: ${event.data}`);"
+  "      if(JSON.parse(event.data).arduinoCommand === \"claimRequest\") {"
+  "        socket.send(JSON.stringify({\"command\": \"claimUI\", \"ui_id\": uuid()}));"
+  "        socket.send(JSON.stringify({\"command\": \"subscribe\", \"channel\": \"channel_UI\"}));"
+  "      }"
+  "    };"
+  "    socket.onclose = function(event) {"
+  "      if (event.wasClean) {"
+  "        console.log(`[Ws] Connection closed cleanly, code=${event.code} reason=${event.reason}`);"
+  "      } else {"
+  "        console.log(\"[Ws] Connection died\");"
+  "      }"
+  "    };"
+  "    socket.onerror = function(error) {"
+  "      console.log(`[Ws] ${error.message}`);"
+  "    };"
+  "  }"
+  "}";
+
+
 
 static const char* ssdpTemplate =
   "<?xml version=\"1.0\"?>"
@@ -106,31 +151,65 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
           break;
         case WStype_TEXT: {
           serial.printf("[WSc] RESPONSE: %s\n", payload);
-          StaticJsonDocument <256> doc;
-          DeserializationError error = deserializeJson(doc, payload);
+          StaticJsonDocument <256> jsonPayload;
+          DeserializationError error = deserializeJson(jsonPayload, payload);
             if (error) {
               //Serial.print(F("deserializeJson() failed: "));
               //Serial.println(error.f_str());
               return;
             } else {
-              const char* arduinoCommand = doc["arduinoCommand"];
-              uint8_t pin = doc["pin"];
-              const char* val = doc["value"];
+              const char* arduinoCommand;
+              const char* val = "";
+              const char* message = "";
+              const char* socket_id = "";
+              uint8_t pin;
 
-              serial.printf("payload: %s\n", payload);
+              if (jsonPayload["arduinoCommand"]) {
+                arduinoCommand = jsonPayload["arduinoCommand"].as<char*>();
+              }
+              if (jsonPayload["value"]) {
+                val = jsonPayload["value"].as<char*>();
+              }
+              if (jsonPayload["message"]) {
+                val = jsonPayload["message"].as<char*>();
+              }
+              if (jsonPayload["socket_id"]) {
+                socket_id = jsonPayload["socket_id"].as<char*>();
+              }
+              if (jsonPayload["pin"]) {
+                pin = jsonPayload["pin"];
+              }
+
+              serial.printf("payload: %s\n", jsonPayload);
               serial.printf("- arduinoCommand: %s\n", arduinoCommand);
               serial.printf("- pin: %d\n", pin);
               serial.printf("- value: %s\n", val);
               serial.println();
 
               if (strcmp(arduinoCommand, "claimed") == 0) {
-                  serial.println("[WSc] claimObject is accepted on WS server. socket_id: " + String(doc["socket_id"]));
+                  serial.printf("[WSc] claimObject is accepted on WS server. socket_id: %s\n", socket_id);
                   messageInterval = messageIntervalOnceClaimed;
                   claimed = true;
+
+              } else if (strcmp(arduinoCommand, "info") == 0) {
+                serial.println("info ===================");
+                serial.printf("- pin: %d\n", pin);
+                serial.printf("- value: %s\n", val);
+                serial.printf("- message: %s\n", message);
+                serial.printf("- socket_id: %s\n", socket_id);
+                serial.println("info ===================");
 
               } else if (strcmp(arduinoCommand, "claimRequest") == 0) {
                 serial.println("claimRequest");
                 claimObject( t6Object_id );
+                
+                subscribe("demo");
+                //subscribe("channel_1");
+                //subscribe("channel_2");
+                //subscribe("channel_3");
+                //unsubscribe("channel_1");
+                //unsubscribe("channel_2");
+                //unsubscribe("channel_3");
 
               } else if (strcmp(arduinoCommand, "analogWrite") == 0) {
                 serial.println("analogWrite");
@@ -187,7 +266,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 }
 
 String processor(const String& var) {
-  Serial.println(var);
+  serial.println(var);
 }
 
 String getPinMode(int pin) {
@@ -199,6 +278,43 @@ String getPinMode(int pin) {
   } else {
       return "INPUT";
   }
+}
+
+unsigned char h2int(char c) {
+  if (c >= '0' && c <= '9') {
+    return ((unsigned char)c - '0');
+  }
+  if (c >= 'a' && c <= 'f') {
+    return ((unsigned char)c - 'a' + 10);
+  }
+  if (c >= 'A' && c <= 'F') {
+    return ((unsigned char)c - 'A' + 10);
+  }
+  return (0);
+}
+
+String urldecode(String str) {
+  String encodedString = "";
+  char c;
+  char code0;
+  char code1;
+  for (int i = 0; i < str.length(); i++) {
+    c = str.charAt(i);
+    if (c == '+') {
+      encodedString += ' ';
+    } else if (c == '%') {
+      i++;
+      code0 = str.charAt(i);
+      i++;
+      code1 = str.charAt(i);
+      c = (h2int(code0) << 4) | h2int(code1);
+      encodedString += c;
+    } else {
+      encodedString += c;
+    }
+    yield();
+  }
+  return encodedString;
 }
  
 void setup() {
@@ -212,7 +328,7 @@ void setup() {
     digitalWrite(LED_BUILTIN, HIGH);
 
     if(!SPIFFS.begin()){
-      Serial.println("An Error has occurred while mounting SPIFFS");
+      serial.println("An Error has occurred while mounting SPIFFS");
       return;
     }
     
@@ -233,7 +349,29 @@ void setup() {
     server.onNotFound([] (AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/404.html", "text/html");
     });
-
+/*
+    server.onSslFileRequest([](void * arg, const char *filename, uint8_t **buf) -> int {
+      Serial.printf("SSL File: %s\n", filename);
+      File file = LittleFS.open(filename, "r");
+      if(file){
+        size_t size = file.size();
+        uint8_t * nbuf = (uint8_t*)malloc(size);
+        if(nbuf){
+          size = file.read(nbuf, size);
+          file.close();
+          *buf = nbuf;
+          Serial.println(filename);
+          Serial.println("readed");
+          return size;
+        }
+        file.close();
+      }
+      *buf = 0;
+      return 0;
+    }, NULL);
+    server.beginSecure("/certificate.crt","/private.key",NULL);
+  }
+*/
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/index.html", String(), false, processor);
     });
@@ -314,6 +452,36 @@ void setup() {
       request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \""+currentVal.toInt()+"\"}");
     });
 
+/*
+    server.on(UriBraces("/audioOutput/{}"), []() {
+      String message_encoded = server.pathArg(0);
+      String message_decoded = urldecode(message_encoded);
+      const char* message = message_decoded.c_str();
+  
+      Serial.println(message_encoded);
+      Serial.println(message_decoded);
+      Serial.println(message);
+      
+      ESP8266SAM *sam = new ESP8266SAM;
+      sam->Say(out, message);
+      delete sam;    
+      request->send(201, "application/json", "{\"status\": \"OK\", \"value\": \""+String(message)+"\"}");
+    });
+*/
+    server.on("/audioOutput", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String inputMessage2;
+      // GET input1 value on <ESP_IP>/audioOutput?value=<inputMessage2>
+      if (request->hasParam(PARAM_INPUT_2)) {
+        //inputMessage2 = ( request->getParam(PARAM_INPUT_2)->value() ).c_str();
+        ESP8266SAM *sam = new ESP8266SAM;
+        String message_decoded = urldecode(request->getParam(PARAM_INPUT_2)->value());
+        const char* inputMessage2 = message_decoded.c_str();
+        sam->Say(audioOutput, inputMessage2); // String(inputMessage2).c_str()
+        delete sam;
+      }
+      request->send(201, "application/json", "{\"status\": \"OK\", \"value\": \""+String(inputMessage2)+"\"}");
+    });
+    
     server.on("/getValues", HTTP_GET, [](AsyncWebServerRequest *request) {
       String inputMessage1;
       String currentVal;
@@ -338,47 +506,69 @@ void setup() {
       request->send(200, "application/json", output);
     });
 
-    server.on("/sw.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/sw.js", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/sw.js", "text/javascript");
     });
 
-    server.on("/t6show-min.js", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/object-conf.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+      StreamString output;
+      output.printf(configTemplate,
+        WiFi.localIP().toString().c_str(),
+        String(localPort),
+        String(wsHost).c_str(),
+        String(wsPort),
+        wsPath,
+        t6Object_id,
+        String(t6wsKey+":"+t6wsSecret).c_str()
+      );
+      request->send(200, "text/javascript", (String)output);
+    });
+
+    server.on("/fonts/Material-Icons.woff2", HTTP_GET, [](AsyncWebServerRequest *request) {
+      request->send(SPIFFS, "/fonts/Material-Icons.woff2", "font/woff2");
+    });
+
+    server.on("/t6show.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+      request->send(SPIFFS, "/t6show.js", "text/javascript");
+    });
+
+    server.on("/t6show-min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/t6show-min.js", "text/javascript");
     });
 
-    server.on("/t6show-min.js.map", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/t6show-min.js.map", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/t6show-min.js.map", "application/json");
     });
 
-    server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/style.css", "text/css");
     });
 
-    server.on("/t6app.min.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/t6app.min.css", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/t6app.min.css", "text/css");
     });
 
-    server.on("/object.css", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/object.css", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/object.css", "text/css");
     });
 
-    server.on("/ui.json", HTTP_GET, [](AsyncWebServerRequest *request){
-      request->send(SPIFFS, "/ui.json", "application/json");
+    server.on("/ui.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+      request->send(SPIFFS, "/ui.js", "application/javascript");
     });
 
-    server.on("/robots.txt", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/robots.txt", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/robots.txt", "plain/text");
     });
 
-    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/favicon.ico", "image/x-icon");
     });
 
-    server.on("/icon-16x16.png", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/icon-16x16.png", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/icon-16x16.png", "image/x-png");
     });
 
-    server.on("/icon-32x32.png", HTTP_GET, [](AsyncWebServerRequest *request){
+    server.on("/icon-32x32.png", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(SPIFFS, "/icon-32x32.png", "image/x-png");
     });
 
@@ -419,6 +609,7 @@ void setup() {
     SSDP.setManufacturer(manufacturer);
     SSDP.setManufacturerURL(manufacturerURL);
     SSDP.setURL("/");
+    SSDP.setInterval(advertiseInterval);
     SSDP.begin();
 
     server.begin();
@@ -444,6 +635,26 @@ void claimObject(const char * id) {
   String payload = "{\"object_id\": \""+String(t6Object_id)+"\"}";
   String signature = jwt.encodeJWT(payload);
   json["signature"] = signature;
+  serializeJson(json, databuf);
+  webSocket.sendTXT(databuf);
+}
+
+void subscribe(const char * channel) {
+  serial.println("[WSc] subscribe object to WS server. " + String(channel));
+  DynamicJsonDocument json(256);
+  String databuf;
+  json["command"] = "subscribe";
+  json["channel"] = String(channel);
+  serializeJson(json, databuf);
+  webSocket.sendTXT(databuf);
+}
+
+void unsubscribe(const char * channel) {
+  serial.println("[WSc] unsubscribe object to WS server. " + String(channel));
+  DynamicJsonDocument json(256);
+  String databuf;
+  json["command"] = "unsubscribe";
+  json["channel"] = String(channel);
   serializeJson(json, databuf);
   webSocket.sendTXT(databuf);
 }
