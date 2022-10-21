@@ -42,3 +42,14 @@
 	width: calc(100% - 26px);
 	left: -22px;
 }
+.mdl-layout__title, .mdl-layout-title {
+	color: #000 !important;
+	position: relative !important;
+}
+.mdl-menu__item {
+	border-top:1px solid lightgrey;
+	cursor: initial;
+}
+.mdl-mega-footer {
+	background-color: unset !important;
+}
