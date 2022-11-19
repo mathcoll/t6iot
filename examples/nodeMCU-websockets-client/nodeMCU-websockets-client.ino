@@ -1,8 +1,10 @@
-/*
+  /*
  * https://www.internetcollaboratif.info/features/sockets-connection/
  * https://github.com/mathcoll/t6iot/blob/master/examples/nodeMCU-websockets-client/nodeMCU-websockets-client.ino
  * 
- * Set CPU Frequency to 160MHz
+ * Set CPU Frequency to at least 240MHz
+ * https://github.com/lorol/arduino-esp32littlefs-plugin
+ * ESP32-WROOM-DA
  */
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -11,13 +13,27 @@
 #include <StreamString.h>
 #include <base64.h>
 #include <pins_arduino.h>
-#include <ESP8266WiFi.h>
-#define ASYNC_TCP_SSL_ENABLED true
 #include <ESPAsyncWebServer.h>
-#include <ESP8266mDNS.h>
-#include <ESP8266SSDP.h>
-
 #include <ESP8266SAM.h>
+#include <LittleFS.h>
+#define FILEFS LittleFS
+
+#ifdef ESP8266
+  #define ASYNC_TCP_SSL_ENABLED true
+  #define ESP_GETCHIPID ESP.getChipId()
+  #include <ESP8266WiFi.h>
+  #include <ESP8266mDNS.h>
+  #include <ESP8266SSDP.h>
+#elif ESP32
+  #define ASYNC_TCP_SSL_ENABLED true
+  #define ESP_GETCHIPID (uint32_t)ESP.getEfuseMac()
+  #define LED_BUILTIN 2
+  #include "./libraries/ESPmDNS/src/ESPmDNS.h"
+  #include <FS.h>
+  #include <WiFi.h>
+  #include <ESP32SSDP.h>
+#endif
+
 #include "AudioOutputI2SNoDAC.h"
 
 // Wifi
@@ -218,7 +234,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
           break;
         case WStype_BIN: {
             serial.printf("[WSc] get binary length: %u\n", length);
-            hexdump(payload, length);
+            //hexdump(payload, length); // https://github.com/timum-viw/socket.io-client/issues/15
           }
           break;
         case WStype_PING: {
@@ -296,8 +312,8 @@ void setup() {
     delay(500);
     digitalWrite(LED_BUILTIN, HIGH);
 
-    if(!SPIFFS.begin()){
-      serial.println("An Error has occurred while mounting SPIFFS");
+    if(!FILEFS.begin()) {
+      serial.println("An Error has occurred while mounting FS");
       return;
     }
     
@@ -312,37 +328,15 @@ void setup() {
     serial.print("Local IP: ");
     serial.println(WiFi.localIP());
     
-    MDNS.begin(friendlyName);
-    MDNS.addService("http", "tcp", localPort);
+    //MDNS.begin(friendlyName);
+    //MDNS.addService("http", "tcp", localPort);
 
     server.onNotFound([] (AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/404.html", "text/html");
+      request->send(FILEFS, "/404.html", "text/html");
     });
-/*
-    server.onSslFileRequest([](void * arg, const char *filename, uint8_t **buf) -> int {
-      Serial.printf("SSL File: %s\n", filename);
-      File file = LittleFS.open(filename, "r");
-      if(file){
-        size_t size = file.size();
-        uint8_t * nbuf = (uint8_t*)malloc(size);
-        if(nbuf){
-          size = file.read(nbuf, size);
-          file.close();
-          *buf = nbuf;
-          Serial.println(filename);
-          Serial.println("readed");
-          return size;
-        }
-        file.close();
-      }
-      *buf = 0;
-      return 0;
-    }, NULL);
-    server.beginSecure("/certificate.crt","/private.key",NULL);
-  }
-*/
+
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/index.html", String(), false, processor);
+      request->send(FILEFS, "/index.html", String(), false, processor);
     });
 
     server.on("/digitalWrite", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -421,22 +415,6 @@ void setup() {
       request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \""+currentVal.toInt()+"\"}");
     });
 
-/*
-    server.on(UriBraces("/audioOutput/{}"), []() {
-      String message_encoded = server.pathArg(0);
-      String message_decoded = urldecode(message_encoded);
-      const char* message = message_decoded.c_str();
-  
-      Serial.println(message_encoded);
-      Serial.println(message_decoded);
-      Serial.println(message);
-      
-      ESP8266SAM *sam = new ESP8266SAM;
-      sam->Say(out, message);
-      delete sam;    
-      request->send(201, "application/json", "{\"status\": \"OK\", \"value\": \""+String(message)+"\"}");
-    });
-*/
     server.on("/audioOutput", HTTP_GET, [](AsyncWebServerRequest *request) {
       String inputMessage2;
       // GET input1 value on <ESP_IP>/audioOutput?value=<inputMessage2>
@@ -476,7 +454,7 @@ void setup() {
     });
 
     server.on("/sw.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/sw.js", "text/javascript");
+      request->send(FILEFS, "/sw.js", "text/javascript");
     });
 
     server.on("/object-conf.js", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -494,72 +472,71 @@ void setup() {
     });
 
     server.on("/fonts/Material-Icons.woff2", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/fonts/Material-Icons.woff2", "font/woff2");
+      request->send(FILEFS, "/fonts/Material-Icons.woff2", "font/woff2");
     });
 
     server.on("/t6show.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/t6show.js", "text/javascript");
+      request->send(FILEFS, "/t6show.js", "text/javascript");
     });
 
     server.on("/t6show-min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/t6show-min.js", "text/javascript");
+      request->send(FILEFS, "/t6show-min.js", "text/javascript");
     });
 
     server.on("/t6show-min.js.map", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/t6show-min.js.map", "application/json");
+      request->send(FILEFS, "/t6show-min.js.map", "application/json");
     });
 
     server.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/style.css", "text/css");
+      request->send(FILEFS, "/style.css", "text/css");
     });
 
     server.on("/t6app.min.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/t6app.min.css", "text/css");
+      request->send(FILEFS, "/t6app.min.css", "text/css");
     });
 
     server.on("/object.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/object.css", "text/css");
+      request->send(FILEFS, "/object.css", "text/css");
     });
 
     server.on("/ui.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/ui.js", "application/javascript");
+      request->send(FILEFS, "/ui.js", "application/javascript");
     });
 
     server.on("/robots.txt", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/robots.txt", "plain/text");
+      request->send(FILEFS, "/robots.txt", "plain/text");
     });
 
     server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/favicon.ico", "image/x-icon");
+      request->send(FILEFS, "/favicon.ico", "image/x-icon");
     });
 
     server.on("/icon-16x16.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/icon-16x16.png", "image/x-png");
+      request->send(FILEFS, "/icon-16x16.png", "image/x-png");
     });
 
     server.on("/icon-32x32.png", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(SPIFFS, "/icon-32x32.png", "image/x-png");
+      request->send(FILEFS, "/icon-32x32.png", "image/x-png");
     });
 
     server.on("/description.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
       StreamString output;
       //t6Object_id
       if(output.reserve(1024)) {
-        uint32_t chipId = ESP.getChipId();
         output.printf(ssdpTemplate,
           WiFi.localIP().toString().c_str(),
           deviceType,
           friendlyName,
           presentationURL,
-          String(ESP.getChipId()),
+          String(ESP_GETCHIPID),
           modelName,
           modelNumber,
           modelURL,
           manufacturer,
           manufacturerURL,
-          (uint8_t) ((chipId >> 16) & 0xff),
-          (uint8_t) ((chipId >>  8) & 0xff),
-          (uint8_t)   chipId        & 0xff
+          (uint8_t) ((ESP_GETCHIPID >> 16) & 0xff),
+          (uint8_t) ((ESP_GETCHIPID >>  8) & 0xff),
+          (uint8_t)   ESP_GETCHIPID        & 0xff
         );
         request->send(200, "text/xml", (String)output);
       } else {
@@ -571,7 +548,7 @@ void setup() {
     SSDP.setHTTPPort(localPort);
     SSDP.setDeviceType(deviceType);
     SSDP.setName(friendlyName);
-    SSDP.setSerialNumber(String(ESP.getChipId()));
+    SSDP.setSerialNumber(String(ESP_GETCHIPID));
     SSDP.setModelName(modelName);
     SSDP.setModelNumber(modelNumber);
     SSDP.setModelURL(modelURL);
