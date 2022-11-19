@@ -579,6 +579,45 @@ let ui = {
 		}
 	],
 	"footer": {
-		
+		"sections": [
+			{
+				"title": "Features",
+				"links": [
+					{
+						"label": "t6 IoT",
+						"href": "https://api.internetcollaboratif.info/"
+					},
+					{
+						"label": "Features",
+						"href": "https://www.internetcollaboratif.info/features"
+					},
+					{
+						"label": "Articles",
+						"href": "https://www.internetcollaboratif.info/post/"
+					}
+				]
+			},
+			{
+				"title": "Technical details",
+				"links": [
+					{
+						"label": "Github repository",
+						"href": "https://github.com/mathcoll/t6"
+					},
+					{
+						"label": "t6 Api doc",
+						"href": "https://doc.internetcollaboratif.info/"
+					},
+					{
+						"label": "Install IoT platform",
+						"href": "https://github.com/mathcoll/t6/wiki/Installing-t6"
+					},
+					{
+						"label": "t6 iot Arduino library",
+						"href": "https://github.com/mathcoll/t6iot"
+					}
+				]
+			}
+		]
 	}
 };

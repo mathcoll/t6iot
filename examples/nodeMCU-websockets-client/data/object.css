@@ -53,3 +53,6 @@
 .mdl-mega-footer {
 	background-color: unset !important;
 }
+footer div {
+	clear: none;
+}

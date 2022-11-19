@@ -14,10 +14,6 @@
 #include <ESP8266WiFi.h>
 #define ASYNC_TCP_SSL_ENABLED true
 #include <ESPAsyncWebServer.h>
-/*
-#include <ESP8266WebServer.h>
-#include <uri/UriBraces.h>
- */
 #include <ESP8266mDNS.h>
 #include <ESP8266SSDP.h>
 
@@ -76,63 +72,36 @@ AudioOutputI2SNoDAC *audioOutput = NULL;
 
 static const char* configTemplate =
   "let config={"
-    "\"object_ip\": \"%s\","
-    "\"object_port\": \"%s\","
-    "\"wsHost\": \"%s\","
-    "\"wsPort\": \"%s\","
-    "\"wsPath\": \"%s\","
-    "\"t6Object_id\": \"%s\""
-  "};"
-  "window.onload = function() {"
-  "  if(typeof config!==\"undefined\") {"
-  "    let socket = new WebSocket(`ws://${config.wsHost}:${config.wsPort}${config.wsPath}?BASIC_TOKEN=%s`);"
-  "    socket.onopen = function(e) {"
-  "      console.log(\"[Ws] Connection established\");"
-  "    };"
-  "    socket.onmessage = function(event) {"
-  "      console.log(`[Ws] Data received from server: ${event.data}`);"
-  "      if(JSON.parse(event.data).arduinoCommand === \"claimRequest\") {"
-  "        socket.send(JSON.stringify({\"command\": \"claimUI\", \"ui_id\": uuid()}));"
-  "        socket.send(JSON.stringify({\"command\": \"subscribe\", \"channel\": \"channel_UI\"}));"
-  "      }"
-  "    };"
-  "    socket.onclose = function(event) {"
-  "      if (event.wasClean) {"
-  "        console.log(`[Ws] Connection closed cleanly, code=${event.code} reason=${event.reason}`);"
-  "      } else {"
-  "        console.log(\"[Ws] Connection died\");"
-  "      }"
-  "    };"
-  "    socket.onerror = function(error) {"
-  "      console.log(`[Ws] ${error.message}`);"
-  "    };"
-  "  }"
-  "}";
-
-
+  "  \"object_ip\": \"%s\","
+  "  \"object_port\": \"%s\","
+  "  \"wsHost\": \"%s\","
+  "  \"wsPort\": \"%s\","
+  "  \"wsPath\": \"%s\","
+  "  \"t6Object_id\": \"%s\","
+  "  \"token\": \"%s\""
+  "};\r\n\r\n";
 
 static const char* ssdpTemplate =
   "<?xml version=\"1.0\"?>"
   "<root xmlns=\"urn:schemas-upnp-org:device-1-0\">"
-    "<specVersion>"
-      "<major>1</major>"
-      "<minor>0</minor>"
-    "</specVersion>"
-    "<URLBase>http://%s/</URLBase>"
-    "<device>"
-      "<deviceType>%s</deviceType>"
-      "<friendlyName>%s</friendlyName>"
-      "<presentationURL>%s</presentationURL>"
-      "<serialNumber>%u</serialNumber>"
-      "<modelName>%s</modelName>"
-      "<modelNumber>%s</modelNumber>"
-      "<modelURL>%s</modelURL>"
-      "<manufacturer>%s</manufacturer>"
-      "<manufacturerURL>%s</manufacturerURL>"
-      "<UDN>uuid:a774f8f2-c180-4e26-8544-cda0e6%02x%02x%02x</UDN>"
-    "</device>"
-  "</root>\r\n"
-  "\r\n";
+  "  <specVersion>"
+  "    <major>1</major>"
+  "    <minor>0</minor>"
+  "  </specVersion>"
+  "  <URLBase>https://%s/</URLBase>"
+  "  <device>"
+  "    <deviceType>%s</deviceType>"
+  "    <friendlyName>%s</friendlyName>"
+  "    <presentationURL>%s</presentationURL>"
+  "    <serialNumber>%u</serialNumber>"
+  "    <modelName>%s</modelName>"
+  "    <modelNumber>%s</modelNumber>"
+  "    <modelURL>%s</modelURL>"
+  "    <manufacturer>%s</manufacturer>"
+  "    <manufacturerURL>%s</manufacturerURL>"
+  "    <UDN>uuid:a774f8f2-c180-4e26-8544-cda0e6%02x%02x%02x</UDN>"
+  "  </device>"
+  "</root>\r\n\r\n";
 
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
