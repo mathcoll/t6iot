@@ -9,7 +9,7 @@ let ui = {
 				{"name": "t6 Api doc", "icon": "integration_instructions", "id": "apidoc", "class": "", "link": "https://doc.internetcollaboratif.info"},
 				{"spacer": true},
 				{"name": "Digital", "icon": "pin_invoke", "id": "digitalMenu", "class": "", "link": "#digital"},
-				{"name": "Analog", "icon": "pin_invoke", "id": "analogMenu", "class": "", "link": "#analog"},
+				{"name": "Analog", "icon": "timeline", "id": "analogMenu", "class": "", "link": "#analog"},
 				{"name": "Led", "icon": "wb_incandescent", "id": "ledMenu", "class": "", "link": "#led"},
 				{"name": "Audio", "icon": "volume_up", "id": "audioMenu", "class": "", "link": "#audio"},
 				{"spacer": true}
@@ -48,11 +48,11 @@ let ui = {
 											"lists": [
 												{
 													"icon": "pin_invoke",
-													"label":"",
+													"label":"Digital Pin D0",
+													"body":"Must be HIGH during boot and LOW for programming",
 													"switches":[
 														{
 															"id":"pin0",
-															"label":"Digital Pin 0",
 															"valueUnchecked":0,
 															"labelUnchecked":"LOW",
 															"valueChecked":1,
@@ -64,11 +64,11 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"",
+													"label":"Digital Pin TX0",
+													"body":"Tx pin, used for flashing and debugging",
 													"switches":[
 														{
 															"id":"pin1",
-															"label":"Digital Pin 1",
 															"valueUnchecked":0,
 															"labelUnchecked":"LOW",
 															"valueChecked":1,
@@ -80,11 +80,11 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"",
+													"label":"Digital Pin D2",
+													"body":"Must be LOW during boot and also connected to the on-board LED",
 													"switches":[
 														{
 															"id":"pin2",
-															"label":"Digital Pin 2",
 															"valueUnchecked":0,
 															"labelUnchecked":"LOW",
 															"valueChecked":1,
@@ -96,11 +96,11 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"",
+													"label":"Digital Pin RX0",
+													"body":"Rx pin, used for flashing and debugging",
 													"switches":[
 														{
 															"id":"pin3",
-															"label":"Digital Pin 3",
 															"valueUnchecked":0,
 															"labelUnchecked":"LOW",
 															"valueChecked":1,
@@ -112,11 +112,11 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"",
+													"label":"Digital Pin D4",
+													"body":"",
 													"switches":[
 														{
 															"id":"pin4",
-															"label":"Digital Pin 4",
 															"valueUnchecked":0,
 															"labelUnchecked":"LOW",
 															"valueChecked":1,
@@ -128,11 +128,11 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"",
+													"label":"Digital Pin D5",
+													"body":"Must be HIGH during boot",
 													"switches":[
 														{
 															"id":"pin5",
-															"label":"Digital Pin 5",
 															"valueUnchecked":0,
 															"labelUnchecked":"LOW",
 															"valueChecked":1,
@@ -144,11 +144,11 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"",
+													"label":"Digital Pin D6",
+													"body":"Connected to Flash memory",
 													"switches":[
 														{
 															"id":"pin6",
-															"label":"Digital Pin 6",
 															"valueUnchecked":0,
 															"labelUnchecked":"LOW",
 															"valueChecked":1,
@@ -160,11 +160,11 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"",
+													"label":"Digital Pin D7",
+													"body":"Connected to Flash memory",
 													"switches":[
 														{
 															"id":"pin7",
-															"label":"Digital Pin 7",
 															"valueUnchecked":0,
 															"labelUnchecked":"LOW",
 															"valueChecked":1,
@@ -176,17 +176,386 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"",
+													"label":"Digital Pin D8",
+													"body":"Connected to Flash memory",
 													"switches":[
 														{
 															"id":"pin8",
-															"label":"Digital Pin 8",
 															"valueUnchecked":0,
 															"labelUnchecked":"LOW",
 															"valueChecked":1,
 															"labelChecked":"HIGH",
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=8&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D9",
+													"body":"Connected to Flash memory",
+													"switches":[
+														{
+															"id":"pin9",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=9&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D10",
+													"body":"Connected to Flash memory",
+													"switches":[
+														{
+															"id":"pin10",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=10&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D11",
+													"body":"Connected to Flash memory",
+													"switches":[
+														{
+															"id":"pin11",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=11&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D12",
+													"body":"must be LOW during boot",
+													"switches":[
+														{
+															"id":"pin12",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=12&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D13",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin13",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=13&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D14",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin14",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=14&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D15",
+													"body":"must be HIGH during boot, prevents startup log if pulled LOW",
+													"switches":[
+														{
+															"id":"pin15",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=15&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin RX2",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin16",
+															"label":"",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=16&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin TX2",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin17",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=17&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D18",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin18",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=18&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D19",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin19",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=19&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D21",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin21",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=21&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D22",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin22",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=22&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D23",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin23",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=23&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D25",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin25",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=25&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D26",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin26",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=26&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D27",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin27",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=27&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D32",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin32",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=32&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D33",
+													"body":"",
+													"switches":[
+														{
+															"id":"pin33",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=33&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D34",
+													"body":"Input only GPIO, cannot be configured as output",
+													"switches":[
+														{
+															"id":"pin34",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=34&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin D35",
+													"body":"Input only GPIO, cannot be configured as output",
+													"switches":[
+														{
+															"id":"pin35",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=35&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin VP",
+													"body":"Input only GPIO, cannot be configured as output",
+													"switches":[
+														{
+															"id":"pin36",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=36&value=%s"
+														}
+													]
+												},
+												{
+													"icon": "pin_invoke",
+													"label":"Digital Pin VN",
+													"body":"Input only GPIO, cannot be configured as output",
+													"switches":[
+														{
+															"id":"pin39",
+															"valueUnchecked":0,
+															"labelUnchecked":"LOW",
+															"valueChecked":1,
+															"labelChecked":"HIGH",
+															"defaultState":"unchecked",
+															"action":"/digitalWrite?pin=39&value=%s"
 														}
 													]
 												}
@@ -201,12 +570,13 @@ let ui = {
 											"lists": [
 												{
 													"icon": "pin_invoke",
-													"label":"n/a",
-													"label_id":"trigger_pinD0",
+													"label":"pin D0",
+													"body":"121212",
+													"body_id":"trigger_pinD0",
 													"buttons": [
 														{
 															"id":"pinD0",
-															"label":"Read pin 0",
+															"label":"Read pin D0",
 															"action":"/digitalRead?pin=0",
 															"trigger":"trigger_pinD0",
 															"class":"mdl-button--raised"
@@ -215,12 +585,13 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"n/a",
-													"label_id":"trigger_pinD1",
+													"label":"pin D1",
+													"body":"",
+													"body_id":"trigger_pinD1",
 													"buttons": [
 														{
 															"id":"pinD1",
-															"label":"Read pin 1",
+															"label":"Read pin D1",
 															"action":"/digitalRead?pin=1",
 															"trigger":"trigger_pinD1",
 															"class":"mdl-button--raised"
@@ -229,8 +600,9 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"n/a",
-													"label_id":"trigger_pinD2",
+													"label":"pin D2",
+													"body":"",
+													"body_id":"trigger_pinD2",
 													"buttons": [
 														{
 															"id":"pinD2",
@@ -243,8 +615,9 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"n/a",
-													"label_id":"trigger_pinD3",
+													"label":"pin RX0",
+													"body":"",
+													"body_id":"trigger_pinD3",
 													"buttons": [
 														{
 															"id":"pinD3",
@@ -257,8 +630,9 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"n/a",
-													"label_id":"trigger_pinD4",
+													"label":"pin D4",
+													"body":"",
+													"body_id":"trigger_pinD4",
 													"buttons": [
 														{
 															"id":"pinD4",
@@ -271,8 +645,9 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"n/a",
-													"label_id":"trigger_pinD5",
+													"label":"pin D5",
+													"body":"",
+													"body_id":"trigger_pinD5",
 													"buttons": [
 														{
 															"id":"pinD5",
@@ -285,8 +660,9 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"n/a",
-													"label_id":"trigger_pinD6",
+													"label":"pin D6",
+													"body":"",
+													"body_id":"trigger_pinD6",
 													"buttons": [
 														{
 															"id":"pinD6",
@@ -299,8 +675,9 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"n/a",
-													"label_id":"trigger_pinD7",
+													"label":"pin D7",
+													"body":"",
+													"body_id":"trigger_pinD7",
 													"buttons": [
 														{
 															"id":"pinD7",
@@ -313,8 +690,9 @@ let ui = {
 												},
 												{
 													"icon": "pin_invoke",
-													"label":"n/a",
-													"label_id":"trigger_pinD8",
+													"label":"pin D8",
+													"body":"",
+													"body_id":"trigger_pinD8",
 													"buttons": [
 														{
 															"id":"pinD8",
@@ -339,7 +717,7 @@ let ui = {
 			"name": "Analog",
 			"id": "analog",
 			"class": "",
-			"icon": "pin_invoke",
+			"icon": "timeline",
 			"width":12,
 			"body": {
 				"rows":[
@@ -375,14 +753,15 @@ let ui = {
 										"body":{
 											"lists": [
 												{
-													"icon": "pin_invoke",
+													"icon": "timeline",
 													"label":"n/a",
-													"label_id":"pinD0",
+													"label_id":"trigger_pinA0",
 													"buttons": [
 														{
+															"id":"pinA0",
 															"label":"analogRead 0",
 															"action":"/analogRead?pin=0",
-															"trigger":"pinA0",
+															"trigger":"trigger_pinA0",
 															"class":"mdl-button--raised"
 														}
 													]

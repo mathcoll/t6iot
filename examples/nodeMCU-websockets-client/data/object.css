@@ -22,6 +22,9 @@
 .switchLabels, .sliderLabels {
 	font-size: 8px;
 }
+.mode, .type, .value {
+	line-height: 10px;
+}
 .mdl-slider__container {
 	position: relative;
 	width: calc(100% - 56px);
@@ -49,6 +52,10 @@
 .mdl-menu__item {
 	border-top:1px solid lightgrey;
 	cursor: initial;
+}
+.mdl-list__item .mdl-list__item-secondary-content {
+	width: 6em;
+	text-align: right;
 }
 .mdl-mega-footer {
 	background-color: unset !important;
