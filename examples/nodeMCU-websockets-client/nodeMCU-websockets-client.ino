@@ -444,7 +444,7 @@ void setup() {
         sam->Say(audioOutput, inputMessage2); // String(inputMessage2).c_str()
         delete sam;
       }
-      request->send(201, "application/json", "{\"status\": \"OK\", \"value\": \""+String(inputMessage2)+"\"}");
+      request->send(201, "application/json", "{\"status\": \"OK\", \"snack\": \"Message played "+String(inputMessage2)+"\"}");
     });
     server.on("/getValues", HTTP_GET, [](AsyncWebServerRequest *request) {
       String inputMessage1;
