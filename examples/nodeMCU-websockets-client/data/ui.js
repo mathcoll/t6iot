@@ -571,7 +571,7 @@ let ui = {
 												{
 													"icon": "pin_invoke",
 													"label":"pin D0",
-													"body":"121212",
+													"body":"",
 													"body_id":"trigger_pinD0",
 													"buttons": [
 														{
@@ -737,11 +737,13 @@ let ui = {
 												{
 													"label":"A0",
 													"id":"sliderA0",
+													"type":"range",
 													"width":12,
 													"min":0,
-													"max":255,
+													"max":100,
 													"value":0,
 													"step":1,
+													"unit":"%s %",
 													"action":"/analogWrite?pin=0&value=%s"
 												}
 										},
@@ -812,7 +814,8 @@ let ui = {
 													"min":0,
 													"max":255,
 													"value":0,
-													"step":1,
+													"step":5,
+													"unit":"",
 													"action":"/analogWrite?pin=5&value=%s"
 												},
 												{
@@ -822,7 +825,8 @@ let ui = {
 													"min":0,
 													"max":255,
 													"value":0,
-													"step":1,
+													"step":5,
+													"unit":"",
 													"action":"/analogWrite?pin=4&value=%s"
 												},
 												{
@@ -832,7 +836,8 @@ let ui = {
 													"min":0,
 													"max":255,
 													"value":0,
-													"step":1,
+													"step":5,
+													"unit":"",
 													"action":"/analogWrite?pin=16&value=%s"
 												}
 											]
@@ -895,7 +900,9 @@ let ui = {
 										"body":{
 											"inputs":[
 												{
-													"text":"Text message:",
+													"label":"Say a message:",
+													"placeholder":"Hello World",
+													"pattern": "",
 													"width":12,
 													"id":"audioOutput",
 													"class":""
