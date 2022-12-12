@@ -59,6 +59,9 @@
 .mdl-mega-footer {
 	background-color: unset !important;
 }
+.mdl-snackbar__action {
+	opacity: 1 !important;
+}
 footer div {
 	clear: none;
 }

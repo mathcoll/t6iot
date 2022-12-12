@@ -5,13 +5,16 @@ let ui = {
 		"drawer": {
 			"title": "Arduino Universal Controler",
 			"links": [
-				{"name": "t6 IoT App", "icon": "api", "id": "t6iot", "class": "", "link": "https://api.internetcollaboratif.info"},
-				{"name": "t6 Api doc", "icon": "integration_instructions", "id": "apidoc", "class": "", "link": "https://doc.internetcollaboratif.info"},
-				{"spacer": true},
 				{"name": "Digital", "icon": "pin_invoke", "id": "digitalMenu", "class": "", "link": "#digital"},
 				{"name": "Analog", "icon": "timeline", "id": "analogMenu", "class": "", "link": "#analog"},
 				{"name": "Led", "icon": "wb_incandescent", "id": "ledMenu", "class": "", "link": "#led"},
 				{"name": "Audio", "icon": "volume_up", "id": "audioMenu", "class": "", "link": "#audio"},
+				{"spacer": true},
+				{"name": "t6 IoT App", "icon": "api", "id": "t6iot", "class": "", "link": "https://api.internetcollaboratif.info"},
+				{"name": "t6 Api doc", "icon": "integration_instructions", "id": "apidoc", "class": "", "link": "https://doc.internetcollaboratif.info"},
+				{"spacer": true},
+				{"name": "Web Sockets", "icon": "subscriptions", "id": "sockets", "class": "", "link": "#sockets"},
+				{"name": "Help", "icon": "contact_support", "id": "help", "class": "", "link": "#help"},
 				{"spacer": true}
 			],
 			"text": {
@@ -900,8 +903,8 @@ let ui = {
 										"body":{
 											"inputs":[
 												{
-													"label":"Say a message:",
-													"placeholder":"Hello World",
+													"label":"Say somthing:",
+													"placeholder":"Type your message to say here...",
 													"pattern": "",
 													"width":12,
 													"id":"audioOutput",
@@ -912,8 +915,84 @@ let ui = {
 												{
 													"label":"Say",
 													"value":"",
+													"icon":"record_voice_over",
 													"action":"/audioOutput?value=%s",
 													"trigger":"audioOutput",
+													"class":"mdl-button--raised"
+												}
+											]
+										}
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"name": "Web Sockets",
+			"id": "sockets",
+			"class": "",
+			"icon": "subscriptions",
+			"width":12,
+			"body": {
+				"rows":[
+					{
+						"row_id": "tab5_row1",
+						"width":12,
+						"columns":[
+							{
+								"width":12,
+								"col_id":"tab5_row1_col1",
+								"cards":[
+									{
+										"width":12,
+										"title":"Channel Subscription",
+										"body":{
+											"inputs":[
+												{
+													"label":"Subscribe to a new channel",
+													"placeholder":"channel_name",
+													"pattern": "([^\w]+$)",
+													"width":12,
+													"id":"subscribe",
+													"class":""
+												}
+											],
+											"buttons":[
+												{
+													"label":"Subscribe",
+													"value":"",
+													"icon":"bookmark_add",
+													"action":"/subscribe?channel=%s",
+													"trigger":"subscribe",
+													"class":"mdl-button--raised"
+												}
+											]
+										}
+									},
+									{
+										"width":12,
+										"title":"Channel Unsubscription",
+										"body":{
+											"inputs":[
+												{
+													"label":"Unsubscribe from a channel",
+													"placeholder":"channel_name",
+													"pattern": "([^\w]+$)",
+													"width":12,
+													"id":"unsubscribe",
+													"class":""
+												}
+											],
+											"buttons":[
+												{
+													"label":"Unsubscribe",
+													"value":"",
+													"icon":"bookmark_remove",
+													"action":"/unsubscribe?channel=%s",
+													"trigger":"unsubscribe",
 													"class":"mdl-button--raised"
 												}
 											]
@@ -935,7 +1014,7 @@ let ui = {
 			"body": {
 				"rows":[
 					{
-						"row_id": "tab5_row1",
+						"row_id": "tab6_row1",
 						"width":12,
 						"columns":[
 							{
