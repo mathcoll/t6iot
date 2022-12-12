@@ -2,9 +2,14 @@
  * https://www.internetcollaboratif.info/features/sockets-connection/
  * https://github.com/mathcoll/t6iot/blob/master/examples/nodeMCU-websockets-client/nodeMCU-websockets-client.ino
  * 
- * Set CPU Frequency to at least 240MHz
+ * Set CPU Frequency to at least 160MHz
  * https://github.com/lorol/arduino-esp32littlefs-plugin
  * ESP32-WROOM-DA
+ * 
+ * Linux tools:
+ * - SSDP     : gssdp-discover -i eth0 -r 5
+ * - MDSN     : mdns-scan
+ * - Firewall : sudo tail -f /var/log/kern.log
  */
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -16,12 +21,17 @@
 #include <ESPAsyncWebServer.h>
 #include <ESP8266SAM.h>
 #include <LittleFS.h>
+#define FILEFS LittleFS
 #include "AudioOutputI2SNoDAC.h"
+
+#define serial Serial
 #include "config.h"
 
-#define FILEFS LittleFS
+bool WsConnected = false;
+bool claimed = false;
+unsigned long lastUpdate = millis();
+
 #define ASYNC_TCP_SSL_ENABLED true
-#define serial Serial
 
 #ifdef ESP8266
   #define ESP_GETCHIPID ESP.getChipId()
@@ -36,93 +46,66 @@
   #include <ESP32SSDP.h>
 #endif
 
-bool connected = false;
-bool claimed = false;
-unsigned long lastUpdate = millis();
-
-String numbers[] = {"zero", "one", "two", "three", "four", "five", "six", "seven", "height", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "heighteen", "nineteen", "twenty", "twenty one"};
+ArduinoJWT jwt = ArduinoJWT("");
+AsyncWebServer server(80);
 WebSocketsClient webSocket;
-ArduinoJWT jwt = ArduinoJWT(t6ObjectSecretKey);
-AsyncWebServer server(localPortHTTP);
 AudioOutputI2SNoDAC *audioOutput = NULL;
 
-static const char* configTemplate = R"EOF(
-let config={
-  "object_ip": "%s",
-  "object_port": %s,
-  "wsHost": "%s",
-  "wsPort": "%s",
-  "wsPath": "%s",
-  "t6Object_id": "%s",
-  "token": "%s"
-};
-)EOF";
 
-static const char* ssdpTemplate = R"EOF(<?xml version="1.0"?>
-<root xmlns="urn:schemas-upnp-org:device-1-0">
-  <specVersion>
-    <major>1</major>
-    <minor>0</minor>
-  </specVersion>
-  <URLBase>https://%s/</URLBase>
-  <device>
-    <deviceType>%s</deviceType>
-    <friendlyName>%s</friendlyName>
-    <presentationURL>%s</presentationURL>
-    <serialNumber>%u</serialNumber>
-    <modelName>%s</modelName>
-    <modelNumber>%s</modelNumber>
-    <modelURL>%s</modelURL>
-    <manufacturer>%s</manufacturer>
-    <manufacturerURL>%s</manufacturerURL>
-    <UDN>uuid:a774f8f2-c180-4e26-8544-cda0e6%02x%02x%02x</UDN>
-  </device>
-</root>
-)EOF";
-
-void claimObject(const char * id) {
-  serial.println("[WSc] claimObject to WS server. object_id: " + String(id));
+void claimObject() {
+  serial.println("[WSc] claimObject to WS server. object_id: " + config.t6Object_id);
+  ArduinoJWT jwt = ArduinoJWT(config.t6ObjectSecretKey);
   DynamicJsonDocument json(256);
   String databuf;
   json["command"] = "claimObject";
-  json["object_id"] = String(id);
-  String payload = "{\"object_id\": \""+String(t6Object_id)+"\"}";
-  String signature = jwt.encodeJWT(payload);
-  json["signature"] = signature;
+  json["object_id"] = config.t6Object_id;
+  json["signature"] = jwt.encodeJWT("{\"object_id\": \""+config.t6Object_id+"\"}");
   serializeJson(json, databuf);
   webSocket.sendTXT(databuf);
 }
 
-void subscribe(const char * channel) {
-  serial.println("[WSc] subscribe object to WS server. " + String(channel));
-  DynamicJsonDocument json(256);
-  String databuf;
-  json["command"] = "subscribe";
-  json["channel"] = String(channel);
-  serializeJson(json, databuf);
-  webSocket.sendTXT(databuf);
+bool subscribe(String channel) {
+  serial.println("[WSc] subscribe object to WS server. " + channel);
+  if(claimed) {
+    DynamicJsonDocument json(256);
+    String databuf;
+    json["command"] = "subscribe";
+    json["channel"] = channel;
+    serializeJson(json, databuf);
+    webSocket.sendTXT(databuf);
+    return true;
+  } else {
+    serial.println("[WSc] Error: Object is not yet claimed, can't subscribe.");
+    return false;
+  }
 }
 
-void unsubscribe(const char * channel) {
-  serial.println("[WSc] unsubscribe object to WS server. " + String(channel));
-  DynamicJsonDocument json(256);
-  String databuf;
-  json["command"] = "unsubscribe";
-  json["channel"] = String(channel);
-  serializeJson(json, databuf);
-  webSocket.sendTXT(databuf);
+bool unsubscribe(String channel) {
+  serial.println("[WSc] unsubscribe object to WS server. " + channel);
+  if(claimed) {
+    DynamicJsonDocument json(256);
+    String databuf;
+    json["command"] = "unsubscribe";
+    json["channel"] = channel;
+    serializeJson(json, databuf);
+    webSocket.sendTXT(databuf);
+    return true;
+  } else {
+    serial.println("[WSc] Error: Object is not yet claimed, can't unsubscribe.");
+    return false;
+  }
 }
 
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
         case WStype_DISCONNECTED: {
               serial.printf("[WSc] Disconnected!\n");
-              connected = false;
+              WsConnected = false;
           }
           break;
         case WStype_CONNECTED: {
             serial.printf("[WSc] Connected to url: %s\n", payload);
-            connected = true;
+            WsConnected = true;
             // send message to server when Connected
             //serial.println("[WSc] SENT: Connected");
             //webSocket.sendTXT("Connected");
@@ -133,8 +116,8 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
           StaticJsonDocument <256> jsonPayload;
           DeserializationError error = deserializeJson(jsonPayload, payload);
             if (error) {
-              //Serial.print(F("deserializeJson() failed: "));
-              //Serial.println(error.f_str());
+              //serial.print(F("deserializeJson() failed: "));
+              //serial.println(error.f_str());
               return;
             } else {
               const char* arduinoCommand;
@@ -159,7 +142,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 pin = jsonPayload["pin"];
               }
 
-              serial.printf("payload: %s\n", jsonPayload);
+              //serial.printf("payload: %s\n", jsonPayload);
               serial.printf("- arduinoCommand: %s\n", arduinoCommand);
               serial.printf("- pin: %d\n", pin);
               serial.printf("- value: %s\n", val);
@@ -167,8 +150,18 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
               if (strcmp(arduinoCommand, "claimed") == 0) {
                   serial.printf("[WSc] claimObject is accepted on WS server. socket_id: %s\n", socket_id);
-                  messageInterval = messageIntervalOnceClaimed;
+                  config.messageInterval = config.messageIntervalOnceClaimed;
                   claimed = true;
+                
+                  if (subscribe("demo") ) {
+                    
+                  }
+                  //subscribe("channel_1");
+                  //subscribe("channel_2");
+                  //subscribe("channel_3");
+                  //unsubscribe("channel_1");
+                  //unsubscribe("channel_2");
+                  //unsubscribe("channel_3");
 
               } else if (strcmp(arduinoCommand, "info") == 0) {
                 serial.println("[WSc] info ===================");
@@ -180,15 +173,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
               } else if (strcmp(arduinoCommand, "claimRequest") == 0) {
                 serial.println("claimRequest");
-                claimObject( t6Object_id );
-                
-                subscribe("demo");
-                //subscribe("channel_1");
-                //subscribe("channel_2");
-                //subscribe("channel_3");
-                //unsubscribe("channel_1");
-                //unsubscribe("channel_2");
-                //unsubscribe("channel_3");
+                claimObject();
 
               } else if (strcmp(arduinoCommand, "analogWrite") == 0) {
                 serial.println("analogWrite");
@@ -227,7 +212,27 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 ESP8266SAM *sam = new ESP8266SAM;
                 sam->Say(audioOutput, val);
                 delete sam;   
-              }
+              } else if (strcmp(arduinoCommand, "measureRequest") == 0) {
+                /*
+                pin: 1, 2, ...
+                String currentVal;
+                if(config.isDigital) {
+                  currentVal = digitalRead(pin);
+                } else if(config.isAnalog) {
+                  //set the resolution to 12 bits (0-4096)
+                  analogReadResolution(config.resolution);
+                  currentVal = analogRead(pin);
+                }
+                if(config.isConstrain) {
+                  currentVal = constrain(currentVal, config.minimumValue, config.maximumValue);
+                }
+                if(config.isAbsolute) {
+                  currentVal = abs(currentVal);
+                }
+                serial.printf("[WSc] currentVal="+String(currentVal));
+                webSocket.sendTXT( currentVal );
+                */
+              } 
             }
           }
           break;
@@ -243,6 +248,12 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
         case WStype_PONG: {
             serial.printf("[WSc] get pong\n"); // answer to a ping we send
           }
+          break;
+        case WStype_ERROR:
+        case WStype_FRAGMENT_TEXT_START:
+        case WStype_FRAGMENT_BIN_START:
+        case WStype_FRAGMENT:
+        case WStype_FRAGMENT_FIN:
           break;
         default:
           break;
@@ -302,159 +313,161 @@ String urldecode(String str) {
 }
 
 void setup() {
-  serial.begin(115200);
+  Serial.begin(115200);
   //serial.setDebugOutput(true);
-  serial.flush();
-  serial.println("[t6IoT] BOOT");
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, HIGH);
-  delay(500);
-  digitalWrite(LED_BUILTIN, LOW);
-
-  WiFi.begin(ssid, password);
-  while ( WiFi.status() != WL_CONNECTED ) {
-    delay(500);
-  }
-  serial.print("[t6IoT] Local IP: ");
-  serial.println(WiFi.localIP());
-  serial.println("[t6IoT] Wifi started");
+  Serial.flush();
+  Serial.println("[t6IoT] BOOT");
 
   if(!FILEFS.begin()) {
     serial.println("[t6IoT] An Error has occurred while mounting FS");
     return;
   } else {
     serial.println("[t6IoT] FS mounted");
+    loadConfiguration(configFilename, config);
+  }
+  delay(250);
+  if( config.ssid && config.password ) {
+    serial.println("[t6IoT] Wifi activated");
+    WiFi.begin(config.ssid, config.password);
+    while ( WiFi.status() != WL_CONNECTED ) {
+      delay(1000);
+    }
+    WiFi.setSleep(false);
+    serial.print("[t6IoT] Local IP:");
+    serial.println(WiFi.localIP());
+    serial.print("[t6IoT] Wifi SSID:");
+    serial.println(config.ssid);
+    serial.print("[t6IoT] Wifi RRSI:");
+    serial.println(WiFi.RSSI());
+    serial.println("[t6IoT] Wifi started");
+  } else {
+    serial.println("[t6IoT] Wifi not configured");
   }
   
-  if( audio_active ) {
+  if( config.ServiceStatusAudio == true ) {
     audioOutput = new AudioOutputI2SNoDAC();
     audioOutput->begin();
     serial.println("[t6IoT] audioOutput started");
+  } else {
+    serial.println("[t6IoT] audioOutput not activated");
   }
 
-  if( mdns_active ) {
-    MDNS.begin(friendlyName);
-    MDNS.addService("http", "tcp", localPortHTTP);
+  if( config.ServiceStatusMdns == true ) {
+    MDNS.begin(String(config.friendlyName).c_str());
+    MDNS.addService("http", "tcp", config.localPortMDNS);
     serial.println("[t6IoT] MDNS started");
+  } else {
+    serial.println("[t6IoT] MDNS not activated");
   }
 
-  if( sockets_active ) {
-    webSocket.begin(wsHost, wsPort, wsPath);
+  if( config.ServiceStatusSockets == true ) {
+    webSocket.begin(config.wsHost, config.wsPort, config.wsPath);
     webSocket.onEvent(webSocketEvent);
-    webSocket.setAuthorization(( String("Basic " + base64::encode(String(t6wsKey+":"+t6wsSecret).c_str())) ).c_str());
-    webSocket.setReconnectInterval(reconnectInterval);
-    webSocket.enableHeartbeat(messageInterval, timeoutInterval, disconnectAfterFailure);
+    webSocket.setAuthorization(( String("Basic " + base64::encode(String(config.t6wsKey+":"+config.t6wsSecret).c_str())) ).c_str());
+    webSocket.setReconnectInterval(config.reconnectInterval);
+    webSocket.enableHeartbeat(config.messageInterval, config.timeoutInterval, config.disconnectAfterFailure);
+    serial.print("[t6IoT] WebSockets connecting to ");
+    serial.print(config.wsHost);
+    serial.print(":");
+    serial.print(config.wsPort);
+    serial.println(config.wsPath);
     serial.println("[t6IoT] WebSockets started");
+  } else {
+    serial.println("[t6IoT] WebSockets not activated");
   }
 
-  if( http_active ) {
-    server.begin();
+  if( config.ServiceStatusHttp == true ) {
     server.on("/digitalWrite", HTTP_GET, [](AsyncWebServerRequest *request) {
-      String inputMessage1;
-      String inputMessage2;
-      // GET input1 value on <ESP_IP>/digitalWrite?pin=<inputMessage1>&value=<inputMessage2>
-      if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
-        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
-        inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
-        
+      String _pin = ( request->getParam( (config.PARAM_INPUT_PIN) )->value() );
+      String _value = ( request->getParam( (config.PARAM_INPUT_VALUE) )->value() );
+      if (_pin && _value) {
         Serial.print("pinMode: ");
-        pinMode(inputMessage2.toInt(), OUTPUT);
+        pinMode(_pin.toInt(), OUTPUT);
         Serial.println("OUTPUT");
-        if(inputMessage2.toInt() == 0) {
-          digitalWrite(inputMessage2.toInt(), LOW);
-        } else if(inputMessage2.toInt() == 1) {
-          digitalWrite(inputMessage2.toInt(), HIGH);
+        if(_value.toInt() == 0) {
+          digitalWrite(_pin.toInt(), LOW);
+        } else if(_value.toInt() == 1) {
+          digitalWrite(_pin.toInt(), HIGH);
         }
       }
-      Serial.print("GPIO: ");
-      Serial.print(inputMessage1);
-      Serial.print(" - Set to: ");
-      Serial.println(inputMessage2.toInt());
-      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+String(inputMessage1.toInt())+"\", \"value\": \""+String(inputMessage2.toInt())+"\"}");
+      Serial.print("GPIO: "); Serial.print(_pin);
+      Serial.print(" is set to: "); Serial.println(_value);
+      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+String(_pin)+"\", \"value\": \""+String(_value)+"\"}");
     });
     server.on("/analogWrite", HTTP_GET, [](AsyncWebServerRequest *request) {
-      String inputMessage1;
-      String inputMessage2;
-      // GET input1 value on <ESP_IP>/analogWrite?pin=<inputMessage1>&value=<inputMessage2>
-      if (request->hasParam(PARAM_INPUT_1) && request->hasParam(PARAM_INPUT_2)) {
-        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
-        inputMessage2 = request->getParam(PARAM_INPUT_2)->value();
-        analogWrite(inputMessage1.toInt(), inputMessage2.toInt());
+      String _pin = ( request->getParam( (config.PARAM_INPUT_PIN) )->value() );
+      String _value = ( request->getParam( (config.PARAM_INPUT_VALUE) )->value() );
+      if (_pin && _value) {
+        Serial.print("pinMode: ");
+        pinMode(_pin.toInt(), OUTPUT);
+        Serial.println("OUTPUT");
+        analogWrite(_pin.toInt(), _value.toInt());
       }
-      Serial.print("GPIO: ");
-      Serial.print(inputMessage1);
-      Serial.print(" - Set to: ");
-      Serial.println(inputMessage2.toInt());
-      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+String(inputMessage1.toInt())+"\", \"value\": \""+String(inputMessage2.toInt())+"\"}");
+      Serial.print("GPIO: "); Serial.print(_pin);
+      Serial.print(" is set to: "); Serial.println(_value);
+      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+String(_pin)+"\", \"value\": \""+String(_value)+"\"}");
     });
-    server.on("/setPinModeOutput", HTTP_GET, [](AsyncWebServerRequest *request) {
-      String inputMessage1;
-      // GET input1 value on <ESP_IP>/setPinModeOutput?pin=<inputMessage1>
-      if (request->hasParam(PARAM_INPUT_1)) {
-        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
-        pinMode(inputMessage1.toInt(), OUTPUT);
+    server.on("/setPinMode", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String _pin = ( request->getParam( (config.PARAM_INPUT_PIN) )->value() );
+      String _mode = ( request->getParam( (config.PARAM_INPUT_MODE) )->value() );
+      if (_pin && _mode) {
+        if (_mode == "INPUT") {
+          pinMode(_pin.toInt(), INPUT);
+          request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+String(_pin)+"\", \"value\": \"INPUT\"}");
+        } else if (_mode == "OUTPUT") {
+          pinMode(_pin.toInt(), OUTPUT);
+          request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+String(_pin)+"\", \"value\": \"OUTPUT\"}");
+        } else {
+          pinMode(_pin.toInt(), OUTPUT);
+          request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+String(_pin)+"\", \"value\": \"OUTPUT\"}");
+        }
       }
-      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \"OUTPUT\"}");
-    });
-    server.on("/setPinModeInput", HTTP_GET, [](AsyncWebServerRequest *request) {
-      String inputMessage1;
-      // GET input1 value on <ESP_IP>/setPinModeOutput?pin=<inputMessage1>
-      if (request->hasParam(PARAM_INPUT_1)) {
-        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
-        pinMode(inputMessage1.toInt(), INPUT);
-      }
-      request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \"INPUT\"}");
     });
     server.on("/analogRead", HTTP_GET, [](AsyncWebServerRequest *request) {
-      String inputMessage1;
+      String _pin = ( request->getParam( (config.PARAM_INPUT_PIN) )->value() );
       String currentVal;
-  
-      //set the resolution to 12 bits (0-4096)
-      analogReadResolution(12);
-      int analogValue = analogRead(inputMessage1.toInt());
-      int analogVolts = analogReadMilliVolts(inputMessage1.toInt());
-      
-      // GET input1 value on <ESP_IP>/analogRead?pin=<inputMessage1>
-      if (request->hasParam(PARAM_INPUT_1)) {
-        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
-        currentVal = String(analogVolts, DEC);
+       int analogValue;
+      if (_pin) {
+        #ifdef ESP32
+          //set the resolution to 12 bits (0-4096)
+          analogReadResolution(12);
+          analogValue = analogReadMilliVolts(_pin.toInt());
+        #elif ESP8266
+          int analogValue = analogRead(_pin.toInt());
+        #endif
+        currentVal = String(analogValue, DEC);
       }
       serial.println("analogRead: "+currentVal);
-      request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \""+currentVal+"\"}");
+      request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \""+_pin+"\", \"value\": \""+currentVal+"\"}");
     });
     server.on("/digitalRead", HTTP_GET, [](AsyncWebServerRequest *request) {
-      String inputMessage1;
+      String _pin = ( request->getParam( (config.PARAM_INPUT_PIN) )->value() );
       String currentVal;
-      // GET input1 value on <ESP_IP>/digitalRead?pin=<inputMessage1>
-      if (request->hasParam(PARAM_INPUT_1)) {
-        inputMessage1 = request->getParam(PARAM_INPUT_1)->value();
-        currentVal = String(digitalRead(inputMessage1.toInt()), DEC);
+      if (_pin) {
+        currentVal = String(digitalRead(_pin.toInt()), DEC);
       }
       serial.println("digitalRead: "+currentVal);
-      request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \""+inputMessage1+"\", \"value\": \""+currentVal.toInt()+"\"}");
+      request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \""+_pin+"\", \"value\": \""+currentVal.toInt()+"\"}");
     });
     server.on("/audioOutput", HTTP_GET, [](AsyncWebServerRequest *request) {
-      String inputMessage2;
-      // GET input1 value on <ESP_IP>/audioOutput?value=<inputMessage2>
-      if (request->hasParam(PARAM_INPUT_2)) {
-        //inputMessage2 = ( request->getParam(PARAM_INPUT_2)->value() ).c_str();
+      String _value = ( request->getParam( (config.PARAM_INPUT_VALUE) )->value() );
+      String message_decoded;
+      if (_value) {
         ESP8266SAM *sam = new ESP8266SAM;
-        String message_decoded = urldecode(request->getParam(PARAM_INPUT_2)->value());
+        message_decoded = urldecode(_value);
         const char* inputMessage2 = message_decoded.c_str();
         sam->Say(audioOutput, inputMessage2); // String(inputMessage2).c_str()
         delete sam;
       }
-      request->send(201, "application/json", "{\"status\": \"OK\", \"snack\": \"Message played "+String(inputMessage2)+"\"}");
+      request->send(201, "application/json", "{\"status\": \"OK\", \"snack\": \"Message played "+message_decoded+"\"}");
     });
     server.on("/getValues", HTTP_GET, [](AsyncWebServerRequest *request) {
-      String inputMessage1;
+      String _pin = ( request->getParam( (config.PARAM_INPUT_PIN) )->value() );
       String currentVal;
       String output;
       const byte allPins[] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39};
       const byte COUNT = sizeof(allPins);
-      // GET input1 value on <ESP_IP>/getValues?pin=<inputMessage1>
-      if (request->hasParam(PARAM_INPUT_1)) {
-        inputMessage1 = ( request->getParam(PARAM_INPUT_1)->value() ).c_str();
+      if (_pin) {
         StaticJsonDocument<4096> jsonValues;
         JsonArray pins = jsonValues.createNestedArray("pins");
         for (int p = 0; p < COUNT; p++) {
@@ -469,47 +482,30 @@ void setup() {
       }
       request->send(200, "application/json", output);
     });
-    server.on("/object-conf.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-      StreamString output;
-      output.printf(configTemplate,
-        WiFi.localIP().toString().c_str(),
-        String(localPortHTTP),
-        String(wsHost).c_str(),
-        String(wsPort),
-        wsPath,
-        t6Object_id,
-        String(t6wsKey+":"+t6wsSecret).c_str()
-      );
-      request->send(200, "text/javascript", (String)output);
-    });
-    server.on("/description.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
-      StreamString output;
-      //t6Object_id
-      if(output.reserve(1024)) {
-        output.printf(ssdpTemplate,
-          WiFi.localIP().toString().c_str(),
-          deviceType,
-          friendlyName,
-          presentationURL,
-          String(ESP_GETCHIPID),
-          modelName,
-          modelNumber,
-          modelURL,
-          manufacturer,
-          manufacturerURL,
-          (uint8_t) ((ESP_GETCHIPID >> 16) & 0xff),
-          (uint8_t) ((ESP_GETCHIPID >>  8) & 0xff),
-          (uint8_t)   ESP_GETCHIPID        & 0xff
-        );
-        request->send(200, "text/xml", (String)output);
-      } else {
-        request->send(500);
+    server.on("/subscribe", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String _channel = ( request->getParam( (config.PARAM_INPUT_CHANNEL) )->value() );
+      if (_channel) {
+        if ( subscribe(_channel) ) {
+          request->send(201, "application/json", "{\"status\": \"OK\", \"subscribe\": \""+_channel+"\", \"subscriptions\": \"undefined\", \"snack\": \"Subscribed to channel '"+_channel+"'\"}");
+        } else {
+          request->send(412, "application/json", "{\"status\": \"NOT\", \"subscribe\": \""+_channel+"\", \"subscriptions\": \"undefined\", \"snack\": \"Failed to subscribe to channel '"+_channel+"'\"}");
+        }
       }
     });
-    server.on("/index", HTTP_GET, [](AsyncWebServerRequest *request) {
-      request->send(FILEFS, "/index.html", "text/html");
+    server.on("/unsubscribe", HTTP_GET, [](AsyncWebServerRequest *request) {
+      String _channel = ( request->getParam( (config.PARAM_INPUT_CHANNEL) )->value() );
+      if (_channel) {
+        if ( unsubscribe(_channel) ) {
+          request->send(201, "application/json", "{\"status\": \"OK\", \"unsubscribe\": \""+_channel+"\", \"subscriptions\": \"undefined\", \"snack\": \"Unsubscribed from channel '"+_channel+"'\"}");
+        } else {
+          request->send(412, "application/json", "{\"status\": \"NOT\", \"unsubscribe\": \""+_channel+"\", \"subscriptions\": \"undefined\", \"snack\": \"Failed to unsubscribe to channel '"+_channel+"'\"}");
+        }
+      }
     });
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+      request->send(FILEFS, "/index.html", "text/html");
+    });
+    server.on("/index", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(FILEFS, "/index.html", "text/html");
     });
     server.on("/sw.js", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -551,39 +547,91 @@ void setup() {
     server.on("/icon-32x32.png", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(FILEFS, "/icon-32x32.png", "image/x-png");
     });
+    server.on("/object-conf.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+      StreamString output;
+      output.printf(configTemplate,
+        String(config.localPortHTTP),
+        WiFi.localIP().toString().c_str(),
+        String(config.wsPort),
+        String(config.wsHost).c_str(),
+        String(config.wsPath).c_str(),
+        String(config.t6Object_id+"").c_str(),
+        String(config.t6wsKey+":"+config.t6wsSecret).c_str()
+      );
+      request->send(200, "text/javascript", (String)output);
+    });
+    if( config.ServiceStatusSsdp == true ) {
+      server.on("/description.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
+        StreamString output;
+        if(output.reserve(512)) {
+          output.printf(ssdpTemplate,
+            WiFi.localIP().toString().c_str(),
+            String(config.deviceType).c_str(),
+            String(config.friendlyName).c_str(),
+            String(config.presentationURL).c_str(),
+            String(config.t6Object_id+"").c_str(),
+            String(config.modelName).c_str(),
+            String(config.modelNumber).c_str(),
+            String(config.modelURL).c_str(),
+            String(config.manufacturer).c_str(),
+            String(config.manufacturerURL).c_str(),
+            (uint8_t) ((ESP_GETCHIPID >> 16) & 0xff),
+            (uint8_t) ((ESP_GETCHIPID >>  8) & 0xff),
+            (uint8_t)   ESP_GETCHIPID        & 0xff
+          );
+          request->send(200, "text/xml", (String)output);
+        } else {
+          request->send(500);
+        }
+      });
+    }
     server.onNotFound([] (AsyncWebServerRequest *request) {
       request->send(FILEFS, "/404.html", "text/html");
     });
+    server.begin();
+    serial.println("[t6IoT] HTTP listening to:");
+    serial.print("[t6IoT] http://");
+    serial.print(WiFi.localIP().toString().c_str());
+    serial.print(":");
+    serial.println(config.localPortHTTP);
     serial.println("[t6IoT] HTTP started");
+  } else {
+    serial.println("[t6IoT] HTTP not activated");
   }
 
-  if( ssdp_active ) {
+  if( config.ServiceStatusSsdp == true ) {
     SSDP.setSchemaURL("description.xml");
-    SSDP.setHTTPPort(localPortHTTP);
-    SSDP.setDeviceType(deviceType);
-    SSDP.setName(friendlyName);
+    SSDP.setHTTPPort(config.localPortSSDP);
+    SSDP.setDeviceType(config.deviceType);
+    SSDP.setName(config.friendlyName);
     SSDP.setSerialNumber(String(ESP_GETCHIPID));
-    SSDP.setModelName(modelName);
-    SSDP.setModelNumber(modelNumber);
-    SSDP.setModelURL(modelURL);
-    SSDP.setManufacturer(manufacturer);
-    SSDP.setManufacturerURL(manufacturerURL);
+    SSDP.setModelName(config.modelName);
+    SSDP.setModelNumber(config.modelNumber);
+    SSDP.setModelURL(config.modelURL);
+    SSDP.setManufacturer(config.manufacturer);
+    SSDP.setManufacturerURL(config.manufacturerURL);
+    SSDP.setInterval(config.advertiseInterval);
     SSDP.setURL("/");
-    SSDP.setInterval(advertiseInterval);
     SSDP.begin();
     serial.println("[t6IoT] SSDP started");
+  } else {
+    serial.println("[t6IoT] SSDP not activated");
   }
 
   serial.println("[t6IoT] READY");
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void loop() {
-  webSocket.loop();
-  if ( connected && lastUpdate+messageInterval<millis() ) {
-    claimObject( t6Object_id );
-    lastUpdate = millis();
+  if( config.ServiceStatusSockets == true ) {
+    webSocket.loop();
+    if ( WsConnected && lastUpdate + config.messageInterval<millis() ) {
+      claimObject();
+      lastUpdate = millis();
+    }
   }
-  int analogVolts = analogReadMilliVolts(2);
-  Serial.printf("ADC millivolts value = %d\n",analogVolts);
-  delay(500);
+  delay(250);
 }
