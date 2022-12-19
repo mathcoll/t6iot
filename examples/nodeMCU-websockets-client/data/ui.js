@@ -49,6 +49,7 @@ let ui = {
 									{
 										"width":6,
 										"title":"Digital Write",
+										"icon": "pin_invoke",
 										"body":{
 											"lists": [
 												{
@@ -65,7 +66,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=0&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -81,7 +83,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=1&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -97,7 +100,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=2&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -113,7 +117,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=3&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -129,7 +134,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=4&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -145,7 +151,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=5&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -161,7 +168,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=6&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -177,7 +185,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=7&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -193,7 +202,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=8&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -209,7 +219,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=9&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -225,7 +236,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=10&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -241,7 +253,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=11&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -257,7 +270,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=12&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -273,7 +287,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=13&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -289,7 +304,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=14&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -305,7 +321,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=15&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -322,7 +339,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=16&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -338,7 +356,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=17&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -354,7 +373,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=18&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -370,7 +390,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=19&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -386,7 +407,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=21&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -402,7 +424,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=22&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -418,7 +441,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=23&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -434,7 +458,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=25&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -450,7 +475,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=26&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -466,7 +492,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=27&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -482,7 +509,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=32&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -498,7 +526,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=33&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -514,7 +543,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=34&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -530,7 +560,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=35&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -546,7 +577,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=36&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -562,7 +594,8 @@ let ui = {
 															"defaultState":"unchecked",
 															"action":"/digitalWrite?pin=39&value=%s"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												}
 											]
 										},
@@ -571,6 +604,7 @@ let ui = {
 									{
 										"width":6,
 										"title":"digital Read",
+										"icon": "pin_invoke",
 										"body":{
 											"lists": [
 												{
@@ -586,7 +620,8 @@ let ui = {
 															"trigger":"trigger_pinD0",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -601,7 +636,8 @@ let ui = {
 															"trigger":"trigger_pinD1",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -616,7 +652,8 @@ let ui = {
 															"trigger":"trigger_pinD2",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -631,7 +668,8 @@ let ui = {
 															"trigger":"trigger_pinD3",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -646,7 +684,8 @@ let ui = {
 															"trigger":"trigger_pinD4",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -661,7 +700,8 @@ let ui = {
 															"trigger":"trigger_pinD5",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -676,7 +716,8 @@ let ui = {
 															"trigger":"trigger_pinD6",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -691,7 +732,8 @@ let ui = {
 															"trigger":"trigger_pinD7",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												},
 												{
 													"icon": "pin_invoke",
@@ -706,7 +748,8 @@ let ui = {
 															"trigger":"trigger_pinD8",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												}
 											]
 										}
@@ -737,6 +780,7 @@ let ui = {
 									{
 										"width":4,
 										"title":"Analog",
+										"icon": "timeline",
 										"body":{
 											"slider":
 												{
@@ -757,6 +801,7 @@ let ui = {
 									{
 										"width":8,
 										"title":"analogRead",
+										"icon": "timeline",
 										"body":{
 											"lists": [
 												{
@@ -772,7 +817,8 @@ let ui = {
 															"trigger":"trigger_pinA0",
 															"class":"mdl-button--raised"
 														}
-													]
+													],
+													"class": "mdl-list__item-avatar"
 												}
 											]
 										}
@@ -803,6 +849,7 @@ let ui = {
 									{
 										"width":12,
 										"title":"Led color",
+										"icon": "wb_incandescent",
 										"body":{
 											"texts":[
 												{
@@ -903,6 +950,7 @@ let ui = {
 									{
 										"width":12,
 										"title":"Arduino Audio",
+										"icon": "volume_up",
 										"body":{
 											"inputs":[
 												{
@@ -915,8 +963,10 @@ let ui = {
 													"id":"audioOutput",
 													"class":""
 												}
-											],
-											"buttons":[
+											]
+										},
+										"actions": {
+											"buttons": [
 												{
 													"label":"Say",
 													"value":"",
@@ -954,6 +1004,7 @@ let ui = {
 									{
 										"width":12,
 										"title":"Object Wifi settings",
+										"icon":"wifi",
 										"body":{
 											"sections":[
 												{
@@ -970,7 +1021,7 @@ let ui = {
 																"error":"Can't have a space'",
 																"width":12,
 																"expandable":false,
-																"id":"wifi.ssid",
+																"id":"config.wifi.ssid",
 																"class":""
 															},
 															{
@@ -980,28 +1031,24 @@ let ui = {
 																"pattern": "([^\w]+$)",
 																"width":12,
 																"expandable":false,
-																"id":"wifi.password",
+																"id":"config.wifi.password",
 																"class":""
 															}
 														],
 													}
-												},
+												}
+											]
+										},
+										"actions": {
+											"buttons": [
 												{
-													"title":"",
-													"width":12,
-													"id":"wifi_button_section",
-													"content": {
-														"buttons":[
-															{
-																"label":"Save",
-																"icon":"save",
-																"action":"/config",
-																"trigger":"save",
-																"method":"PUT",
-																"class":"mdl-button--raised"
-															}
-														]
-													}
+													"label":"Save",
+													"id":"config.wifi",
+													"icon":"save",
+													"action":"/config",
+													"trigger":"config.wifi",
+													"method":"PUT",
+													"class":"mdl-button--raised"
 												}
 											]
 										}
@@ -1009,6 +1056,7 @@ let ui = {
 									{
 										"width":12,
 										"title":"Object",
+										"icon":"devices",
 										"body":{
 											"sections":[
 												{
@@ -1025,7 +1073,7 @@ let ui = {
 																"error":"Must be a uuid-v4",
 																"width":12,
 																"expandable":false,
-																"id":"object.t6Object_id",
+																"id":"config.t6.t6Object_id",
 																"class":""
 															},
 															{
@@ -1036,28 +1084,24 @@ let ui = {
 																"error":"Must be a 64 chars hexadecimal",
 																"width":12,
 																"expandable":false,
-																"id":"object.t6ObjectSecretKey",
+																"id":"config.t6.t6ObjectSecretKey",
 																"class":""
 															}
 														],
 													}
-												},
+												}
+											]
+										},
+										"actions": {
+											"buttons": [
 												{
-													"title":"",
-													"width":12,
-													"id":"object_button_section",
-													"content": {
-														"buttons":[
-															{
-																"label":"Save",
-																"icon":"save",
-																"action":"/config",
-																"trigger":"save",
-																"method":"PUT",
-																"class":"mdl-button--raised"
-															}
-														]
-													}
+													"label":"Save",
+													"id":"config.t6",
+													"icon":"save",
+													"action":"/config",
+													"trigger":"config.t6",
+													"method":"PUT",
+													"class":"mdl-button--raised"
 												}
 											]
 										}
@@ -1065,6 +1109,7 @@ let ui = {
 									{
 										"width":12,
 										"title":"Http",
+										"icon":"dns",
 										"body":{
 											"sections":[
 												{
@@ -1073,13 +1118,13 @@ let ui = {
 													"id":"Http_section",
 													"content": {
 														"switche": {
-															"id":"http_flag",
+															"id":"config.t6.servicesStatus.http",
 															"valueUnchecked":0,
 															"labelUnchecked":"Disabled",
 															"valueChecked":1,
 															"labelChecked":"Enabled",
 															"defaultState":"checked",
-															"action":"/status?value=%s"
+															"action":""
 														}
 													}
 												},
@@ -1097,28 +1142,24 @@ let ui = {
 																"error":"Must be an integer",
 																"width":12,
 																"expandable":false,
-																"id":"http.port",
+																"id":"config.t6.http.localPort",
 																"class":""
 															},
 														],
 													}
-												},
+												}
+											]
+										},
+										"actions": {
+											"buttons": [
 												{
-													"title":"",
-													"width":12,
-													"id":"http_button_section",
-													"content": {
-														"buttons":[
-															{
-																"label":"Save",
-																"icon":"save",
-																"action":"/config",
-																"trigger":"save",
-																"method":"PUT",
-																"class":"mdl-button--raised"
-															}
-														]
-													}
+													"label":"Save",
+													"id":"config.t6.http",
+													"icon":"save",
+													"action":"/config",
+													"trigger":"config.t6.http",
+													"method":"PUT",
+													"class":"mdl-button--raised"
 												}
 											]
 										}
@@ -1126,6 +1167,7 @@ let ui = {
 									{
 										"width":12,
 										"title":"Audio",
+										"icon":"volume_up",
 										"body":{
 											"sections":[
 												{
@@ -1134,32 +1176,28 @@ let ui = {
 													"id":"Audio_section",
 													"content": {
 														"switche": {
-															"id":"audio_flag",
+															"id":"config.t6.servicesStatus.audio",
 															"valueUnchecked":0,
 															"labelUnchecked":"Disabled",
 															"valueChecked":1,
 															"labelChecked":"Enabled",
 															"defaultState":"checked",
-															"action":"/status?value=%s"
+															"action":""
 														}
 													}
-												},
+												}
+											]
+										},
+										"actions": {
+											"buttons": [
 												{
-													"title":"",
-													"width":12,
-													"id":"audio_button_section",
-													"content": {
-														"buttons":[
-															{
-																"label":"Save",
-																"icon":"save",
-																"action":"/config",
-																"trigger":"save",
-																"method":"PUT",
-																"class":"mdl-button--raised"
-															}
-														]
-													}
+													"label":"Save",
+													"id":"config.t6.audio",
+													"icon":"save",
+													"action":"/config",
+													"trigger":"config.t6.audio",
+													"method":"PUT",
+													"class":"mdl-button--raised"
 												}
 											]
 										}
@@ -1167,6 +1205,7 @@ let ui = {
 									{
 										"width":12,
 										"title":"Mdns",
+										"icon":"dns",
 										"body":{
 											"sections":[
 												{
@@ -1175,32 +1214,28 @@ let ui = {
 													"id":"Mdns_section",
 													"content": {
 														"switche": {
-															"id":"mdns_flag",
+															"id":"config.t6.servicesStatus.mdns",
 															"valueUnchecked":0,
 															"labelUnchecked":"Disabled",
 															"valueChecked":1,
 															"labelChecked":"Enabled",
 															"defaultState":"checked",
-															"action":"/status?value=%s"
+															"action":""
 														}
 													}
-												},
+												}
+											]
+										},
+										"actions": {
+											"buttons": [
 												{
-													"title":"",
-													"width":12,
-													"id":"mdns_button_section",
-													"content": {
-														"buttons":[
-															{
-																"label":"Save",
-																"icon":"save",
-																"action":"/config",
-																"trigger":"save",
-																"method":"PUT",
-																"class":"mdl-button--raised"
-															}
-														]
-													}
+													"label":"Save",
+													"id":"config.t6.mdns",
+													"icon":"save",
+													"action":"/config",
+													"trigger":"config.t6.mdns",
+													"method":"PUT",
+													"class":"mdl-button--raised"
 												}
 											]
 										}
@@ -1208,6 +1243,7 @@ let ui = {
 									{
 										"width":12,
 										"title":"SSDP",
+										"icon":"dns",
 										"body":{
 											"sections":[
 												{
@@ -1216,13 +1252,13 @@ let ui = {
 													"id":"Ssdp_section",
 													"content": {
 														"switche": {
-															"id":"ssdp_flag",
+															"id":"config.t6.servicesStatus.ssdp",
 															"valueUnchecked":0,
 															"labelUnchecked":"Disabled",
 															"valueChecked":1,
 															"labelChecked":"Enabled",
 															"defaultState":"checked",
-															"action":"/status?value=%s"
+															"action":""
 														}
 													}
 												},
@@ -1240,7 +1276,7 @@ let ui = {
 																"error":"Must be an integer",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.port",
+																"id":"config.t6.ssdp.localPort",
 																"class":""
 															},
 															{
@@ -1251,7 +1287,7 @@ let ui = {
 																"error":"Must be an integer",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.advertiseInterval",
+																"id":"config.t6.ssdp.advertiseInterval",
 																"class":""
 															},
 															{
@@ -1262,7 +1298,7 @@ let ui = {
 																"error":"Must be a valid URL",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.presentationURL",
+																"id":"config.t6.ssdp.presentationURL",
 																"class":""
 															},
 															{
@@ -1272,7 +1308,7 @@ let ui = {
 																"pattern": "([\w]+$)",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.friendlyName",
+																"id":"config.t6.ssdp.friendlyName",
 																"class":""
 															},
 															{
@@ -1282,7 +1318,7 @@ let ui = {
 																"pattern": "([\w]+$)",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.modelName",
+																"id":"config.t6.ssdp.modelName",
 																"class":""
 															},
 															{
@@ -1292,7 +1328,7 @@ let ui = {
 																"pattern": "([\d\.]+$)",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.modelNumber",
+																"id":"config.t6.ssdp.modelNumber",
 																"class":""
 															},
 															{
@@ -1302,7 +1338,7 @@ let ui = {
 																"pattern": "([\w]+$)",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.deviceType",
+																"id":"config.t6.ssdp.deviceType",
 																"class":""
 															},
 															{
@@ -1313,7 +1349,7 @@ let ui = {
 																"error":"Must be a valid URL",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.modelURL",
+																"id":"config.t6.ssdp.modelURL",
 																"class":""
 															},
 															{
@@ -1323,7 +1359,7 @@ let ui = {
 																"pattern": "([^\w]+$)",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.manufacturer",
+																"id":"config.t6.ssdp.manufacturer",
 																"class":""
 															},
 															{
@@ -1334,28 +1370,33 @@ let ui = {
 																"error":"Must be a valid URL",
 																"width":12,
 																"expandable":false,
-																"id":"ssdp.manufacturerURL",
+																"id":"config.t6.ssdp.manufacturerURL",
 																"class":""
 															}
 														]
 													}
+												}
+											]
+										},
+										"actions": {
+											"buttons": [
+												{
+													"label":"Save",
+													"id":"config.t6.ssdp",
+													"icon":"save",
+													"action":"/config",
+													"trigger":"config.t6.ssdp",
+													"method":"PUT",
+													"class":"mdl-button--raised"
 												},
 												{
-													"title":"",
-													"width":12,
-													"id":"ssdp_button_section",
-													"content": {
-														"buttons":[
-															{
-																"label":"Save",
-																"icon":"save",
-																"action":"/config",
-																"trigger":"save",
-																"method":"PUT",
-																"class":"mdl-button--raised"
-															}
-														]
-													}
+													"label":"Description",
+													"value":"",
+													"icon":"record_voice_over",
+													"action":"/description.xml",
+													"trigger":"config.t6.ssdp",
+													"method":"GET",
+													"class":"mdl-button--raised"
 												}
 											]
 										}
@@ -1363,6 +1404,7 @@ let ui = {
 									{
 										"width":12,
 										"title":"Object WebSockets settings",
+										"icon":"power",
 										"body":{
 											"sections":[
 												{
@@ -1371,13 +1413,13 @@ let ui = {
 													"id":"Sockets_section",
 													"content": {
 														"switche": {
-															"id":"sockets_flag",
+															"id":"config.t6.servicesStatus.sockets",
 															"valueUnchecked":0,
 															"labelUnchecked":"Disabled",
 															"valueChecked":1,
 															"labelChecked":"Enabled",
 															"defaultState":"checked",
-															"action":"/status?value=%s"
+															"action":""
 														}
 													}
 												},
@@ -1394,7 +1436,7 @@ let ui = {
 																"pattern": "([^\w]+$)",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.wsHost",
+																"id":"config.t6.websockets.host",
 																"class":""
 															},
 															{
@@ -1405,7 +1447,7 @@ let ui = {
 																"error":"Must be an integer",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.wsPort",
+																"id":"config.t6.websockets.port",
 																"class":""
 															},
 															{
@@ -1415,7 +1457,7 @@ let ui = {
 																"pattern": "^(.*?)",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.t6wsKey",
+																"id":"config.t6.websockets.path",
 																"class":""
 															},
 															{
@@ -1425,7 +1467,7 @@ let ui = {
 																"pattern": "^/(.*?)",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.wsPath",
+																"id":"config.t6.websockets.t6wsKey",
 																"class":""
 															},
 															{
@@ -1435,7 +1477,7 @@ let ui = {
 																"pattern": "^(.*?)",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.t6wsSecret",
+																"id":"config.t6.websockets.t6wsSecret",
 																"class":""
 															}
 														],
@@ -1455,7 +1497,7 @@ let ui = {
 																"error":"Must be an integer",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.messageInterval",
+																"id":"config.t6.websockets.messageInterval",
 																"class":""
 															},
 															{
@@ -1466,7 +1508,7 @@ let ui = {
 																"error":"Must be an integer",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.messageIntervalOnceClaimed",
+																"id":"config.t6.websockets.messageIntervalOnceClaimed",
 																"class":""
 															},
 															{
@@ -1477,7 +1519,7 @@ let ui = {
 																"error":"Must be an integer",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.reconnectInterval",
+																"id":"config.t6.websockets.reconnectInterval",
 																"class":""
 															},
 															{
@@ -1488,7 +1530,7 @@ let ui = {
 																"error":"Must be an integer",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.timeoutInterval",
+																"id":"config.t6.websockets.timeoutInterval",
 																"class":""
 															},
 															{
@@ -1499,28 +1541,24 @@ let ui = {
 																"error":"Must be an integer",
 																"width":12,
 																"expandable":false,
-																"id":"websockets.disconnectAfterFailure",
+																"id":"config.t6.websockets.disconnectAfterFailure",
 																"class":""
 															},
 														],
 													}
-												},
+												}
+											]
+										},
+										"actions": {
+											"buttons": [
 												{
-													"title":"",
-													"width":12,
-													"id":"websockets_button_section",
-													"content": {
-														"buttons":[
-															{
-																"label":"Save",
-																"icon":"save",
-																"action":"/config",
-																"trigger":"save",
-																"method":"PUT",
-																"class":"mdl-button--raised"
-															}
-														]
-													}
+													"label":"Save",
+													"id":"config.t6.websockets",
+													"icon":"save",
+													"action":"/config",
+													"trigger":"config.t6.websockets",
+													"method":"PUT",
+													"class":"mdl-button--raised"
 												}
 											]
 										}
@@ -1528,6 +1566,7 @@ let ui = {
 									{
 										"width":6,
 										"title":"Web Sockets Channel Subscription",
+										"icon":"wifi",
 										"body":{
 											"sections":[
 												{
@@ -1549,23 +1588,18 @@ let ui = {
 															}
 														]
 													}
-												},
+												}
+											]
+										},
+										"actions": {
+											"buttons": [
 												{
-													"title":"",
-													"width":12,
-													"id":"channels_subscription_button_section",
-													"content": {
-														"buttons":[
-															{
-																"label":"Subscribe",
-																"value":"",
-																"icon":"bookmark_add",
-																"action":"/subscribe?channel=%s",
-																"trigger":"subscribe",
-																"class":"mdl-button--raised"
-															}
-														]
-													}
+													"label":"Subscribe",
+													"value":"",
+													"icon":"bookmark_add",
+													"action":"/subscribe?channel=%s",
+													"trigger":"subscribe",
+													"class":"mdl-button--raised"
 												}
 											]
 										}
@@ -1573,6 +1607,7 @@ let ui = {
 									{
 										"width":6,
 										"title":"Web Sockets Channel Unsubscription",
+										"icon":"wifi",
 										"body":{
 											"sections":[
 												{
@@ -1594,23 +1629,18 @@ let ui = {
 															}
 														]
 													}
-												},
+												}
+											]
+										},
+										"actions": {
+											"buttons": [
 												{
-													"title":"",
-													"width":12,
-													"id":"channels_unsubscription_button_section",
-													"content": {
-														"buttons":[
-															{
-																"label":"Unsubscribe",
-																"value":"",
-																"icon":"bookmark_remove",
-																"action":"/unsubscribe?channel=%s",
-																"trigger":"unsubscribe",
-																"class":"mdl-button--raised"
-															}
-														]
-													}
+													"label":"Unsubscribe",
+													"value":"",
+													"icon":"bookmark_remove",
+													"action":"/unsubscribe?channel=%s",
+													"trigger":"unsubscribe",
+													"class":"mdl-button--raised"
 												}
 											]
 										}
@@ -1641,12 +1671,28 @@ let ui = {
 									{
 										"width":12,
 										"title":"How to use Arduino Universal Controller?",
+										"icon": "help",
 										"body":{
 											"texts":[
 												{
 													"text":"You first need to upload the sample generic Arduino source code to your device after editing the wifi credentials and t6 IoT Object settings.",
 													"width":12,
-													"id":"helptext",
+													"id":"helptext1",
+													"icon":"help",
+													"class":""
+												},
+												{
+													"text":"SSDP : gssdp-discover -i eth0 -r 5",
+													"width":12,
+													"id":"helptext2",
+													"icon":"lightbulb",
+													"class":""
+												},
+												{
+													"text":"MDSN : mdns-scan",
+													"width":12,
+													"id":"helptext2",
+													"icon":"lightbulb",
 													"class":""
 												}
 											]

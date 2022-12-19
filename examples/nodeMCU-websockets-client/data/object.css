@@ -1,3 +1,11 @@
+.mdl-dialog {
+	border: 0;
+	z-index: 999;
+	display: block;
+}
+section.mdl-grid .mdl-card__title i.material-icons {
+	margin: 0 5px 0 0;
+}
 .mdl-switch, .mdl-slider {
 	height: 64px;
 	margin: 0;
@@ -55,6 +63,9 @@
 }
 .mdl-list__item .mdl-list__item-secondary-content {
 	text-align: right;
+}
+.mdl-card__title h3.mdl-card__title-text {
+	padding: 0 !important;
 }
 .mdl-mega-footer {
 	background-color: unset !important;
