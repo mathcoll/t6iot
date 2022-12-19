@@ -523,12 +523,12 @@ void setup() {
     },
     [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
       Serial.println("handling bodyRequestCB"); // (char*)data
-      StaticJsonDocument<2048> body;
+      StaticJsonDocument<4096> body;
       DeserializationError error = deserializeJson(body, data);
       if (error) {
         Serial.println("[t6IoT] Failed to load body");
         Serial.println(error.f_str());
-        request->send(412, "application/json", "{\"status\": \"NOT\", \"snack\": \"Configuration has not been saved\"}");
+        request->send(412, "application/json", "{\"status\": \"NOK\", \"snack\": \"Configuration has not been saved! (1)\"}");
       } else {
         if( body["wifi"]["ssid"].as<const char*>() ) {
           config.ssid = body["wifi"]["ssid"].as<const char*>();
@@ -536,61 +536,120 @@ void setup() {
         if( body["wifi"]["password"].as<const char*>() ) {
           config.password = body["wifi"]["password"].as<const char*>();
         }
-        if( body["t6"]["servicesStatus"]["http"].as<bool>() ) {
-          config.ServiceStatusHttp = body["t6"]["servicesStatus"]["http"].as<bool>();
+
+        if( body["t6"]["servicesStatus"]["http"].as<String>() == "true" ) {
+          config.ServiceStatusHttp = true;
+        } else if( body["t6"]["servicesStatus"]["http"].as<String>() == "false" ) {
+          config.ServiceStatusHttp = false;
         }
-        if( body["t6"]["servicesStatus"]["sockets"].as<bool>() ) {
-          config.ServiceStatusSockets = body["t6"]["servicesStatus"]["sockets"].as<bool>();
+        if( body["t6"]["servicesStatus"]["sockets"].as<String>() == "true" ) {
+          config.ServiceStatusSockets = true;
+        } else if( body["t6"]["servicesStatus"]["sockets"].as<String>() == "false" ) {
+          config.ServiceStatusSockets = false;
         }
-        if( body["t6"]["servicesStatus"]["mdns"].as<bool>() ) {
-          config.ServiceStatusMdns = body["t6"]["servicesStatus"]["mdns"].as<bool>();
+        if( body["t6"]["servicesStatus"]["mdns"].as<String>() == "true" ) {
+          config.ServiceStatusMdns = true;
+        } else if( body["t6"]["servicesStatus"]["mdns"].as<String>() == "false" ) {
+          config.ServiceStatusMdns = false;
         }
-        if( body["t6"]["servicesStatus"]["ssdp"].as<bool>() ) {
-          config.ServiceStatusSsdp = body["t6"]["servicesStatus"]["ssdp"].as<bool>();
+        if( body["t6"]["servicesStatus"]["ssdp"].as<String>() == "true" ) {
+          config.ServiceStatusSsdp = true;
+        } else if( body["t6"]["servicesStatus"]["ssdp"].as<String>() == "false" ) {
+          config.ServiceStatusSsdp = false;
         }
-        if( body["t6"]["servicesStatus"]["audio"].as<bool>() ) {
-          config.ServiceStatusAudio = body["t6"]["servicesStatus"]["audio"].as<bool>();
+        if( body["t6"]["servicesStatus"]["audio"].as<String>() == "true" ) {
+          config.ServiceStatusAudio = true;
+        } else if( body["t6"]["servicesStatus"]["audio"].as<String>() == "false" ) {
+          config.ServiceStatusAudio = false;
         }
         
+        if( body["t6"]["t6Object_id"].as<const char*>() ) {
+          config.t6Object_id = body["t6"]["t6Object_id"].as<String>();
+        }
+        if( body["t6"]["t6ObjectSecretKey"].as<const char*>() ) {
+          config.t6ObjectSecretKey = body["t6"]["t6ObjectSecretKey"].as<String>();
+        }
+        
+        if( body["t6"]["websockets"]["host"].as<const char*>() ) {
+          config.wsHost = body["t6"]["websockets"]["host"].as<String>();
+        }
+        if( body["t6"]["websockets"]["path"].as<const char*>() ) {
+          config.wsPath = body["t6"]["websockets"]["path"].as<String>();
+        }
+        if( body["t6"]["websockets"]["port"].as<const char*>() ) {
+          config.wsPath = body["t6"]["websockets"]["port"].as<uint16_t>();
+        }
+        if( body["t6"]["websockets"]["t6wsKey"].as<const char*>() ) {
+          config.t6wsKey = body["t6"]["websockets"]["t6wsKey"].as<String>();
+        }
+        if( body["t6"]["websockets"]["t6wsSecret"].as<const char*>() ) {
+          config.t6wsSecret = body["t6"]["websockets"]["t6wsSecret"].as<String>();
+        }
+        if( body["t6"]["websockets"]["expiration"].as<const char*>() ) {
+          config.expiration = body["t6"]["websockets"]["expiration"].as<unsigned long>();
+        }
+        if( body["t6"]["websockets"]["messageInterval"].as<const char*>() ) {
+          config.messageInterval = body["t6"]["websockets"]["messageInterval"].as<unsigned long>();
+        }
+        if( body["t6"]["websockets"]["messageIntervalOnceClaimed"].as<const char*>() ) {
+          config.messageIntervalOnceClaimed = body["t6"]["websockets"]["messageIntervalOnceClaimed"].as<unsigned long>();
+        }
+        if( body["t6"]["websockets"]["reconnectInterval"].as<const char*>() ) {
+          config.reconnectInterval = body["t6"]["websockets"]["reconnectInterval"].as<unsigned long>();
+        }
+        if( body["t6"]["websockets"]["timeoutInterval"].as<const char*>() ) {
+          config.timeoutInterval = body["t6"]["websockets"]["timeoutInterval"].as<unsigned long>();
+        }
+        if( body["t6"]["websockets"]["disconnectAfterFailure"].as<const char*>() ) {
+          config.disconnectAfterFailure = body["t6"]["websockets"]["disconnectAfterFailure"].as<int>();
+        }
+
         if( body["t6"]["ssdp"]["localPort"].as<unsigned int>() ) {
           config.localPortSSDP = body["t6"]["ssdp"]["localPort"].as<unsigned int>();
         }
         if( body["t6"]["ssdp"]["advertiseInterval"].as<unsigned int>() ) {
           config.advertiseInterval = body["t6"]["ssdp"]["advertiseInterval"].as<unsigned int>();
         }
-        if( body["t6"]["ssdp"]["presentationURL"].as<String>() ) {
+        if( body["t6"]["ssdp"]["presentationURL"].as<const char*>() ) {
           config.presentationURL = body["t6"]["ssdp"]["presentationURL"].as<String>();
         }
-        if( body["t6"]["ssdp"]["friendlyName"].as<String>() ) {
+        if( body["t6"]["ssdp"]["friendlyName"].as<const char*>() ) {
           config.friendlyName = body["t6"]["ssdp"]["friendlyName"].as<String>();
         }
-        if( body["t6"]["ssdp"]["modelName"].as<String>() ) {
+        if( body["t6"]["ssdp"]["modelName"].as<const char*>() ) {
           config.modelName = body["t6"]["ssdp"]["modelName"].as<String>();
         }
-        if( body["t6"]["ssdp"]["modelNumber"].as<String>() ) {
+        if( body["t6"]["ssdp"]["modelNumber"].as<const char*>() ) {
           config.modelNumber = body["t6"]["ssdp"]["modelNumber"].as<String>();
         }
-        if( body["t6"]["mdns"]["deviceType"].as<String>() ) {
-          config.deviceType = body["t6"]["mdns"]["deviceType"].as<String>();
+        if( body["t6"]["ssdp"]["deviceType"].as<const char*>() ) {
+          config.deviceType = body["t6"]["ssdp"]["deviceType"].as<String>();
         }
-        if( body["t6"]["ssdp"]["modelURL"].as<String>() ) {
+        if( body["t6"]["ssdp"]["modelURL"].as<const char*>() ) {
           config.modelURL = body["t6"]["ssdp"]["modelURL"].as<String>();
         }
-        if( body["t6"]["ssdp"]["manufacturer"].as<String>() ) {
+        if( body["t6"]["ssdp"]["manufacturer"].as<const char*>() ) {
           config.manufacturer = body["t6"]["ssdp"]["manufacturer"].as<String>();
         }
-        if( body["t6"]["ssdp"]["manufacturerURL"].as<String>() ) {
+        if( body["t6"]["ssdp"]["manufacturerURL"].as<const char*>() ) {
           config.manufacturerURL = body["t6"]["ssdp"]["manufacturerURL"].as<String>();
         }
 
-        if( body["t6"]["mdns"]["localPort"].as<bool>() ) {
-          config.localPortMDNS = body["t6"]["mdns"]["localPort"].as<bool>();
+        if( body["t6"]["http"]["localPort"].as<unsigned int>() ) {
+          config.localPortHTTP = body["t6"]["http"]["localPort"].as<unsigned int>();
+        }
+        if( body["t6"]["http"]["localPortHTTPS"].as<unsigned int>() ) {
+          config.localPortHTTPS = body["t6"]["http"]["localPortHTTPS"].as<unsigned int>();
+        }
+
+        if( body["t6"]["mdns"]["localPort"].as<unsigned int>() ) {
+          config.localPortMDNS = body["t6"]["mdns"]["localPort"].as<unsigned int>();
         }
 
         if ( saveConfiguration(configFilename, config) ) {
           request->send(200, "application/json", "{\"status\": \"OK\", \"snack\": \"Configuration has been saved, please restart ESP.\"}");
         } else {
-          request->send(412, "application/json", "{\"status\": \"NOT\", \"snack\": \"Configuration has not been saved!\"}");
+          request->send(412, "application/json", "{\"status\": \"NOK\", \"snack\": \"Configuration has not been saved! (2)\"}");
         }
       }
     });
@@ -639,19 +698,8 @@ void setup() {
     server.on("/icon-32x32.png", HTTP_GET, [](AsyncWebServerRequest *request) {
       request->send(FILEFS, "/icon-32x32.png", "image/x-png");
     });
-    server.on("/object-conf.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-      StreamString output;
-      output.printf(configTemplate,
-        String(config.localPortHTTP),
-        WiFi.localIP().toString().c_str(),
-        String(config.wsPort),
-        String(config.wsHost).c_str(),
-        String(config.wsPath).c_str(),
-        String(config.t6Object_id+"").c_str(),
-        String(config.friendlyName).c_str(),
-        String(config.t6wsKey+":"+config.t6wsSecret).c_str()
-      );
-      request->send(200, "text/javascript", (String)output);
+    server.on("/config.json", HTTP_GET, [](AsyncWebServerRequest *request) {
+      request->send(FILEFS, "/config.json", "application/json");
     });
     if( config.ServiceStatusSsdp == true ) {
       server.on("/description.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
