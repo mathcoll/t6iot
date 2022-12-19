@@ -13,8 +13,10 @@ let ui = {
 				{"name": "t6 IoT App", "icon": "api", "id": "t6iot", "class": "", "link": "https://api.internetcollaboratif.info"},
 				{"name": "t6 Api doc", "icon": "integration_instructions", "id": "apidoc", "class": "", "link": "https://doc.internetcollaboratif.info"},
 				{"spacer": true},
-				{"name": "Web Sockets", "icon": "subscriptions", "id": "sockets", "class": "", "link": "#sockets"},
+				{"name": "Settings", "icon": "settings", "id": "settings", "class": "", "link": "#settings"},
 				{"name": "Help", "icon": "contact_support", "id": "help", "class": "", "link": "#help"},
+				{"spacer": true},
+				{"name": "Reboot ESP", "icon": "power", "id": "reboot", "class": "", "link": "/reboot"},
 				{"spacer": true}
 			],
 			"text": {
@@ -52,7 +54,7 @@ let ui = {
 												{
 													"icon": "pin_invoke",
 													"label":"Digital Pin D0",
-													"body":"Must be HIGH during boot and LOW for programming",
+													"body":"HIGH during boot and LOW for programming",
 													"switches":[
 														{
 															"id":"pin0",
@@ -84,7 +86,7 @@ let ui = {
 												{
 													"icon": "pin_invoke",
 													"label":"Digital Pin D2",
-													"body":"Must be LOW during boot and also connected to the on-board LED",
+													"body":"LOW during boot and also connected to the on-board LED",
 													"switches":[
 														{
 															"id":"pin2",
@@ -132,7 +134,7 @@ let ui = {
 												{
 													"icon": "pin_invoke",
 													"label":"Digital Pin D5",
-													"body":"Must be HIGH during boot",
+													"body":"HIGH during boot",
 													"switches":[
 														{
 															"id":"pin5",
@@ -244,7 +246,7 @@ let ui = {
 												{
 													"icon": "pin_invoke",
 													"label":"Digital Pin D12",
-													"body":"must be LOW during boot",
+													"body":"LOW during boot",
 													"switches":[
 														{
 															"id":"pin12",
@@ -292,7 +294,7 @@ let ui = {
 												{
 													"icon": "pin_invoke",
 													"label":"Digital Pin D15",
-													"body":"must be HIGH during boot, prevents startup log if pulled LOW",
+													"body":"HIGH during boot, prevents startup log if pulled LOW",
 													"switches":[
 														{
 															"id":"pin15",
@@ -760,7 +762,8 @@ let ui = {
 												{
 													"icon": "timeline",
 													"label":"n/a",
-													"label_id":"trigger_pinA0",
+													"body":"",
+													"body_id":"trigger_pinA0",
 													"buttons": [
 														{
 															"id":"pinA0",
@@ -903,9 +906,11 @@ let ui = {
 										"body":{
 											"inputs":[
 												{
-													"label":"Say somthing:",
+													"label":"Say something:",
+													"icon":"record_voice_over",
 													"placeholder":"Type your message to say here...",
 													"pattern": "",
+													"error":"",
 													"width":12,
 													"id":"audioOutput",
 													"class":""
@@ -931,69 +936,681 @@ let ui = {
 			}
 		},
 		{
-			"name": "Web Sockets",
-			"id": "sockets",
+			"name": "Settings",
+			"id": "settings",
 			"class": "",
-			"icon": "subscriptions",
+			"icon": "settings",
 			"width":12,
 			"body": {
 				"rows":[
 					{
-						"row_id": "tab5_row1",
+						"row_id": "tab7_row1",
 						"width":12,
 						"columns":[
 							{
 								"width":12,
-								"col_id":"tab5_row1_col1",
+								"col_id":"tab7_row1_col1",
 								"cards":[
 									{
 										"width":12,
-										"title":"Channel Subscription",
+										"title":"Object Wifi settings",
 										"body":{
-											"inputs":[
+											"sections":[
 												{
-													"label":"Subscribe to a new channel",
-													"placeholder":"channel_name",
-													"pattern": "([^\w]+$)",
+													"title":"Wifi",
 													"width":12,
-													"id":"subscribe",
-													"class":""
-												}
-											],
-											"buttons":[
+													"id":"wifi_section",
+													"content": {
+														"inputs":[
+															{
+																"label":"Wifi SSID",
+																"icon":"wifi",
+																"placeholder":"ssid",
+																"pattern": "([^ ]+$)",
+																"error":"Can't have a space'",
+																"width":12,
+																"expandable":false,
+																"id":"wifi.ssid",
+																"class":""
+															},
+															{
+																"label":"Wifi password",
+																"icon":"lock",
+																"placeholder":"password",
+																"pattern": "([^\w]+$)",
+																"width":12,
+																"expandable":false,
+																"id":"wifi.password",
+																"class":""
+															}
+														],
+													}
+												},
 												{
-													"label":"Subscribe",
-													"value":"",
-													"icon":"bookmark_add",
-													"action":"/subscribe?channel=%s",
-													"trigger":"subscribe",
-													"class":"mdl-button--raised"
+													"title":"",
+													"width":12,
+													"id":"wifi_button_section",
+													"content": {
+														"buttons":[
+															{
+																"label":"Save",
+																"icon":"save",
+																"action":"/config",
+																"trigger":"save",
+																"method":"PUT",
+																"class":"mdl-button--raised"
+															}
+														]
+													}
 												}
 											]
 										}
 									},
 									{
 										"width":12,
-										"title":"Channel Unsubscription",
+										"title":"Object",
 										"body":{
-											"inputs":[
+											"sections":[
 												{
-													"label":"Unsubscribe from a channel",
-													"placeholder":"channel_name",
-													"pattern": "([^\w]+$)",
+													"title":"Object",
 													"width":12,
-													"id":"unsubscribe",
-													"class":""
-												}
-											],
-											"buttons":[
+													"id":"object_section",
+													"content": {
+														"inputs":[
+															{
+																"label":"t6 Object identifier",
+																"icon":"wifi",
+																"placeholder":"object_id",
+																"pattern": "(^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$)",
+																"error":"Must be a uuid-v4",
+																"width":12,
+																"expandable":false,
+																"id":"object.t6Object_id",
+																"class":""
+															},
+															{
+																"label":"t6ObjectSecretKey",
+																"icon":"password",
+																"placeholder":"t6ObjectSecretKey",
+																"pattern": "(^[a-fA-F0-9]{64}$)",
+																"error":"Must be a 64 chars hexadecimal",
+																"width":12,
+																"expandable":false,
+																"id":"object.t6ObjectSecretKey",
+																"class":""
+															}
+														],
+													}
+												},
 												{
-													"label":"Unsubscribe",
-													"value":"",
-													"icon":"bookmark_remove",
-													"action":"/unsubscribe?channel=%s",
-													"trigger":"unsubscribe",
-													"class":"mdl-button--raised"
+													"title":"",
+													"width":12,
+													"id":"object_button_section",
+													"content": {
+														"buttons":[
+															{
+																"label":"Save",
+																"icon":"save",
+																"action":"/config",
+																"trigger":"save",
+																"method":"PUT",
+																"class":"mdl-button--raised"
+															}
+														]
+													}
+												}
+											]
+										}
+									},
+									{
+										"width":12,
+										"title":"Http",
+										"body":{
+											"sections":[
+												{
+													"title":"Service Status",
+													"width":2,
+													"id":"Http_section",
+													"content": {
+														"switche": {
+															"id":"http_flag",
+															"valueUnchecked":0,
+															"labelUnchecked":"Disabled",
+															"valueChecked":1,
+															"labelChecked":"Enabled",
+															"defaultState":"checked",
+															"action":"/status?value=%s"
+														}
+													}
+												},
+												{
+													"title":"Http",
+													"width":12,
+													"id":"http_section",
+													"content": {
+														"inputs":[
+															{
+																"label":"http port",
+																"icon":"nat",
+																"placeholder":"port",
+																"pattern": "([^\d]+$)",
+																"error":"Must be an integer",
+																"width":12,
+																"expandable":false,
+																"id":"http.port",
+																"class":""
+															},
+														],
+													}
+												},
+												{
+													"title":"",
+													"width":12,
+													"id":"http_button_section",
+													"content": {
+														"buttons":[
+															{
+																"label":"Save",
+																"icon":"save",
+																"action":"/config",
+																"trigger":"save",
+																"method":"PUT",
+																"class":"mdl-button--raised"
+															}
+														]
+													}
+												}
+											]
+										}
+									},
+									{
+										"width":12,
+										"title":"Audio",
+										"body":{
+											"sections":[
+												{
+													"title":"Service Status",
+													"width":2,
+													"id":"Audio_section",
+													"content": {
+														"switche": {
+															"id":"audio_flag",
+															"valueUnchecked":0,
+															"labelUnchecked":"Disabled",
+															"valueChecked":1,
+															"labelChecked":"Enabled",
+															"defaultState":"checked",
+															"action":"/status?value=%s"
+														}
+													}
+												},
+												{
+													"title":"",
+													"width":12,
+													"id":"audio_button_section",
+													"content": {
+														"buttons":[
+															{
+																"label":"Save",
+																"icon":"save",
+																"action":"/config",
+																"trigger":"save",
+																"method":"PUT",
+																"class":"mdl-button--raised"
+															}
+														]
+													}
+												}
+											]
+										}
+									},
+									{
+										"width":12,
+										"title":"Mdns",
+										"body":{
+											"sections":[
+												{
+													"title":"Service Status",
+													"width":2,
+													"id":"Mdns_section",
+													"content": {
+														"switche": {
+															"id":"mdns_flag",
+															"valueUnchecked":0,
+															"labelUnchecked":"Disabled",
+															"valueChecked":1,
+															"labelChecked":"Enabled",
+															"defaultState":"checked",
+															"action":"/status?value=%s"
+														}
+													}
+												},
+												{
+													"title":"",
+													"width":12,
+													"id":"mdns_button_section",
+													"content": {
+														"buttons":[
+															{
+																"label":"Save",
+																"icon":"save",
+																"action":"/config",
+																"trigger":"save",
+																"method":"PUT",
+																"class":"mdl-button--raised"
+															}
+														]
+													}
+												}
+											]
+										}
+									},
+									{
+										"width":12,
+										"title":"SSDP",
+										"body":{
+											"sections":[
+												{
+													"title":"Service Status",
+													"width":2,
+													"id":"Ssdp_section",
+													"content": {
+														"switche": {
+															"id":"ssdp_flag",
+															"valueUnchecked":0,
+															"labelUnchecked":"Disabled",
+															"valueChecked":1,
+															"labelChecked":"Enabled",
+															"defaultState":"checked",
+															"action":"/status?value=%s"
+														}
+													}
+												},
+												{
+													"title":"SSDP",
+													"width":12,
+													"id":"Ssdp_section",
+													"content": {
+														"inputs":[
+															{
+																"label":"SSDP port",
+																"placeholder":"port",
+																"icon":"nat",
+																"pattern": "^((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4}))$",
+																"error":"Must be an integer",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.port",
+																"class":""
+															},
+															{
+																"label":"Advertise Interval",
+																"placeholder":"advertiseInterval",
+																"icon":"update",
+																"pattern": "([\\d]+$)",
+																"error":"Must be an integer",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.advertiseInterval",
+																"class":""
+															},
+															{
+																"label":"Presentation URL",
+																"placeholder":"Presentation URL",
+																"icon":"link",
+																"pattern": "https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()!@:%_\+.~#?&\/\/=]*)",
+																"error":"Must be a valid URL",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.presentationURL",
+																"class":""
+															},
+															{
+																"label":"friendlyName",
+																"placeholder":"friendlyName",
+																"icon":"android",
+																"pattern": "([\w]+$)",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.friendlyName",
+																"class":""
+															},
+															{
+																"label":"modelName",
+																"placeholder":"modelName",
+																"icon":"badge",
+																"pattern": "([\w]+$)",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.modelName",
+																"class":""
+															},
+															{
+																"label":"modelNumber",
+																"placeholder":"modelNumber",
+																"icon":"pin",
+																"pattern": "([\d\.]+$)",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.modelNumber",
+																"class":""
+															},
+															{
+																"label":"deviceType",
+																"placeholder":"deviceType",
+																"icon":"keyboard_alt",
+																"pattern": "([\w]+$)",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.deviceType",
+																"class":""
+															},
+															{
+																"label":"modelURL",
+																"placeholder":"modelURL",
+																"icon":"link",
+																"pattern": "https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()!@:%_\+.~#?&\/\/=]*)",
+																"error":"Must be a valid URL",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.modelURL",
+																"class":""
+															},
+															{
+																"label":"manufacturer",
+																"placeholder":"manufacturer",
+																"icon":"business",
+																"pattern": "([^\w]+$)",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.manufacturer",
+																"class":""
+															},
+															{
+																"label":"manufacturerURL",
+																"placeholder":"manufacturerURL",
+																"icon":"link",
+																"pattern": "https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()!@:%_\+.~#?&\/\/=]*)",
+																"error":"Must be a valid URL",
+																"width":12,
+																"expandable":false,
+																"id":"ssdp.manufacturerURL",
+																"class":""
+															}
+														]
+													}
+												},
+												{
+													"title":"",
+													"width":12,
+													"id":"ssdp_button_section",
+													"content": {
+														"buttons":[
+															{
+																"label":"Save",
+																"icon":"save",
+																"action":"/config",
+																"trigger":"save",
+																"method":"PUT",
+																"class":"mdl-button--raised"
+															}
+														]
+													}
+												}
+											]
+										}
+									},
+									{
+										"width":12,
+										"title":"Object WebSockets settings",
+										"body":{
+											"sections":[
+												{
+													"title":"Service Status",
+													"width":2,
+													"id":"Sockets_section",
+													"content": {
+														"switche": {
+															"id":"sockets_flag",
+															"valueUnchecked":0,
+															"labelUnchecked":"Disabled",
+															"valueChecked":1,
+															"labelChecked":"Enabled",
+															"defaultState":"checked",
+															"action":"/status?value=%s"
+														}
+													}
+												},
+												{
+													"title":"Web Sockets Server",
+													"width":12,
+													"id":"outlet",
+													"content": {
+														"inputs":[
+															{
+																"label":"Sockets server Host",
+																"icon":"link",
+																"placeholder":"",
+																"pattern": "([^\w]+$)",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.wsHost",
+																"class":""
+															},
+															{
+																"label":"Sockets server Port",
+																"icon":"nat",
+																"placeholder":"",
+																"pattern": "^((6553[0-5])|(655[0-2][0-9])|(65[0-4][0-9]{2})|(6[0-4][0-9]{3})|([1-5][0-9]{4})|([0-5]{0,5})|([0-9]{1,4}))$",
+																"error":"Must be an integer",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.wsPort",
+																"class":""
+															},
+															{
+																"label":"Sockets server Path",
+																"icon":"power",
+																"placeholder":"",
+																"pattern": "^(.*?)",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.t6wsKey",
+																"class":""
+															},
+															{
+																"label":"Auth Key",
+																"icon":"vpn_key",
+																"placeholder":"",
+																"pattern": "^/(.*?)",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.wsPath",
+																"class":""
+															},
+															{
+																"label":"Auth Secret",
+																"icon":"password",
+																"placeholder":"",
+																"pattern": "^(.*?)",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.t6wsSecret",
+																"class":""
+															}
+														],
+													}
+												},
+												{
+													"title":"Web Sockets parameters",
+													"width":12,
+													"id":"outlet",
+													"content": {
+														"inputs":[
+															{
+																"label":"Message Interval",
+																"icon":"av_timer",
+																"placeholder":"Message Interval",
+																"pattern": "([\\d]+$)",
+																"error":"Must be an integer",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.messageInterval",
+																"class":""
+															},
+															{
+																"label":"Message Interval Once Claimed",
+																"icon":"av_timer",
+																"placeholder":"messageIntervalOnceClaimed",
+																"pattern": "([\\d]+$)",
+																"error":"Must be an integer",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.messageIntervalOnceClaimed",
+																"class":""
+															},
+															{
+																"label":"Reconnect Interval",
+																"icon":"restore",
+																"placeholder":"reconnectInterval",
+																"pattern": "([\\d]+$)",
+																"error":"Must be an integer",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.reconnectInterval",
+																"class":""
+															},
+															{
+																"label":"Timeout Interval",
+																"icon":"hourglass_bottom",
+																"placeholder":"timeoutInterval",
+																"pattern": "([\\d]+$)",
+																"error":"Must be an integer",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.timeoutInterval",
+																"class":""
+															},
+															{
+																"label":"disconnect After Failure",
+																"icon":"running_with_errors",
+																"placeholder":"disconnectAfterFailure",
+																"pattern": "([\\d]+$)",
+																"error":"Must be an integer",
+																"width":12,
+																"expandable":false,
+																"id":"websockets.disconnectAfterFailure",
+																"class":""
+															},
+														],
+													}
+												},
+												{
+													"title":"",
+													"width":12,
+													"id":"websockets_button_section",
+													"content": {
+														"buttons":[
+															{
+																"label":"Save",
+																"icon":"save",
+																"action":"/config",
+																"trigger":"save",
+																"method":"PUT",
+																"class":"mdl-button--raised"
+															}
+														]
+													}
+												}
+											]
+										}
+									},
+									{
+										"width":6,
+										"title":"Web Sockets Channel Subscription",
+										"body":{
+											"sections":[
+												{
+													"title":"Channel Subscription",
+													"width":12,
+													"id":"Channel_Subscription_section",
+													"content": {
+														"inputs":[
+															{
+																"label":"Channel Name",
+																"placeholder":"Channel Name",
+																"icon":"wifi",
+																"pattern": "([^ ]+)",
+																"error":"Can't have a space",
+																"width":12,
+																"expandable":false,
+																"id":"subscribe",
+																"class":""
+															}
+														]
+													}
+												},
+												{
+													"title":"",
+													"width":12,
+													"id":"channels_subscription_button_section",
+													"content": {
+														"buttons":[
+															{
+																"label":"Subscribe",
+																"value":"",
+																"icon":"bookmark_add",
+																"action":"/subscribe?channel=%s",
+																"trigger":"subscribe",
+																"class":"mdl-button--raised"
+															}
+														]
+													}
+												}
+											]
+										}
+									},
+									{
+										"width":6,
+										"title":"Web Sockets Channel Unsubscription",
+										"body":{
+											"sections":[
+												{
+													"title":"Channel Unsubscription",
+													"width":12,
+													"id":"Channel_Unsubscription_section",
+													"content": {
+														"inputs":[
+															{
+																"label":"Channel Name",
+																"placeholder":"channel_name",
+																"icon":"wifi",
+																"pattern": "([^ ]+)",
+																"error":"Can't have a space",
+																"width":12,
+																"expandable":false,
+																"id":"unsubscribe",
+																"class":""
+															}
+														]
+													}
+												},
+												{
+													"title":"",
+													"width":12,
+													"id":"channels_unsubscription_button_section",
+													"content": {
+														"buttons":[
+															{
+																"label":"Unsubscribe",
+																"value":"",
+																"icon":"bookmark_remove",
+																"action":"/unsubscribe?channel=%s",
+																"trigger":"unsubscribe",
+																"class":"mdl-button--raised"
+															}
+														]
+													}
 												}
 											]
 										}
@@ -1014,12 +1631,12 @@ let ui = {
 			"body": {
 				"rows":[
 					{
-						"row_id": "tab6_row1",
+						"row_id": "tab8_row1",
 						"width":12,
 						"columns":[
 							{
 								"width":12,
-								"col_id":"tab5_row1_col1",
+								"col_id":"tab8_row1_col1",
 								"cards":[
 									{
 										"width":12,
@@ -1041,7 +1658,7 @@ let ui = {
 					}
 				]
 			}
-		}
+		},
 	],
 	"footer": {
 		"sections": [
