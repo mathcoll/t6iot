@@ -12,6 +12,7 @@
  * - Firewall : sudo tail -f /var/log/kern.log
  */
 #include <Arduino.h>
+#include "AsyncJson.h"
 #include <ArduinoJson.h>
 #include <ArduinoJWT.h>
 #include <WebSocketsClient.h>
@@ -29,6 +30,7 @@
 
 bool WsConnected = false;
 bool claimed = false;
+bool reboot = false;
 unsigned long lastUpdate = millis();
 
 #define ASYNC_TCP_SSL_ENABLED true
@@ -50,7 +52,6 @@ ArduinoJWT jwt = ArduinoJWT("");
 AsyncWebServer server(80);
 WebSocketsClient webSocket;
 AudioOutputI2SNoDAC *audioOutput = NULL;
-
 
 void claimObject() {
   serial.println("[WSc] claimObject to WS server. object_id: " + config.t6Object_id);
@@ -492,6 +493,18 @@ void setup() {
         }
       }
     });
+    server.on("/heap", HTTP_GET, [](AsyncWebServerRequest *request) {
+      /*
+      int headers = request->headers();
+      int i;
+      for(i=0;i<headers;i++){
+        AsyncWebHeader* h = request->getHeader(i);
+        Serial.printf("_HEADER[%s]: %s\n", h->name().c_str(), h->value().c_str());
+      }
+      */
+      String heap = String(ESP.getFreeHeap());
+      request->send(200, "application/json", "{\"status\": \"OK\", \"heap\": \""+heap+"\", \"snack\": \"Heap: "+heap+"\"}");
+    });
     server.on("/unsubscribe", HTTP_GET, [](AsyncWebServerRequest *request) {
       String _channel = ( request->getParam( (config.PARAM_INPUT_CHANNEL) )->value() );
       if (_channel) {
@@ -499,6 +512,85 @@ void setup() {
           request->send(201, "application/json", "{\"status\": \"OK\", \"unsubscribe\": \""+_channel+"\", \"subscriptions\": \"undefined\", \"snack\": \"Unsubscribed from channel '"+_channel+"'\"}");
         } else {
           request->send(412, "application/json", "{\"status\": \"NOT\", \"unsubscribe\": \""+_channel+"\", \"subscriptions\": \"undefined\", \"snack\": \"Failed to unsubscribe to channel '"+_channel+"'\"}");
+        }
+      }
+    });
+    server.on("/config", HTTP_PUT, [](AsyncWebServerRequest *request) {
+      Serial.println("handling HTTP_PUT");
+    },
+    [](AsyncWebServerRequest *request, const String& filename, size_t index, uint8_t *data, size_t len, bool final) {
+      Serial.println("handling fileUploadCB");
+    },
+    [](AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total) {
+      Serial.println("handling bodyRequestCB"); // (char*)data
+      StaticJsonDocument<2048> body;
+      DeserializationError error = deserializeJson(body, data);
+      if (error) {
+        Serial.println("[t6IoT] Failed to load body");
+        Serial.println(error.f_str());
+        request->send(412, "application/json", "{\"status\": \"NOT\", \"snack\": \"Configuration has not been saved\"}");
+      } else {
+        if( body["wifi"]["ssid"].as<const char*>() ) {
+          config.ssid = body["wifi"]["ssid"].as<const char*>();
+        }
+        if( body["wifi"]["password"].as<const char*>() ) {
+          config.password = body["wifi"]["password"].as<const char*>();
+        }
+        if( body["t6"]["servicesStatus"]["http"].as<bool>() ) {
+          config.ServiceStatusHttp = body["t6"]["servicesStatus"]["http"].as<bool>();
+        }
+        if( body["t6"]["servicesStatus"]["sockets"].as<bool>() ) {
+          config.ServiceStatusSockets = body["t6"]["servicesStatus"]["sockets"].as<bool>();
+        }
+        if( body["t6"]["servicesStatus"]["mdns"].as<bool>() ) {
+          config.ServiceStatusMdns = body["t6"]["servicesStatus"]["mdns"].as<bool>();
+        }
+        if( body["t6"]["servicesStatus"]["ssdp"].as<bool>() ) {
+          config.ServiceStatusSsdp = body["t6"]["servicesStatus"]["ssdp"].as<bool>();
+        }
+        if( body["t6"]["servicesStatus"]["audio"].as<bool>() ) {
+          config.ServiceStatusAudio = body["t6"]["servicesStatus"]["audio"].as<bool>();
+        }
+        
+        if( body["t6"]["ssdp"]["localPort"].as<unsigned int>() ) {
+          config.localPortSSDP = body["t6"]["ssdp"]["localPort"].as<unsigned int>();
+        }
+        if( body["t6"]["ssdp"]["advertiseInterval"].as<unsigned int>() ) {
+          config.advertiseInterval = body["t6"]["ssdp"]["advertiseInterval"].as<unsigned int>();
+        }
+        if( body["t6"]["ssdp"]["presentationURL"].as<String>() ) {
+          config.presentationURL = body["t6"]["ssdp"]["presentationURL"].as<String>();
+        }
+        if( body["t6"]["ssdp"]["friendlyName"].as<String>() ) {
+          config.friendlyName = body["t6"]["ssdp"]["friendlyName"].as<String>();
+        }
+        if( body["t6"]["ssdp"]["modelName"].as<String>() ) {
+          config.modelName = body["t6"]["ssdp"]["modelName"].as<String>();
+        }
+        if( body["t6"]["ssdp"]["modelNumber"].as<String>() ) {
+          config.modelNumber = body["t6"]["ssdp"]["modelNumber"].as<String>();
+        }
+        if( body["t6"]["mdns"]["deviceType"].as<String>() ) {
+          config.deviceType = body["t6"]["mdns"]["deviceType"].as<String>();
+        }
+        if( body["t6"]["ssdp"]["modelURL"].as<String>() ) {
+          config.modelURL = body["t6"]["ssdp"]["modelURL"].as<String>();
+        }
+        if( body["t6"]["ssdp"]["manufacturer"].as<String>() ) {
+          config.manufacturer = body["t6"]["ssdp"]["manufacturer"].as<String>();
+        }
+        if( body["t6"]["ssdp"]["manufacturerURL"].as<String>() ) {
+          config.manufacturerURL = body["t6"]["ssdp"]["manufacturerURL"].as<String>();
+        }
+
+        if( body["t6"]["mdns"]["localPort"].as<bool>() ) {
+          config.localPortMDNS = body["t6"]["mdns"]["localPort"].as<bool>();
+        }
+
+        if ( saveConfiguration(configFilename, config) ) {
+          request->send(200, "application/json", "{\"status\": \"OK\", \"snack\": \"Configuration has been saved, please restart ESP.\"}");
+        } else {
+          request->send(412, "application/json", "{\"status\": \"NOT\", \"snack\": \"Configuration has not been saved!\"}");
         }
       }
     });
@@ -556,6 +648,7 @@ void setup() {
         String(config.wsHost).c_str(),
         String(config.wsPath).c_str(),
         String(config.t6Object_id+"").c_str(),
+        String(config.friendlyName).c_str(),
         String(config.t6wsKey+":"+config.t6wsSecret).c_str()
       );
       request->send(200, "text/javascript", (String)output);
@@ -585,8 +678,14 @@ void setup() {
         }
       });
     }
+    server.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request) {
+      request->send(FILEFS, "/reboot.html", "text/html");
+      reboot = true;
+    });
     server.onNotFound([] (AsyncWebServerRequest *request) {
-      request->send(FILEFS, "/404.html", "text/html");
+      AsyncWebServerResponse* response = request->beginResponse(FILEFS, "/404.html", "text/html");
+      response->setCode(404);
+      request->send(response);
     });
     server.begin();
     serial.println("[t6IoT] HTTP listening to:");
@@ -626,6 +725,11 @@ void setup() {
 }
 
 void loop() {
+  if( reboot == true ) {
+    delay(2000);
+    reboot = false;
+    ESP.restart();
+  }
   if( config.ServiceStatusSockets == true ) {
     webSocket.loop();
     if ( WsConnected && lastUpdate + config.messageInterval<millis() ) {
