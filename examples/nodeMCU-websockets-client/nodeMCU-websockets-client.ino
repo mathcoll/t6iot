@@ -2,17 +2,21 @@
  * https://www.internetcollaboratif.info/features/sockets-connection/
  * https://github.com/mathcoll/t6iot/blob/master/examples/nodeMCU-websockets-client/nodeMCU-websockets-client.ino
  * 
- * Set CPU Frequency to at least 160MHz
- * https://github.com/lorol/arduino-esp32littlefs-plugin
+ * Require
+ * Board ESP32>=2.0.6
+ * CPU Frequency to at least 160MHz
  * ESP32-WROOM-DA
+ * LITTLEFS ESP32 Sketch Data Upload https://github.com/lorol/arduino-esp32fs-plugin (or https://github.com/lorol/arduino-esp32littlefs-plugin)
  * 
  * Linux tools:
  * - SSDP     : gssdp-discover -i eth0 -r 5
  * - MDSN     : mdns-scan
  * - Firewall : sudo tail -f /var/log/kern.log
+ * 
  */
+//#define ASYNC_TCP_SSL_ENABLED true
+//#define _DISABLE_TLS_
 #include <Arduino.h>
-#include "AsyncJson.h"
 #include <ArduinoJson.h>
 #include <ArduinoJWT.h>
 #include <WebSocketsClient.h>
@@ -20,6 +24,8 @@
 #include <base64.h>
 #include <pins_arduino.h>
 #include <ESPAsyncWebServer.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 #include <ESP8266SAM.h>
 #include <LittleFS.h>
 #define FILEFS LittleFS
@@ -33,7 +39,7 @@ bool claimed = false;
 bool reboot = false;
 unsigned long lastUpdate = millis();
 
-#define ASYNC_TCP_SSL_ENABLED true
+const char* t6FlowId = "fake-flow-id";
 
 #ifdef ESP8266
   #define ESP_GETCHIPID ESP.getChipId()
@@ -50,6 +56,7 @@ unsigned long lastUpdate = millis();
 
 ArduinoJWT jwt = ArduinoJWT("");
 AsyncWebServer server(80);
+WiFiClientSecure client;
 WebSocketsClient webSocket;
 AudioOutputI2SNoDAC *audioOutput = NULL;
 
@@ -125,6 +132,8 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
               const char* val = "";
               const char* message = "";
               const char* socket_id = "";
+              const char* measurement;
+              int hallVal;
               uint8_t pin;
 
               if (jsonPayload["arduinoCommand"]) {
@@ -154,22 +163,16 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                   config.messageInterval = config.messageIntervalOnceClaimed;
                   claimed = true;
                 
-                  if (subscribe("demo") ) {
-                    
+                  if ( subscribe("demo") ) {
+                    serial.println("Subscribed to 'demo' socket channel on t6.");
                   }
-                  //subscribe("channel_1");
-                  //subscribe("channel_2");
-                  //subscribe("channel_3");
-                  //unsubscribe("channel_1");
-                  //unsubscribe("channel_2");
-                  //unsubscribe("channel_3");
 
               } else if (strcmp(arduinoCommand, "info") == 0) {
                 serial.println("[WSc] info ===================");
+                serial.printf("- socket_id: %s\n", socket_id);
                 serial.printf("- pin: %d\n", pin);
                 serial.printf("- value: %s\n", val);
                 serial.printf("- message: %s\n", message);
-                serial.printf("- socket_id: %s\n", socket_id);
                 serial.println("[WSc] /info ==================");
 
               } else if (strcmp(arduinoCommand, "claimRequest") == 0) {
@@ -214,6 +217,55 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 sam->Say(audioOutput, val);
                 delete sam;   
               } else if (strcmp(arduinoCommand, "measureRequest") == 0) {
+                if (jsonPayload["measurement"]) {
+                  measurement = jsonPayload["measurement"].as<const char*>();
+                  if (strcmp(measurement, "hallRead") == 0) {
+                    hallVal = hallRead();
+                    Serial.print("hallRead:");
+                    Serial.println(String(hallVal));
+                    
+                    DynamicJsonDocument payload(1024);
+                    payload[String("value")] = hallVal;
+                    payload[String("flow_id")] = t6FlowId;
+                    payload[String("mqtt_topic")] = "";
+                    payload[String("unit")] = "";
+                    payload[String("save")] = "false";
+                    payload[String("publish")] = "true";
+                    createDatapoint(t6FlowId, payload, false, config.t6wsKey, config.t6wsSecret);
+
+                  } else if (strcmp(measurement, "measurementConfig1") == 0) {
+                    Serial.println("measurementConfig1:");
+                    
+                    DynamicJsonDocument payload(1024);
+                    payload[String("value")] = 123456789; // TODO TODO TODO TODO TODO TODO TODO TODO TODO 
+                    payload[String("flow_id")] = t6FlowId;
+                    payload[String("mqtt_topic")] = "";
+                    payload[String("unit")] = "";
+                    payload[String("save")] = "false";
+                    payload[String("publish")] = "true";
+                    createDatapoint(t6FlowId, payload, false, config.t6wsKey, config.t6wsSecret);
+                    
+                    int ttl = 1 * 60*1000; // 1 minutes;
+                    Serial.println("Rescheduling next measurement in " + String(ttl/1000) + "s");
+                    DynamicJsonDocument json(256);
+                    String databuf;
+                    json["command"] = "remindMeToMeasure";
+                    json["measurement"] = "measurementConfig1";
+                    json["object_id"] = config.t6Object_id;
+                    json["delay"] = ttl;
+                    serializeJson(json, databuf);
+                    webSocket.sendTXT(databuf);
+                    
+                  } else if (strcmp(measurement, "measurementConfig2") == 0) {
+                    Serial.print("measurementConfig2:");
+                    getSSL();
+                    
+                  } else if (strcmp(measurement, "measurementConfig3") == 0) {
+                    Serial.print("measurementConfig3:");
+                    
+                  }
+                }
+
                 /*
                 pin: 1, 2, ...
                 String currentVal;
@@ -232,6 +284,9 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 }
                 serial.printf("[WSc] currentVal="+String(currentVal));
                 webSocket.sendTXT( currentVal );
+
+                // Send to t6 using api_key
+                // 
                 */
               } 
             }
@@ -312,6 +367,142 @@ String urldecode(String str) {
   }
   return encodedString;
 }
+String getSignedPayload(String& payload, String& objectId, String& secret) { // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
+  ArduinoJWT jwt = ArduinoJWT(secret);
+  String signedJson;
+  String payloadString;
+  String signedPayloadAsString;
+  /*
+  payload.printTo(payloadString);
+  signedJson = jwt.encodeJWT( payloadString );
+
+  const int BUFFER_SIZE = JSON_OBJECT_SIZE(25);
+  StaticJsonBuffer<BUFFER_SIZE> jsonBufferSigned;
+  JsonObject& signedPayload = jsonBufferSigned.createObject();
+  signedPayload["signedPayload"] = signedJson;
+  signedPayload["object_id"] = objectId;
+  signedPayload.prettyPrintTo(Serial);
+
+  signedPayload.printTo(signedPayloadAsString);
+  */
+  return signedPayloadAsString;
+}
+void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useSignature, String t6wsKey, String t6wsSecret) {
+  Serial.println("Creating datapoint to t6:");
+  WiFiClientSecure *client = new WiFiClientSecure;
+  //BearSSL::WiFiClientSecure *client;
+  //client->setFingerprint(fingerprint);
+  
+  if(client) {
+    client->setTimeout(10); // 10 seconds
+    client->setCACert(rootCACertificate);
+    //client->setCertificate(serverCert); // for client verification
+    //client->setPrivateKey(serverKey); // for client verification
+    //client->setInsecure();
+
+    if (!client->connect(String(config.apiHost).c_str(), config.apiPort)) {
+      Serial.println("Connection failed!");
+    } else {
+      {
+        HTTPClient https;
+        String payloadStr;
+
+        serializeJson(payload, payloadStr);
+        if(useSignature) {
+          payloadStr = getSignedPayload(payloadStr, config.t6Object_id, config.t6ObjectSecretKey);
+        }
+
+        int checkBegin = https.begin(*client, config.apiScheme+config.apiHost, config.apiPort, config._urlDataPoint+String(t6FlowId));
+        https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+        https.setRedirectLimit(10);
+        https.setUserAgent("t6iot-library "+String(config.friendlyName));
+        https.addHeader("Accept", "application/json");
+        https.addHeader("Content-Type", "application/json");
+        https.addHeader("x-api-key", config.t6wsKey);
+        https.addHeader("x-api-secret", config.t6wsSecret);
+        https.addHeader("Content-Length", String((payloadStr).length()));
+        int httpsCode = https.POST(payloadStr);
+
+        Serial.print("HTTPS Response code: ");
+        Serial.println(httpsCode);
+        if (httpsCode == 201 && payloadStr != "") {
+          String payloadRes = https.getString();
+          Serial.println("Result HTTP Status=201");
+          Serial.println(payloadRes);
+          DynamicJsonDocument doc(1496);
+          DeserializationError error = deserializeJson(doc, payloadRes);
+          if (error) {
+            Serial.print(F("deserializeJson() failed: "));
+            Serial.println(error.c_str());
+            return;
+          }
+        } else {
+          String payloadRes = https.getString();
+          Serial.print("Error:");
+          Serial.print("httpsCode: ");
+          Serial.println(httpsCode);
+          Serial.print("request:");
+          Serial.println(payloadStr);
+          Serial.print("result:");
+          Serial.println(payloadRes);
+        }
+        delay(10000);
+        https.end();
+      }
+    }
+    //delete client;
+  } else {
+    Serial.println("Unable to create client");
+  }
+}
+
+void getSSL() {
+  WiFiClientSecure *client = new WiFiClientSecure;
+  client->setInsecure(); // 
+
+  HTTPClient https;
+  if (!https.begin(*client, config.apiScheme+config.apiHost )) {
+    Serial.println("HTTPS setup failed");
+    return;
+  };
+
+  https.setTimeout(5000);
+
+  int httpCode = https.GET();
+  if (httpCode != 200) {
+    Serial.print("Connect failed: ");
+    Serial.println(https.errorToString(httpCode));
+    return;
+  }
+
+  const mbedtls_x509_crt* peer = client->getPeerCertificate();
+
+  // Show general output / certificate information
+  //
+  char buf[1024];
+  int l = mbedtls_x509_crt_info (buf, sizeof(buf), "", peer);
+  if (l <= 0) {
+    Serial.println("Peer conversion to printable buffer failed");
+    return;
+  };
+  Serial.println();
+  Serial.println(buf);
+
+  uint8_t fingerprint_remote[32];
+  if (!client->getFingerprintSHA256(fingerprint_remote)) {
+    Serial.println("Failed to get the fingerprint");
+    return;
+  }
+  // Fingerprint late 2021
+  Serial.println("Expecting Fingerprint (SHA256): "+String(fingerprint));
+  Serial.print(  " Received Fingerprint (SHA256): ");
+
+  for (int i = 0; i < 32; i++) {
+    Serial.print(fingerprint_remote[i], HEX);
+    Serial.print(" ");
+  };
+  Serial.println("");
+};
 
 void setup() {
   Serial.begin(115200);
@@ -569,6 +760,15 @@ void setup() {
         if( body["t6"]["t6ObjectSecretKey"].as<const char*>() ) {
           config.t6ObjectSecretKey = body["t6"]["t6ObjectSecretKey"].as<String>();
         }
+        if( body["t6"]["host"].as<const char*>() ) {
+          config.apiHost = body["t6"]["host"].as<String>();
+        }
+        if( body["t6"]["port"].as<const char*>() ) {
+          config.apiPort = body["t6"]["port"].as<uint16_t>();
+        }
+        if( body["t6"]["scheme"].as<const char*>() ) {
+          config.apiScheme = body["t6"]["scheme"].as<String>();
+        }
         
         if( body["t6"]["websockets"]["host"].as<const char*>() ) {
           config.wsHost = body["t6"]["websockets"]["host"].as<String>();
@@ -764,7 +964,7 @@ void setup() {
   } else {
     serial.println("[t6IoT] SSDP not activated");
   }
-
+  
   serial.println("[t6IoT] READY");
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, HIGH);
