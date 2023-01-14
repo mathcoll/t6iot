@@ -1,9 +1,12 @@
 {
 	"wifi": {
-		"ssid": "",
-		"password": ""
+		"ssid": "<YOUR-WIFI-SSID>",
+		"password": "<YOUR-WIFI-PASSWORD>"
 	},
 	"t6": {
+		"scheme": "https://",
+		"host": "api.internetcollaboratif.info",
+		"port": 443,
 		"servicesStatus": {
 			"sockets": true,
 			"mdns": true,
@@ -11,14 +14,14 @@
 			"audio": true,
 			"http": true
 		},
-		"t6Object_id": "",
-		"t6ObjectSecretKey": "",
+		"t6Object_id": "<YOUR-T6-OBJECTID>",
+		"t6ObjectSecretKey": "<YOUR-T6-OBJECT-SECRECT>",
 		"websockets": {
 			"host": "ws.internetcollaboratif.info",
 			"port": 80,
 			"path": "/",
-			"t6wsKey": "",
-			"t6wsSecret": "",
+			"t6wsKey": "<YOUR-T6-KEY>",
+			"t6wsSecret": "<YOUR-T6-SECRECT>",
 			"expiration": 1695124232506,
 			"messageInterval": 15000,
 			"messageIntervalOnceClaimed": 600000,
