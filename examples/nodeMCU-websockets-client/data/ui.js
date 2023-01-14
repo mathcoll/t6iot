@@ -1055,7 +1055,7 @@ let ui = {
 									},
 									{
 										"width":12,
-										"title":"Object",
+										"title":"t6 Object",
 										"icon":"devices",
 										"body":{
 											"sections":[
@@ -1085,6 +1085,39 @@ let ui = {
 																"width":12,
 																"expandable":false,
 																"id":"config.t6.t6ObjectSecretKey",
+																"class":""
+															},
+															{
+																"label":"t6 scheme",
+																"icon":"",
+																"placeholder":"scheme",
+																"pattern": "(^https?://$)",
+																"error":"Must be http:// or https://",
+																"width":12,
+																"expandable":false,
+																"id":"config.t6.scheme",
+																"class":""
+															},
+															{
+																"label":"t6 host",
+																"icon":"",
+																"placeholder":"host",
+																"pattern": "",
+																"error":"Must be ",
+																"width":12,
+																"expandable":false,
+																"id":"config.t6.host",
+																"class":""
+															},
+															{
+																"label":"t6 port",
+																"icon":"",
+																"placeholder":"port",
+																"pattern": "",
+																"error":"Must be http:// or https://",
+																"width":12,
+																"expandable":false,
+																"id":"config.t6.port",
 																"class":""
 															}
 														],
