@@ -1028,7 +1028,7 @@ let ui = {
 																"label":"Wifi password",
 																"icon":"lock",
 																"placeholder":"password",
-																"pattern": "([^\w]+$)",
+																"pattern": "(.*?)",
 																"width":12,
 																"expandable":false,
 																"id":"config.wifi.password",
