@@ -4,6 +4,9 @@
 		"password": "<YOUR-WIFI-PASSWORD>"
 	},
 	"t6": {
+		"scheme": "https://",
+		"host": "api.internetcollaboratif.info",
+		"port": 443,
 		"servicesStatus": {
 			"sockets": true,
 			"mdns": true,
@@ -42,7 +45,7 @@
 			"localPort": 80,
 			"advertiseInterval": 600,
 			"presentationURL": "/",
-			"friendlyName": "t6Object",
+			"friendlyName": "t6Object demo",
 			"modelName": "t6 IoT",
 			"modelNumber": "1.0.1",
 			"deviceType": "upnp:rootdevice",
