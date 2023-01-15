@@ -25,6 +25,7 @@
 #include <pins_arduino.h>
 #include <ESPAsyncWebServer.h>
 #include <HTTPClient.h>
+#include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include <ESP8266SAM.h>
 #include <LittleFS.h>
@@ -38,8 +39,6 @@ bool WsConnected = false;
 bool claimed = false;
 bool reboot = false;
 unsigned long lastUpdate = millis();
-
-const char* t6FlowId = "fake-flow-id";
 
 #ifdef ESP8266
   #define ESP_GETCHIPID ESP.getChipId()
@@ -56,7 +55,6 @@ const char* t6FlowId = "fake-flow-id";
 
 ArduinoJWT jwt = ArduinoJWT("");
 AsyncWebServer server(80);
-WiFiClientSecure client;
 WebSocketsClient webSocket;
 AudioOutputI2SNoDAC *audioOutput = NULL;
 
@@ -73,7 +71,7 @@ void claimObject() {
 }
 
 bool subscribe(String channel) {
-  serial.println("[WSc] subscribe object to WS server. " + channel);
+  serial.println("[WSc] subscribe object to WS server. Channel: " + channel);
   if(claimed) {
     DynamicJsonDocument json(256);
     String databuf;
@@ -89,7 +87,7 @@ bool subscribe(String channel) {
 }
 
 bool unsubscribe(String channel) {
-  serial.println("[WSc] unsubscribe object to WS server. " + channel);
+  serial.println("[WSc] unsubscribe object to WS server. Channel: " + channel);
   if(claimed) {
     DynamicJsonDocument json(256);
     String databuf;
@@ -164,16 +162,12 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                   claimed = true;
                 
                   if ( subscribe("demo") ) {
-                    serial.println("Subscribed to 'demo' socket channel on t6.");
+                    
                   }
 
               } else if (strcmp(arduinoCommand, "info") == 0) {
                 serial.println("[WSc] info ===================");
-                serial.printf("- socket_id: %s\n", socket_id);
-                serial.printf("- pin: %d\n", pin);
-                serial.printf("- value: %s\n", val);
-                serial.printf("- message: %s\n", message);
-                serial.println("[WSc] /info ==================");
+                serial.printf("- socket_id->message: %s -> %s", socket_id, message);
 
               } else if (strcmp(arduinoCommand, "claimRequest") == 0) {
                 serial.println("claimRequest");
@@ -221,6 +215,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                   measurement = jsonPayload["measurement"].as<const char*>();
                   if (strcmp(measurement, "hallRead") == 0) {
                     hallVal = hallRead();
+                    const char* t6FlowId = "fake-flow-id-hallVal";
                     Serial.print("hallRead:");
                     Serial.println(String(hallVal));
                     
@@ -237,6 +232,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                     Serial.println("measurementConfig1:");
                     
                     DynamicJsonDocument payload(1024);
+                    const char* t6FlowId = "fake-flow-id-measurementConfig1";
                     payload[String("value")] = 123456789; // TODO TODO TODO TODO TODO TODO TODO TODO TODO 
                     payload[String("flow_id")] = t6FlowId;
                     payload[String("mqtt_topic")] = "";
@@ -258,36 +254,14 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                     
                   } else if (strcmp(measurement, "measurementConfig2") == 0) {
                     Serial.print("measurementConfig2:");
+                    const char* t6FlowId = "fake-flow-id-measurementConfig2";
                     getSSL();
                     
                   } else if (strcmp(measurement, "measurementConfig3") == 0) {
                     Serial.print("measurementConfig3:");
-                    
+                    const char* t6FlowId = "fake-flow-id-measurementConfig3";
                   }
                 }
-
-                /*
-                pin: 1, 2, ...
-                String currentVal;
-                if(config.isDigital) {
-                  currentVal = digitalRead(pin);
-                } else if(config.isAnalog) {
-                  //set the resolution to 12 bits (0-4096)
-                  analogReadResolution(config.resolution);
-                  currentVal = analogRead(pin);
-                }
-                if(config.isConstrain) {
-                  currentVal = constrain(currentVal, config.minimumValue, config.maximumValue);
-                }
-                if(config.isAbsolute) {
-                  currentVal = abs(currentVal);
-                }
-                serial.printf("[WSc] currentVal="+String(currentVal));
-                webSocket.sendTXT( currentVal );
-
-                // Send to t6 using api_key
-                // 
-                */
               } 
             }
           }
@@ -367,6 +341,7 @@ String urldecode(String str) {
   }
   return encodedString;
 }
+
 String getSignedPayload(String& payload, String& objectId, String& secret) { // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO
   ArduinoJWT jwt = ArduinoJWT(secret);
   String signedJson;
@@ -387,72 +362,66 @@ String getSignedPayload(String& payload, String& objectId, String& secret) { // 
   */
   return signedPayloadAsString;
 }
+
 void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useSignature, String t6wsKey, String t6wsSecret) {
   Serial.println("Creating datapoint to t6:");
-  WiFiClientSecure *client = new WiFiClientSecure;
-  //BearSSL::WiFiClientSecure *client;
-  //client->setFingerprint(fingerprint);
-  
-  if(client) {
-    client->setTimeout(10); // 10 seconds
-    client->setCACert(rootCACertificate);
-    //client->setCertificate(serverCert); // for client verification
-    //client->setPrivateKey(serverKey); // for client verification
-    //client->setInsecure();
+      
+  String payloadStr;
+  serializeJson(payload, payloadStr);
+  if(useSignature) {
+    payloadStr = getSignedPayload(payloadStr, config.t6Object_id, config.t6ObjectSecretKey);
+  }
 
-    if (!client->connect(String(config.apiHost).c_str(), config.apiPort)) {
-      Serial.println("Connection failed!");
-    } else {
-      {
-        HTTPClient https;
-        String payloadStr;
-
-        serializeJson(payload, payloadStr);
-        if(useSignature) {
-          payloadStr = getSignedPayload(payloadStr, config.t6Object_id, config.t6ObjectSecretKey);
-        }
-
-        int checkBegin = https.begin(*client, config.apiScheme+config.apiHost, config.apiPort, config._urlDataPoint+String(t6FlowId));
-        https.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
-        https.setRedirectLimit(10);
-        https.setUserAgent("t6iot-library "+String(config.friendlyName));
-        https.addHeader("Accept", "application/json");
-        https.addHeader("Content-Type", "application/json");
-        https.addHeader("x-api-key", config.t6wsKey);
-        https.addHeader("x-api-secret", config.t6wsSecret);
-        https.addHeader("Content-Length", String((payloadStr).length()));
-        int httpsCode = https.POST(payloadStr);
-
-        Serial.print("HTTPS Response code: ");
-        Serial.println(httpsCode);
-        if (httpsCode == 201 && payloadStr != "") {
-          String payloadRes = https.getString();
-          Serial.println("Result HTTP Status=201");
-          Serial.println(payloadRes);
-          DynamicJsonDocument doc(1496);
-          DeserializationError error = deserializeJson(doc, payloadRes);
-          if (error) {
-            Serial.print(F("deserializeJson() failed: "));
-            Serial.println(error.c_str());
-            return;
-          }
-        } else {
-          String payloadRes = https.getString();
-          Serial.print("Error:");
-          Serial.print("httpsCode: ");
-          Serial.println(httpsCode);
-          Serial.print("request:");
-          Serial.println(payloadStr);
-          Serial.print("result:");
-          Serial.println(payloadRes);
-        }
-        delay(10000);
-        https.end();
+  if (config.apiScheme == "https://") {
+    Serial.println("Using SSL certificate");
+    WiFiClientSecure client;
+    client.setCACert(rootCACertificate);
+    int conn = client.connect(String(config.apiHost).c_str(), config.apiPort);
+    if (conn == 1) {
+      client.println("POST "+String( config._urlDataPoint+String(flowId) )+" HTTP/1.1");
+      //Headers
+      client.print("Host: "); client.println(String(config.apiHost).c_str());
+      client.print("User-Agent: "); client.println("t6iot-library "+String(config.friendlyName));
+      client.print("Accept: "); client.println("application/json");
+      client.print("Content-Type: "); client.println("application/json");
+      client.print("Cache-Control: "); client.println("no-cache");
+      client.print("Accept-Encoding: "); client.println("gzip, deflate, br");
+      client.print("x-api-key: "); client.println(config.t6wsKey);
+      client.print("x-api-secret: "); client.println(config.t6wsSecret);
+      client.print("Content-Length: "); client.println(String((payloadStr).length()));
+      client.println("Connection: Close");
+      client.println();
+      client.println(payloadStr); //Body
+      client.println();
+      
+      //Wait for server response
+      while (client.available() == 0);
+      //Print Server Response
+      while (client.available()) {
+         char c = client.read();
+         Serial.write(c);
       }
+    } else {
+      client.stop();
+      Serial.println("Connection Failed");
     }
-    //delete client;
   } else {
-    Serial.println("Unable to create client");
+    Serial.println("Not using SSL certificate");
+    WiFiClient client;
+    HTTPClient http;
+    http.begin(client, String(config.apiScheme) + String(config.apiHost).c_str() + ":" + String(config.apiPort).c_str() + String( config._urlDataPoint+String(flowId) ));
+    http.addHeader("User-Agent", "t6iot-library "+String(config.friendlyName));
+    http.addHeader("Accept", "application/json");
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("Cache-Control", "no-cache");
+    http.addHeader("Accept-Encoding", "gzip, deflate, br");
+    http.addHeader("x-api-key", config.t6wsKey);
+    http.addHeader("x-api-secret", config.t6wsSecret);
+    http.addHeader("Content-Length", String((payloadStr).length()));
+    http.addHeader("Connection", "Close");
+    int httpResponseCode = http.POST(payloadStr); //Body
+    Serial.println(httpResponseCode);
+    http.end();
   }
 }
 
@@ -493,7 +462,6 @@ void getSSL() {
     Serial.println("Failed to get the fingerprint");
     return;
   }
-  // Fingerprint late 2021
   Serial.println("Expecting Fingerprint (SHA256): "+String(fingerprint));
   Serial.print(  " Received Fingerprint (SHA256): ");
 
