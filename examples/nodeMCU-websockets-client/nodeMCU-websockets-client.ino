@@ -110,7 +110,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
           }
           break;
         case WStype_CONNECTED: {
-            serial.printf("[WSc] Connected to url: %s\n", payload);
+            serial.printf("[WSc] Connected to url: ws://%s:%d%s\n", config.wsHost, config.wsPort, config.wsPath);
             WsConnected = true;
             // send message to server when Connected
             //serial.println("[WSc] SENT: Connected");
@@ -151,10 +151,10 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
               }
 
               //serial.printf("payload: %s\n", jsonPayload);
-              serial.printf("- arduinoCommand: %s\n", arduinoCommand);
-              serial.printf("- pin: %d\n", pin);
-              serial.printf("- value: %s\n", val);
-              serial.println();
+              serial.printf("[WSc] - arduinoCommand: %s\n", arduinoCommand);
+              //serial.printf("[WSc] - pin: %d\n", pin);
+              //serial.printf("[WSc] - value: %s\n", val);
+              //serial.println();
 
               if (strcmp(arduinoCommand, "claimed") == 0) {
                   serial.printf("[WSc] claimObject is accepted on WS server. socket_id: %s\n", socket_id);
@@ -166,20 +166,19 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                   }
 
               } else if (strcmp(arduinoCommand, "info") == 0) {
-                serial.println("[WSc] info ===================");
-                serial.printf("- socket_id->message: %s -> %s", socket_id, message);
+                serial.printf("[WSc] - socket_id->message: %s -> %s\n", socket_id, message);
 
               } else if (strcmp(arduinoCommand, "claimRequest") == 0) {
-                serial.println("claimRequest");
+                serial.println("[WSc] claimRequest");
                 claimObject();
 
               } else if (strcmp(arduinoCommand, "analogWrite") == 0) {
-                serial.println("analogWrite");
+                serial.println("[WSc] analogWrite");
                 analogWrite(pin, atoi(val));
 
               } else if (strcmp(arduinoCommand, "digitalWrite") == 0) {
-                serial.println("digitalWrite");
-                serial.printf("value ==> %d\n", atoi(val));
+                serial.println("[WSc] digitalWrite");
+                serial.printf("[WSc] value ==> %d\n", atoi(val));
                 pinMode(pin, OUTPUT);
                 if(atoi(val) == 0) {
                   digitalWrite(pin, LOW);
@@ -189,24 +188,24 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
               } else if (strcmp(arduinoCommand, "analogRead") == 0) {
                 String currentVal = String(analogRead(pin), DEC);
-                serial.println("analogRead: "+currentVal);
+                serial.println("[WSc] analogRead: "+currentVal);
                 webSocket.sendTXT( currentVal );
 
               } else if (strcmp(arduinoCommand, "digitalRead") == 0) {
                 String currentVal = String(digitalRead(pin), DEC);
-                serial.println("digitalRead: "+currentVal);
+                serial.println("[WSc] digitalRead: "+currentVal);
                 webSocket.sendTXT( currentVal );
 
               } else if (strcmp(arduinoCommand, "getPinMode") == 0) {
-                serial.println("getPinMode");
+                serial.println("[WSc] getPinMode");
                 //getPinMode(pin);
                 
               } else if (strcmp(arduinoCommand, "setPinMode") == 0) {
-                serial.println("setPinMode");
+                serial.println("[WSc] setPinMode");
                 pinMode(pin, atoi(val));
                 
               } else if (strcmp(arduinoCommand, "audioOutput") == 0) {
-                serial.println("audioOutput");
+                serial.println("[WSc] audioOutput");
                 ESP8266SAM *sam = new ESP8266SAM;
                 sam->Say(audioOutput, val);
                 delete sam;   
@@ -216,7 +215,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                   if (strcmp(measurement, "hallRead") == 0) {
                     hallVal = hallRead();
                     const char* t6FlowId = "fake-flow-id-hallVal";
-                    Serial.print("hallRead:");
+                    Serial.print("[WSc] hallRead:");
                     Serial.println(String(hallVal));
                     
                     DynamicJsonDocument payload(1024);
@@ -229,7 +228,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                     createDatapoint(t6FlowId, payload, false, config.t6wsKey, config.t6wsSecret);
 
                   } else if (strcmp(measurement, "measurementConfig1") == 0) {
-                    Serial.println("measurementConfig1:");
+                    Serial.println("[WSc] measurementConfig1:");
                     
                     DynamicJsonDocument payload(1024);
                     const char* t6FlowId = "fake-flow-id-measurementConfig1";
@@ -240,25 +239,15 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                     payload[String("save")] = "false";
                     payload[String("publish")] = "true";
                     createDatapoint(t6FlowId, payload, false, config.t6wsKey, config.t6wsSecret);
-                    
-                    int ttl = 1 * 60*1000; // 1 minutes;
-                    Serial.println("Rescheduling next measurement in " + String(ttl/1000) + "s");
-                    DynamicJsonDocument json(256);
-                    String databuf;
-                    json["command"] = "remindMeToMeasure";
-                    json["measurement"] = "measurementConfig1";
-                    json["object_id"] = config.t6Object_id;
-                    json["delay"] = ttl;
-                    serializeJson(json, databuf);
-                    webSocket.sendTXT(databuf);
+                    triggerNextMeasure(10 * 60*1000, "remindMeToMeasure", "measurementConfig1", config.t6Object_id); // 10 minutes;
                     
                   } else if (strcmp(measurement, "measurementConfig2") == 0) {
-                    Serial.print("measurementConfig2:");
+                    Serial.print("[WSc] measurementConfig2:");
                     const char* t6FlowId = "fake-flow-id-measurementConfig2";
                     getSSL();
                     
                   } else if (strcmp(measurement, "measurementConfig3") == 0) {
-                    Serial.print("measurementConfig3:");
+                    Serial.print("[WSc] measurementConfig3:");
                     const char* t6FlowId = "fake-flow-id-measurementConfig3";
                   }
                 }
@@ -362,9 +351,20 @@ String getSignedPayload(String& payload, String& objectId, String& secret) { // 
   */
   return signedPayloadAsString;
 }
+void triggerNextMeasure(int ttl, const char* command, const char* measurement, String t6Object_id) {
+  Serial.println("[t6IoT] Rescheduling next measurement in " + String(ttl/1000) + "s");
+  DynamicJsonDocument json(256);
+  String databuf;
+  json["command"] = command;
+  json["measurement"] = measurement;
+  json["object_id"] = t6Object_id;
+  json["delay"] = ttl;
+  serializeJson(json, databuf);
+  webSocket.sendTXT(databuf);
+}
 
 void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useSignature, String t6wsKey, String t6wsSecret) {
-  Serial.println("Creating datapoint to t6:");
+  Serial.println("[t6IoT] Creating datapoint to t6:");
       
   String payloadStr;
   serializeJson(payload, payloadStr);
@@ -373,7 +373,7 @@ void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useS
   }
 
   if (config.apiScheme == "https://") {
-    Serial.println("Using SSL certificate");
+    Serial.println("[t6IoT] Using SSL certificate");
     WiFiClientSecure client;
     client.setCACert(rootCACertificate);
     int conn = client.connect(String(config.apiHost).c_str(), config.apiPort);
@@ -403,10 +403,10 @@ void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useS
       }
     } else {
       client.stop();
-      Serial.println("Connection Failed");
+      Serial.println("[t6IoT] Connection Failed");
     }
   } else {
-    Serial.println("Not using SSL certificate");
+    Serial.println("[t6IoT] Not using SSL certificate");
     WiFiClient client;
     HTTPClient http;
     http.begin(client, String(config.apiScheme) + String(config.apiHost).c_str() + ":" + String(config.apiPort).c_str() + String( config._urlDataPoint+String(flowId) ));
@@ -420,6 +420,7 @@ void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useS
     http.addHeader("Content-Length", String((payloadStr).length()));
     http.addHeader("Connection", "Close");
     int httpResponseCode = http.POST(payloadStr); //Body
+    Serial.print("[t6IoT] Response Code:");
     Serial.println(httpResponseCode);
     http.end();
   }
@@ -427,27 +428,22 @@ void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useS
 
 void getSSL() {
   WiFiClientSecure *client = new WiFiClientSecure;
-  client->setInsecure(); // 
+  client->setInsecure();
 
   HTTPClient https;
   if (!https.begin(*client, config.apiScheme+config.apiHost )) {
-    Serial.println("HTTPS setup failed");
+    Serial.println("[t6IoT] HTTPS setup failed");
     return;
   };
-
   https.setTimeout(5000);
-
   int httpCode = https.GET();
   if (httpCode != 200) {
-    Serial.print("Connect failed: ");
+    Serial.print("[t6IoT] Connect failed: ");
     Serial.println(https.errorToString(httpCode));
     return;
   }
-
   const mbedtls_x509_crt* peer = client->getPeerCertificate();
-
   // Show general output / certificate information
-  //
   char buf[1024];
   int l = mbedtls_x509_crt_info (buf, sizeof(buf), "", peer);
   if (l <= 0) {
@@ -459,11 +455,11 @@ void getSSL() {
 
   uint8_t fingerprint_remote[32];
   if (!client->getFingerprintSHA256(fingerprint_remote)) {
-    Serial.println("Failed to get the fingerprint");
+    Serial.println("[t6IoT] Failed to get the fingerprint");
     return;
   }
-  Serial.println("Expecting Fingerprint (SHA256): "+String(fingerprint));
-  Serial.print(  " Received Fingerprint (SHA256): ");
+  Serial.println("[t6IoT] Expecting Fingerprint (SHA256): "+String(fingerprint));
+  Serial.print(  "[t6IoT]  Received Fingerprint (SHA256): ");
 
   for (int i = 0; i < 32; i++) {
     Serial.print(fingerprint_remote[i], HEX);
