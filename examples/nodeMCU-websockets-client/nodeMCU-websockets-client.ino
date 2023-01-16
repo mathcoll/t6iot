@@ -24,7 +24,6 @@
 #include <base64.h>
 #include <pins_arduino.h>
 #include <ESPAsyncWebServer.h>
-#include <HTTPClient.h>
 #include <WiFiClient.h>
 #include <WiFiClientSecure.h>
 #include <ESP8266SAM.h>
@@ -43,12 +42,15 @@ unsigned long lastUpdate = millis();
 #ifdef ESP8266
   #define ESP_GETCHIPID ESP.getChipId()
   #include <ESP8266WiFi.h>
+  #include <ESP8266HTTPClient.h>
+  #include <WiFiClientSecureBearSSL.h>
   #include <ESP8266mDNS.h>
   #include <ESP8266SSDP.h>
 #elif ESP32
   #define ESP_GETCHIPID (uint32_t)ESP.getEfuseMac()
   #define LED_BUILTIN 2
   #include <WiFi.h>
+  #include <HTTPClient.h>
   #include <ESPmDNS.h>
   #include <ESP32SSDP.h>
 #endif
@@ -60,12 +62,13 @@ AudioOutputI2SNoDAC *audioOutput = NULL;
 
 void claimObject() {
   serial.println("[WSc] claimObject to WS server. object_id: " + config.t6Object_id);
+  String payload = "{\"object_id\": \""+config.t6Object_id+"\"}";
   ArduinoJWT jwt = ArduinoJWT(config.t6ObjectSecretKey);
   DynamicJsonDocument json(256);
   String databuf;
   json["command"] = "claimObject";
   json["object_id"] = config.t6Object_id;
-  json["signature"] = jwt.encodeJWT("{\"object_id\": \""+config.t6Object_id+"\"}");
+  json["signature"] = jwt.encodeJWT(payload);
   serializeJson(json, databuf);
   webSocket.sendTXT(databuf);
 }
@@ -214,20 +217,20 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                 if (jsonPayload["measurement"]) {
                   measurement = jsonPayload["measurement"].as<const char*>();
                   if (strcmp(measurement, "hallRead") == 0) {
-                    hallVal = hallRead();
-                    const char* t6FlowId = "fake-flow-id-hallVal";
-                    Serial.print("[WSc] hallRead:");
-                    Serial.println(String(hallVal));
-                    
-                    DynamicJsonDocument payload(1024);
-                    payload[String("value")] = hallVal;
-                    payload[String("flow_id")] = t6FlowId;
-                    payload[String("mqtt_topic")] = "";
-                    payload[String("unit")] = "";
-                    payload[String("save")] = "false";
-                    payload[String("publish")] = "true";
-                    createDatapoint(t6FlowId, payload, false, config.t6wsKey, config.t6wsSecret);
-
+                    #ifdef ESP32
+                      hallVal = hallRead();
+                      const char* t6FlowId = "fake-flow-id-hallVal";
+                      Serial.print("[WSc] hallRead:");
+                      Serial.println(String(hallVal));
+                      DynamicJsonDocument payload(1024);
+                      payload[String("value")] = hallVal;
+                      payload[String("flow_id")] = t6FlowId;
+                      payload[String("mqtt_topic")] = "";
+                      payload[String("unit")] = "";
+                      payload[String("save")] = "false";
+                      payload[String("publish")] = "true";
+                      createDatapoint(t6FlowId, payload, false, config.t6wsKey, config.t6wsSecret);
+                    #endif
                   } else if (strcmp(measurement, "measurementConfig1") == 0) {
                     Serial.println("[WSc] measurementConfig1:");
 
@@ -376,8 +379,12 @@ void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useS
 
   if (config.apiScheme == "https://") {
     Serial.println("[t6IoT] Using SSL certificate");
-    WiFiClientSecure client;
-    client.setCACert(rootCACertificate);
+    #ifdef ESP8266
+      BearSSL::WiFiClientSecure client;
+    #elif ESP32
+      WiFiClientSecure client;
+      client.setCACert(rootCACertificate);
+    #endif
     int conn = client.connect(String(config.apiHost).c_str(), config.apiPort);
     if (conn == 1) {
       client.println("POST "+String( config._urlDataPoint+String(flowId) )+" HTTP/1.1");
@@ -429,45 +436,44 @@ void createDatapoint(const char* flowId, DynamicJsonDocument& payload, bool useS
 }
 
 void getSSL() {
-  WiFiClientSecure *client = new WiFiClientSecure;
-  client->setInsecure();
-
-  HTTPClient https;
-  if (!https.begin(*client, config.apiScheme+config.apiHost )) {
-    Serial.println("[t6IoT] HTTPS setup failed");
-    return;
-  };
-  https.setTimeout(5000);
-  int httpCode = https.GET();
-  if (httpCode != 200) {
-    Serial.print("[t6IoT] Connect failed: ");
-    Serial.println(https.errorToString(httpCode));
-    return;
-  }
-  const mbedtls_x509_crt* peer = client->getPeerCertificate();
-  // Show general output / certificate information
-  char buf[1024];
-  int l = mbedtls_x509_crt_info (buf, sizeof(buf), "", peer);
-  if (l <= 0) {
-    Serial.println("Peer conversion to printable buffer failed");
-    return;
-  };
-  Serial.println();
-  Serial.println(buf);
-
-  uint8_t fingerprint_remote[32];
-  if (!client->getFingerprintSHA256(fingerprint_remote)) {
-    Serial.println("[t6IoT] Failed to get the fingerprint");
-    return;
-  }
-  Serial.println("[t6IoT] Expecting Fingerprint (SHA256): "+String(fingerprint));
-  Serial.print(  "[t6IoT]  Received Fingerprint (SHA256): ");
-
-  for (int i = 0; i < 32; i++) {
-    Serial.print(fingerprint_remote[i], HEX);
-    Serial.print(" ");
-  };
-  Serial.println("");
+  #ifdef ESP32
+    WiFiClientSecure *client = new WiFiClientSecure;
+    client->setInsecure();
+    HTTPClient https;
+    if (!https.begin(*client, config.apiScheme+config.apiHost )) {
+      Serial.println("[t6IoT] HTTPS setup failed");
+      return;
+    };
+    https.setTimeout(5000);
+    int httpCode = https.GET();
+    if (httpCode != 200) {
+      Serial.print("[t6IoT] Connect failed: ");
+      Serial.println(https.errorToString(httpCode));
+      return;
+    }
+    const mbedtls_x509_crt* peer = client->getPeerCertificate();
+    // Show general output / certificate information
+    char buf[1024];
+    int l = mbedtls_x509_crt_info (buf, sizeof(buf), "", peer);
+    if (l <= 0) {
+      Serial.println("Peer conversion to printable buffer failed");
+      return;
+    };
+    Serial.println();
+    Serial.println(buf);
+    uint8_t fingerprint_remote[32];
+    if (!client->getFingerprintSHA256(fingerprint_remote)) {
+      Serial.println("[t6IoT] Failed to get the fingerprint");
+      return;
+    }
+    Serial.println("[t6IoT] Expecting Fingerprint (SHA256): "+String(fingerprint));
+    Serial.print(  "[t6IoT]  Received Fingerprint (SHA256): ");
+    for (int i = 0; i < 32; i++) {
+      Serial.print(fingerprint_remote[i], HEX);
+      Serial.print(" ");
+    };
+    Serial.println("");
+  #endif
 };
 
 void setup() {
