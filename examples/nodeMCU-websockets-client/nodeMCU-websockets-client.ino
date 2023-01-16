@@ -154,6 +154,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
               serial.printf("[WSc] - arduinoCommand: %s\n", arduinoCommand);
               //serial.printf("[WSc] - pin: %d\n", pin);
               //serial.printf("[WSc] - value: %s\n", val);
+              //serial.printf("[WSc] - channels: %s\n", channels);
               //serial.println();
 
               if (strcmp(arduinoCommand, "claimed") == 0) {
@@ -229,7 +230,7 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
 
                   } else if (strcmp(measurement, "measurementConfig1") == 0) {
                     Serial.println("[WSc] measurementConfig1:");
-                    
+
                     DynamicJsonDocument payload(1024);
                     const char* t6FlowId = "fake-flow-id-measurementConfig1";
                     payload[String("value")] = 123456789; // TODO TODO TODO TODO TODO TODO TODO TODO TODO 
@@ -240,15 +241,16 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
                     payload[String("publish")] = "true";
                     createDatapoint(t6FlowId, payload, false, config.t6wsKey, config.t6wsSecret);
                     triggerNextMeasure(10 * 60*1000, "remindMeToMeasure", "measurementConfig1", config.t6Object_id); // 10 minutes;
-                    
+
                   } else if (strcmp(measurement, "measurementConfig2") == 0) {
                     Serial.print("[WSc] measurementConfig2:");
                     const char* t6FlowId = "fake-flow-id-measurementConfig2";
                     getSSL();
-                    
+
                   } else if (strcmp(measurement, "measurementConfig3") == 0) {
                     Serial.print("[WSc] measurementConfig3:");
                     const char* t6FlowId = "fake-flow-id-measurementConfig3";
+
                   }
                 }
               } 
