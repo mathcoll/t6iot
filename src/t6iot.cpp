@@ -194,6 +194,9 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 		}
 	}
 }
+int t6iot::createDatapoints(DynamicJsonDocument &payload) {
+	return createDatapoint(DynamicJsonDocument &payload); // This is a shortcut
+}
 String t6iot::_getSignedPayload(String &payload, String &object_id,
 		String &object_secret) { // TODO
 	ArduinoJWT jwt = ArduinoJWT(object_secret);

@@ -33,6 +33,7 @@ class t6iot {
 		void set_object_secret(String secret);
 		void set_wifi(const String& ssid, const String& pass);
 		int createDatapoint(DynamicJsonDocument& payload);
+		int createDatapoints(DynamicJsonDocument& payload);
 
 	private:
 		void set_endpoint(const String& endpoint);
