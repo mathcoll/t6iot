@@ -1,6 +1,7 @@
 /*
-  t6iot.h - v2.0.1
+  t6iot.h - v2.0.2
   Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
+  - t6 website: https://www.internetcollaboratif.info
   - t6 iot: https://api.internetcollaboratif.info
   - Api doc: https://api.internetcollaboratif.info/docs/
 */
@@ -13,7 +14,7 @@
 #include <WiFiClientSecure.h>
 #if defined(ESP8266)
   #include <ESP8266WiFi.h>
-	#include <ESP8266HTTPClient.h>
+  #include <ESP8266HTTPClient.h>
 #else
   #include <WiFi.h>
   #include <ArduinoHttpClient.h>
@@ -21,12 +22,17 @@
 
 class t6iot {
 	public:
-		t6iot(String host, int port);
+		t6iot();
+		void set_server();
+		void set_server(String host);
+		void set_server(String host, int port);
+		void set_server(String host, int port, String useragent);
 		void set_key(const char* key);
 		void set_secret(const char* secret);
-		void set_object_secret(String object_id, String secret);
+		void set_object_id(String object_id);
+		void set_object_secret(String secret);
+		void set_wifi(const String& ssid, const String& pass);
 		int createDatapoint(DynamicJsonDocument& payload);
-		bool wifiInit(const String& ssid, const String& pass);
 
 	private:
 		void set_endpoint(const String& endpoint);
@@ -37,10 +43,10 @@ class t6iot {
 		String _httpProtocol;
 		String _object_id;
 		String _object_secret;
-		String _getSignedPayload(String& payload, String& object_id, String& object_secret);
+		String _userAgent;
 		int _httpPort;
 		const char* _key;
 		const char* _secret;
-		const char* _userAgent;
+		String _getSignedPayload(String& payload, String& object_id, String& object_secret);
 };
 #endif
