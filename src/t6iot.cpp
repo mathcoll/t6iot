@@ -27,26 +27,36 @@ void t6iot::set_server() {
 }
 void t6iot::set_server(String host) {
 	Serial.println("t6 > Using DEFAULT port & UA");
-	_httpHost = host;
 	set_server(host, DEFAULT_port, DEFAULT_useragent);
 }
 void t6iot::set_server(String host, int port) {
 	Serial.println("t6 > Using DEFAULT UA");
-	_httpHost = host;
-	_httpPort = port;
 	set_server(host, port, DEFAULT_useragent);
 }
 void t6iot::set_server(String host, int port, String useragent) {
 	Serial.println("t6 > Setting host, port & UA");
-	_httpHost = host;
-	_httpPort = port;
-	_userAgent = useragent;
+	if ( !host.isEmpty() ) {
+		_httpHost = host;
+	} else {
+		_httpHost = DEFAULT_host;
+	}
+	if ( port > 1 ) {
+		_httpPort = port;
+	} else {
+		_httpPort = DEFAULT_port;
+	}
+	if ( !useragent.isEmpty() ) {
+		_userAgent = useragent;
+	} else {
+		_userAgent = DEFAULT_useragent;
+	}
 	if (_httpPort == 443) {
 		_httpProtocol = "https://";
 	} else {
 		_httpProtocol = "http://";
 	}
-	Serial.printf("t6 > Using protocol %s\n", _httpProtocol);
+	Serial.print("t6 > Using protocol: ");
+	Serial.println(_httpProtocol);
 }
 void t6iot::set_wifi(const String &wifi_ssid, const String &wifi_password) {
 	_ssid = wifi_ssid;
@@ -195,7 +205,7 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 	}
 }
 int t6iot::createDatapoints(DynamicJsonDocument &payload) {
-	return createDatapoint(DynamicJsonDocument &payload); // This is a shortcut
+	return createDatapoint(payload); // This is a shortcut
 }
 String t6iot::_getSignedPayload(String &payload, String &object_id,
 		String &object_secret) { // TODO

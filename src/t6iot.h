@@ -15,9 +15,10 @@
 #if defined(ESP8266)
   #include <ESP8266WiFi.h>
   #include <ESP8266HTTPClient.h>
-#else
+#elif ESP32
   #include <WiFi.h>
   #include <ArduinoHttpClient.h>
+  #define LED_BUILTIN 2
 #endif
 
 class t6iot {
