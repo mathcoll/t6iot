@@ -10,11 +10,11 @@ String object_id              = "";     // t6 Object Id
 String object_secret          = "";     // optional t6 Object secret (32bits hexa) when using payload encryption
 const char* api_key           = "";     //
 const char* api_secret        = "";     //
-String flow_id                = "FAKE";
+String flow_id                = "FAKE-flow_id";
 
 float sensorValue             = -1.0;   // Value read by the sensor
 const int VAL_PROBE           = 0;      // Analog pin 0
-const int power               = 13;     // VCC connected to sensor
+const int power               = 13;     // VCC connected to sensor, This will be set as OUTPUT Power
 const int measurements        = 10;     // Number of measurements to make sure to sensor is OK
 #define SLEEP_DELAY_IN_SECONDS 1800     // Sleep duration. // 1800=30 minutes / 3600=60 minutes / 2700=45min
 
@@ -30,8 +30,8 @@ void setup() {
   Serial.begin(115200);
   pinMode(power, OUTPUT);
   
-  //t6client.set_server();              // Leave host&port by default
-  t6client.set_server(host, port);      // Set custom server host & port
+  //t6client.set_server();             // Leave host&port by default from t6iot library
+  t6client.set_server(host, port, ""); // Set custom server host, port and useragent
 
   // Set the API key and secret.
   t6client.set_key(api_key);
@@ -49,8 +49,9 @@ void setup() {
 
 void loop() {
   // Create a payload.
-  DynamicJsonDocument payload(1024);
-  DynamicJsonDocument meta(64);
+  DynamicJsonDocument payload(1024);  // 
+  DynamicJsonDocument meta(64);       // 
+  DynamicJsonDocument rules(1024);    // Rules require several nodes
 
   readSample(); // Read the sensors.
   if (getAverage(&sampleAve) > -1) {
@@ -67,8 +68,32 @@ void loop() {
     payload[index]["publish"]      = true;
 
     meta[index]["sensor"]          = "sample sensor";
-    payload[index]["meta"]         = meta[index];
-    // payload[index]["unit"]         = "26a4be78-1c02-4a41-acc1-14d8e6b29a84";
+    rules[index][0]["conditions"]["all"][0]["fact"]        = "flow";
+    rules[index][0]["conditions"]["all"][0]["operator"]    = "equal";
+    rules[index][0]["conditions"]["all"][0]["value"]       = flow_id;
+    rules[index][0]["conditions"]["all"][1]["fact"]        = "value";
+    rules[index][0]["conditions"]["all"][1]["operator"]    = "distanceGreaterThan";
+    rules[index][0]["conditions"]["all"][1]["value"]       = "1";
+    rules[index][0]["event"]["type"]                       = "replaceWithDistance";
+    rules[index][0]["priority"]                            = "1";
+    rules[index][1]["conditions"]["all"][0]["fact"]        = "flow";
+    rules[index][1]["conditions"]["all"][0]["operator"]    = "equal";
+    rules[index][1]["conditions"]["all"][0]["value"]       = flow_id;
+    rules[index][1]["conditions"]["all"][1]["fact"]        = "value";
+    rules[index][1]["conditions"]["all"][1]["operator"]    = "distanceGreaterThan";
+    rules[index][1]["conditions"]["all"][1]["value"]       = "50";
+    rules[index][1]["event"]["type"]                       = "email";
+    rules[index][1]["event"]["params"]["from"]             = "mathieu@internetcollaboratif.info";
+    rules[index][1]["event"]["params"]["bcc"]              = "";
+    rules[index][1]["event"]["params"]["to"]               = "mathieu@internetcollaboratif.info";
+    rules[index][1]["event"]["params"]["subject"]          = "Geofencing > outside";
+    rules[index][1]["event"]["params"]["text"]             = "Geofencing > outside by {distance} meter(s)";
+    rules[index][1]["event"]["params"]["html"]             = "<h1>Geofencing</h1><br /> &gt; outside by {distance} meter(s)";
+    rules[index][1]["priority"]                            = "2";
+
+    payload[index]["meta"]          = meta[index];
+    payload[index]["rules"]         = rules[index];
+    // payload[index]["unit"]          = "26a4be78-1c02-4a41-acc1-14d8e6b29a84";
     // payload[index]["timestamp"]  = millis(); // By default, timestamp will be handled by server
   
     /*
@@ -118,13 +143,16 @@ int16_t getAverage(struct sAverage *ave) {
 void readSample() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
-  digitalWrite(power, HIGH); //turn "On"
+  digitalWrite(power, HIGH); // Turn "On"
   delay(500);
   int count=1;
+    Serial.println("Measuring:");
   do {
     sensorValue = constrain( map( analogRead(VAL_PROBE), 0, 1024, 100, 0 ) , 0.0, 1024.0);
     Serial.print(" * Measurement ");
     Serial.print(count);
+    Serial.print("/");
+    Serial.print(measurements);
     Serial.print(": ");
     Serial.println(sensorValue);
     
@@ -139,6 +167,6 @@ void readSample() {
   } while (count <= measurements); // 10 valid measures expected
   delay(1000);
   Serial.println("------------------------------");
-  digitalWrite(power, LOW); //turn "Off"
+  digitalWrite(power, LOW); // Turn "Off"
   digitalWrite(LED_BUILTIN, HIGH);
 }
