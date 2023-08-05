@@ -1,85 +1,31 @@
 #######################################
-# Syntax Coloring Map For t6iot
-# Use TAB to seperate identifiers
-#         and KEYWORD specifiers!
+# Syntax Coloring Map
 #######################################
 
 #######################################
 # Datatypes (KEYWORD1)
 #######################################
 
-T6iot	KEYWORD1
-
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
-
-init	KEYWORD2
-setWebServerCredentials	KEYWORD2
-webServerAllowCommand	KEYWORD2
-startWebServer	KEYWORD2
-pollWebServer	KEYWORD2
-setCredentials	KEYWORD2
-initObject	KEYWORD2
-lockSleep	KEYWORD2
-unlockSleep	KEYWORD2
-handleClient	KEYWORD2
-activateOTA	KEYWORD2
-upgrade	KEYWORD2
-sleep	KEYWORD2
-authenticate	KEYWORD2
-getStatus	KEYWORD2
-getDatatypes	KEYWORD2
-getUnits	KEYWORD2
-getIndex	KEYWORD2
-createUser	KEYWORD2
-getUser	KEYWORD2
-editUser	KEYWORD2
+t6iot	KEYWORD2
+set_server	KEYWORD2
+set_key	KEYWORD2
+set_secret	KEYWORD2
+set_object_id	KEYWORD2
+set_object_secret	KEYWORD2
+set_wifi	KEYWORD2
 createDatapoint	KEYWORD2
-getDatapoints	KEYWORD2
-createObject	KEYWORD2
-getObjects	KEYWORD2
-editObject	KEYWORD2
-deleteObject	KEYWORD2
-createFlow	KEYWORD2
-getFlows	KEYWORD2
-editFlow	KEYWORD2
-deleteFlow	KEYWORD2
-createDashboard	KEYWORD2
-getDashboards	KEYWORD2
-editDashboard	KEYWORD2
-deleteDashboard	KEYWORD2
-createSnippet	KEYWORD2
-getSnippets	KEYWORD2
-editSnippet	KEYWORD2
-deleteSnippet	KEYWORD2
-createRule	KEYWORD2
-getRules	KEYWORD2
-editRule	KEYWORD2
-deleteRule	KEYWORD2
-createMqtt	KEYWORD2
-getMqtts	KEYWORD2
-editMqtt	KEYWORD2
-deleteMqtt	KEYWORD2
-setValue	KEYWORD2
-setHtml	KEYWORD2
+createDatapoints	KEYWORD2
+startSsdp	KEYWORD2
+startMdns	KEYWORD2
+startWebsockets	KEYWORD2
+webSockets_loop	KEYWORD2
+webSockets_sendTXT	KEYWORD2
 
-readSample	KEYWORD2
-postSample	KEYWORD2
 
-#######################################
+######################################
 # Constants (LITERAL1)
-#######################################
-
-False	LITERAL1
-True	LITERAL1
-NULL	LITERAL1
-Number	LITERAL1
-String	LITERAL1
-Array	LITERAL1
-Object	LITERAL1
-IsReference	LITERAL1
-DEBUG	LITERAL1
-LOGS	LITERAL1
-t6Client	LITERAL1
+######################################

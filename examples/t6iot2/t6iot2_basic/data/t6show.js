@@ -1,0 +1,1 @@
+/home/mathieu/Projets/2019/internetcollaboratif.info/t6/public/js/t6show.js
