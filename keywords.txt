@@ -19,6 +19,11 @@ set_object_secret	KEYWORD2
 set_wifi	KEYWORD2
 createDatapoint	KEYWORD2
 createDatapoints	KEYWORD2
+startSsdp	KEYWORD2
+startMdns	KEYWORD2
+startWebsockets	KEYWORD2
+webSockets_loop	KEYWORD2
+webSockets_sendTXT	KEYWORD2
 
 
 ######################################

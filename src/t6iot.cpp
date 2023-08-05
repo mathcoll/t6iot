@@ -10,13 +10,23 @@
 #include <ArduinoHttpClient.h>
 // nmap --script ssl-cert.nse -p 443 api.internetcollaboratif.info | grep SHA-1
 // Not valid after:  2023-10-09T05:45:42
+
 const char *fingerprint		= "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
 String DEFAULT_useragent	= "t6iot-library/2.0.2 (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
 String DEFAULT_host			= "api.internetcollaboratif.info";
 int DEFAULT_port			= 443;
-WiFiClientSecure wifiClient;
+String DEFAULT_host_ws		= "ws.internetcollaboratif.info";
+int DEFAULT_port_ws			= 443;
+int DEFAULT_messageInterval = 15000;
+String DEFAULT_friendlyName = "t6ObjectLib";
+int DEFAULT_localPortMDNS	= 80;
+WiFiClientSecure			wifiClient;
+t6iot_Ssdp					t6iotSsdp;
+t6iot_Mdns					t6iotMdns;
+t6iot_Websockets			t6iotWebsockets;
 
 using namespace std;
+extern t6iot t6client;
 
 t6iot::t6iot() {
 	Serial.println("t6 > Constructor");
@@ -72,8 +82,10 @@ void t6iot::set_wifi(const String &wifi_ssid, const String &wifi_password) {
 		Serial.print(".");
 	} else {
 		Serial.println("t6 > WiFi Connected...");
-		Serial.print("t6 > WiFi getPhyMode(): ");
-		Serial.println(WiFi.getPhyMode());
+		#if defined(ESP8266)
+			Serial.print("t6 > WiFi getPhyMode(): ");
+			Serial.println(WiFi.getPhyMode());
+		#endif
 		Serial.print("t6 > WiFi IP Address: ");
 		Serial.println(WiFi.localIP());
 		delay(1000);
@@ -113,13 +125,14 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 
 	if (_httpPort == 443) {
 		Serial.printf("t6 > Using fingerprint: %s\n", fingerprint);
-		wifiClient.setFingerprint(fingerprint);
+//		wifiClient.setFingerprint(fingerprint);
 	} else {
 		Serial.println("t6 > Not using fingerprint / setInsecure");
 		wifiClient.setInsecure();
 	}
-
+/*
 	if (!wifiClient.connect(_httpHost, _httpPort)) {
+
 		Serial.println("t6 > Connection failed / fallback to BearSSL");
 
 		HTTPClient https;
@@ -162,7 +175,9 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			Serial.println("<<EOE1");
 			return httpCode;
 		}
+		return 500;
 	} else {
+*/
 		HttpClient https = HttpClient(wifiClient, _httpHost, _httpPort);
 		https.beginRequest();
 		https.post(_endpoint);
@@ -202,13 +217,12 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			Serial.println("<<EOE2");
 			return httpCode;
 		}
-	}
+//	}
 }
 int t6iot::createDatapoints(DynamicJsonDocument &payload) {
 	return createDatapoint(payload); // This is a shortcut
 }
-String t6iot::_getSignedPayload(String &payload, String &object_id,
-		String &object_secret) { // TODO
+String t6iot::_getSignedPayload(String &payload, String &object_id, String &object_secret) { // TODO
 	ArduinoJWT jwt = ArduinoJWT(object_secret);
 	String signedJson;
 	String payloadString;
@@ -227,4 +241,28 @@ String t6iot::_getSignedPayload(String &payload, String &object_id,
 	 signedPayload.printTo(signedPayloadAsString);
 	 */
 	return signedPayloadAsString;
+}
+bool t6iot::startSsdp() {
+	return t6iotSsdp.startSsdp(80, "upnp:rootdevice", "t6Object", "t6 IoT", "1.0.0", "https://github.com/mathcoll/t6iot", "Internet Collaboratif", "https://www.internetcollaboratif.info", 600);
+}
+bool t6iot::startMdns() {
+	return t6iotMdns.startMdns(DEFAULT_friendlyName, DEFAULT_localPortMDNS);
+}
+bool t6iot::startMdns(String friendlyName) {
+	return t6iotMdns.startMdns(friendlyName, DEFAULT_localPortMDNS);
+}
+bool t6iot::startMdns(String friendlyName, int localPortMDNS) {
+	return t6iotMdns.startMdns(friendlyName, localPortMDNS);
+}
+bool t6iot::startWebsockets(String host, int port) {
+	return t6iotWebsockets.startWebsockets(host, port, "/", _key, _secret, DEFAULT_messageInterval, 5000, 3000, 2, _object_id, _object_secret); // "ws.internetcollaboratif.info"
+}
+bool t6iot::startWebsockets() {
+	return t6iotWebsockets.startWebsockets(DEFAULT_host_ws, DEFAULT_port_ws, "/", _key, _secret, DEFAULT_messageInterval, 5000, 3000, 2, _object_id, _object_secret);
+}
+void t6iot::webSockets_loop() {
+	t6iotWebsockets.webSockets_loop();
+}
+bool webSockets_sendTXT(String data) {
+	return t6iotWebsockets.sendTXT(data);
 }
