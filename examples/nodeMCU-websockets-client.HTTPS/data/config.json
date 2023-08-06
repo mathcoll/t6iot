@@ -1,0 +1,57 @@
+{
+	"wifi": {
+		"ssid": "couleurs",
+		"password": "u14nP5X>PWS9fZuw1}CR:~v8>~:uN)m={ozKSKoA7e_,oMF^m-1F?xiUwB&hkQ0"
+	},
+	"t6": {
+		"scheme": "https://",
+		"host": "api.internetcollaboratif.info",
+		"port": 443,
+		"servicesStatus": {
+			"sockets": true,
+			"mdns": true,
+			"ssdp": true,
+			"audio": true,
+			"http": true
+		},
+		"t6Object_id": "210b9f26-b9f2-468b-9d97-ebbc6a03d27d",
+		"t6ObjectSecretKey": "F-s9pj%V$@keJ@@n'..@@?o.%z&6*.d?w*@y-f",
+		"websockets": {
+			"host": "192.168.0.15",
+			"port": 4000,
+			"path": "/",
+			"t6wsKey": "BgZwnhpxGcHtFFOcicmBBhVduNrsFQFBZSWlxtlaYxZoxrsisYRjVFmxcfF.EHRz",
+			"t6wsSecret": "ucfXcJUDTQSHAXiFcYGsSKXgDdOxlkZETbSx.SnPwqWxSRKYhpgQdeIiVgyvyial",
+			"expiration": 1695124232506,
+			"messageInterval": 15000,
+			"messageIntervalOnceClaimed": 600000,
+			"reconnectInterval": 5000,
+			"timeoutInterval": 3000,
+			"disconnectAfterFailure": 2
+		},
+		"mdns": {
+			"localPort": 80
+		},
+		"http": {
+			"localPort": 80,
+			"localPortHTTPS": 443,
+			"PARAM_INPUT_PIN": "pin",
+			"PARAM_INPUT_VALUE": "value",
+			"PARAM_INPUT_RESOLUTION": "resolution",
+			"PARAM_INPUT_CHANNEL": "channel",
+			"PARAM_INPUT_MODE": "mode"
+		},
+		"ssdp": {
+			"localPort": 80,
+			"advertiseInterval": 600,
+			"presentationURL": "/",
+			"friendlyName": "ESP32 - t6Object .33",
+			"modelName": "t6 IoT",
+			"modelNumber": "1.0.1",
+			"deviceType": "upnp:rootdevice",
+			"modelURL": "https://github.com/mathcoll/t6iot",
+			"manufacturer": "Internet Collaboratif",
+			"manufacturerURL": "https://www.internetcollaboratif.info"
+		}
+	}
+}

@@ -15,7 +15,7 @@
 
 #include <t6iot.h>
 t6iot t6client;                         // Create a new t6iot client
-String host = "192.168.0.100";          // You can use your own t6iot On Premise application
+String host = "192.168.0.15";           // You can use your own t6iot On Premise application
 int portHttp = 3000;                    // .. and using a custom port for t6iot http
 int portWs   = 4000;                    // .. and using a custom port for t6iot websockets
 
