@@ -1,5 +1,5 @@
 /*
- t6iot.cpp - v2.0.2
+ t6iot.cpp - v2.0.3
  Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
  - t6 website: https://www.internetcollaboratif.info
  - t6 iot: https://api.internetcollaboratif.info
@@ -12,7 +12,7 @@
 // Not valid after:  2023-10-09T05:45:42
 
 const char *fingerprint		= "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
-String DEFAULT_useragent	= "t6iot-library/2.0.2 (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
+String DEFAULT_useragent	= "t6iot-library/2.0.3 (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
 String DEFAULT_host			= "api.internetcollaboratif.info";
 int DEFAULT_port			= 443;
 String DEFAULT_host_ws		= "ws.internetcollaboratif.info";
@@ -24,11 +24,12 @@ WiFiClientSecure			wifiClient;
 t6iot_Ssdp					t6iotSsdp;
 t6iot_Mdns					t6iotMdns;
 t6iot_Websockets			t6iotWebsockets;
+t6iot_Http					t6iotHttp;
 
 using namespace std;
 extern t6iot t6client;
 
-t6iot::t6iot() {
+t6iot::t6iot(): TaskManager() {
 	Serial.println("t6 > Constructor");
 }
 void t6iot::set_server() {
@@ -227,6 +228,9 @@ String t6iot::_getSignedPayload(String &payload, String &object_id, String &obje
 	String signedJson;
 	String payloadString;
 	String signedPayloadAsString;
+	Serial.println(payload);
+	Serial.println(object_id);
+	Serial.println(object_secret);
 	/*
 	 payload.printTo(payloadString);
 	 signedJson = jwt.encodeJWT( payloadString );
@@ -265,4 +269,16 @@ void t6iot::webSockets_loop() {
 }
 bool webSockets_sendTXT(String data) {
 	return t6iotWebsockets.sendTXT(data);
+}
+bool t6iot::startHttp() {
+	return t6iotHttp.startHttp(DEFAULT_localPortMDNS);
+}
+bool t6iot::startHttp(int port) {
+	return t6iotHttp.startHttp(port);
+}
+bool t6iot::addStaticRoutes() {
+	return t6iotHttp.addStaticRoutes();
+}
+bool t6iot::addDynamicRoutes() {
+	return t6iotHttp.addDynamicRoutes();
 }
