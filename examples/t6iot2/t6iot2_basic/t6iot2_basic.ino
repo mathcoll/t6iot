@@ -10,16 +10,14 @@
    - Firewall : sudo tail -f /var/log/kern.log
 */
 
-
-#include <t6iot.h>
-t6iot t6client;                         // Create a new t6iot client
-#include "t6iotHttpServer.h"            // Load this library in case you'd need the MCU to serve Http files with a user interface
-
 #define WIFI_SSID             ""        //WIFI SSID
 #define WIFI_PASSWORD         ""        //WIFi Password
 
-String host = "192.168.0.100";           // You can use your own t6iot On Premise application
-int port = 3000;                        // .. and using a custom port
+#include <t6iot.h>
+t6iot t6client;                         // Create a new t6iot client
+String host = "192.168.0.100";          // You can use your own t6iot On Premise application
+int portHttp = 3000;                    // .. and using a custom port for t6iot http
+int portWs   = 4000;                    // .. and using a custom port for t6iot websockets
 
 String object_id              = "";     // t6 Object Id, this is used on the useragent as well
 String object_secret          = "";   // optional t6 Object secret (32bits hexa) when using payload encryption
@@ -29,8 +27,10 @@ String flow_id                = "FAKE-flow_id";
 
 float sensorValue             = -1.0;   // Value read by the sensor
 const int VAL_PROBE           = 0;      // Analog pin 0
-const int power               = 13;     // VCC connected to sensor, This will be set as OUTPUT Power
+const int power               = 13;     // VCC connected to sensor, this will be set as OUTPUT Power
 const int measurements        = 10;     // Number of measurements to make sure to sensor is OK
+long READInterval             = 30 * 60;// Interval between each READ in seconds // 30 minutes
+uint8_t                       readTask; // All tasks that can be cancelled
 #define SLEEP_DELAY_IN_SECONDS 1800     // Sleep duration. // 1800=30 minutes / 3600=60 minutes / 2700=45min
 
 struct sAverage {
@@ -45,34 +45,36 @@ void setup() {
   Serial.println("t6 > BOOTING");
   pinMode(power, OUTPUT);
   
-  //t6client.set_server();             // Leave host&port by default from t6iot library
-  t6client.set_server(host, port, ""); // Set custom server host, port and useragent
+  //t6client.set_server();                    // Leave host&port by default from t6iot library
+  t6client.set_server(host, portHttp, "");    // Set custom server host, port and useragent
 
   // Set the API key and secret.
-  t6client.set_key(api_key);
-  t6client.set_secret(api_secret);
+  t6client.set_key(api_key);                  // Required to identify yourself
+  t6client.set_secret(api_secret);            // Required to identify yourself
 
   // Set Object Id
-  t6client.set_object_id(object_id);   // required for websockets & encryption
+  t6client.set_object_id(object_id);          // Required for websockets & encryption
 
   // Set Object Secret encryption
-  t6client.set_object_secret(object_secret);  // required for websockets & encryption
+  t6client.set_object_secret(object_secret);  // Required for websockets & encryption
 
   // Set the Wifi
-  t6client.set_wifi(WIFI_SSID, WIFI_PASSWORD);
+  t6client.set_wifi(WIFI_SSID, WIFI_PASSWORD);// Connect to network
 
-  startHttpServer();
+  t6client.startHttp(80);                     // Load to serve Http files with a user interface
+  t6client.addStaticRoutes();
+  t6client.addDynamicRoutes();
   t6client.startSsdp();
   t6client.startMdns("customName");
-  t6client.startWebsockets(host, 4000);
+  t6client.startWebsockets(host, portWs);
+
+  Serial.println("t6 > readTask ; will be triggered each " + String(READInterval) + "s...");
+  readTask = t6client.scheduleFixedRate(READInterval, readSample, TIME_SECONDS);           // Read sensor Value regularly
+  //t6client.cancelTask(readTask);            // Stop a task from executing again if it is a repeating task
 }
 
 void loop() {
-  if ( reboot == true ) {
-    delay(2000);
-    reboot = false;
-    ESP.restart();
-  }
+  t6client.runLoop();                         // t6 TaskManager
   t6client.webSockets_loop();
   delay(250);
 

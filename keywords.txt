@@ -22,6 +22,9 @@ createDatapoints	KEYWORD2
 startSsdp	KEYWORD2
 startMdns	KEYWORD2
 startWebsockets	KEYWORD2
+startHttp	KEYWORD2
+addStaticRoutes	KEYWORD2
+addDynamicRoutes	KEYWORD2
 webSockets_loop	KEYWORD2
 webSockets_sendTXT	KEYWORD2
 
@@ -29,3 +32,5 @@ webSockets_sendTXT	KEYWORD2
 ######################################
 # Constants (LITERAL1)
 ######################################
+TIME_MILLIS	LITERAL1
+TIME_SECONDS	LITERAL1

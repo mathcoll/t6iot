@@ -14,18 +14,20 @@
 	#include <WiFiClientSecure.h>
 	#include "t6iot_ssdp.h"
 	#include "t6iot_mdns.h"
+	#include "t6iot_http.h"
 	#include "t6iot_websockets.h"
+	#include <TaskManager.h>
 
-#if defined(ESP8266)
-	  #include <ESP8266WiFi.h>
-	  #include <ESP8266HTTPClient.h>
+	#if defined(ESP8266)
+		#include <ESP8266WiFi.h>
+		#include <ESP8266HTTPClient.h>
 	#elif ESP32
-	  #include <WiFi.h>
-	  //#include <ArduinoHttpClient.h>
-	  #define LED_BUILTIN 2
+		#include <WiFi.h>
+		//#include <ArduinoHttpClient.h>
+		#define LED_BUILTIN 2
 	#endif
 
-	class t6iot {
+	class t6iot: public TaskManager {
 		public:
 			t6iot();
 			void set_server();
@@ -45,6 +47,10 @@
 			bool startMdns(String friendlyName, int localPortMDNS);
 			bool startWebsockets();
 			bool startWebsockets(String host, int port);
+			bool startHttp();
+			bool startHttp(int port);
+			bool addStaticRoutes();
+			bool addDynamicRoutes();
 			void webSockets_loop();
 			bool webSockets_sendTXT(String data);
 
