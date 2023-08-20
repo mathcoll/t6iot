@@ -5,11 +5,18 @@
 #######################################
 # Datatypes (KEYWORD1)
 #######################################
-
+String	KEYWORD1
+t6client	KEYWORD1
+t6iot_Ssdp	KEYWORD1
+t6iot_Mdns	KEYWORD1
+t6iot_Http	KEYWORD1
+t6iot_Audio	KEYWORD1
+t6iot_Websockets	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
+ESP	KEYWORD2
 t6iot	KEYWORD2
 set_server	KEYWORD2
 set_key	KEYWORD2
@@ -27,6 +34,9 @@ addStaticRoutes	KEYWORD2
 addDynamicRoutes	KEYWORD2
 webSockets_loop	KEYWORD2
 webSockets_sendTXT	KEYWORD2
+audio_loop	KEYWORD2
+audioListenTo	KEYWORD2
+audioSetVol	KEYWORD2
 
 
 ######################################
@@ -34,3 +44,10 @@ webSockets_sendTXT	KEYWORD2
 ######################################
 TIME_MILLIS	LITERAL1
 TIME_SECONDS	LITERAL1
+SLEEP_DELAY_IN_SECONDS	LITERAL1
+PWR_PROBE	LITERAL1
+VAL_PROBE	LITERAL1
+READINTERVAL	LITERAL1
+WAKE_RF_DEFAULT	LITERAL1
+WIFI_SSID	LITERAL1
+WIFI_PASSWORD	LITERAL1

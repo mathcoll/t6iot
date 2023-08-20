@@ -5,16 +5,11 @@
   - Api doc: https://api.internetcollaboratif.info/docs/
 */
 #include "t6iot_websockets.h"
-extern t6iot_Websockets t6iotWebsockets;
 #include <WebSocketsClient.h>
 #include <ArduinoJWT.h>
 #include <base64.h>
 WebSocketsClient webSocket;
-
-t6iot_Websockets::t6iot_Websockets() {
-	Serial.println("t6 > t6iot_Websockets Constructor");
-	_lastUpdate = millis();
-}
+t6iot_Audio t6iotWsAudio;
 
 bool WsConnected = false;
 bool claimed = false;
@@ -23,28 +18,10 @@ const int MAX_FILE_SIZE = 10240;
 char file_buffer[MAX_FILE_SIZE];
 int buffer_index = 0;
 
-void t6iot_Websockets::claimObject() {
-  Serial.println("[WSc] claimObject to WS server. object_id: " + _object_id);
-  String payload = "{\"object_id\": \"" + _object_id + "\"}";
-  ArduinoJWT jwt = ArduinoJWT(_object_secret);
-  DynamicJsonDocument json(256);
-  String databuf;
-  json["command"] = "claimObject";
-  json["object_id"] = _object_id;
-  json["signature"] = jwt.encodeJWT(payload);
-  serializeJson(json, databuf);
-  webSocket.sendTXT(databuf);
+t6iot_Websockets::t6iot_Websockets() {
+	Serial.println("t6 > t6iot_Websockets Constructor");
+	_lastUpdate = millis();
 }
-
-bool t6iot_Websockets::sendTXT(String data) {
-	if (claimed) {
-		webSocket.sendTXT(data);
-		return 1;
-	} else {
-		return 0;
-	}
-}
-
 bool subscribe(String channel) {
   Serial.println("[WSc] subscribe object to WS server. Channel: " + channel);
   if (claimed) {
@@ -60,7 +37,6 @@ bool subscribe(String channel) {
     return false;
   }
 }
-
 bool unsubscribe(String channel) {
   Serial.println("[WSc] unsubscribe object to WS server. Channel: " + channel);
   if (claimed) {
@@ -76,7 +52,6 @@ bool unsubscribe(String channel) {
     return false;
   }
 }
-
 void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
   Serial.println("-----------------------------------");
   Serial.printf("[WSc] type: %d\n", type);
@@ -214,6 +189,24 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
           } else if (strcmp(arduinoCommand, "setPinMode") == 0) {
             Serial.println("[WSc] setPinMode");
             pinMode(pin, atoi(val));
+
+          } else if (strcmp(arduinoCommand, "audioListenTo") == 0) {
+            Serial.printf("[WSc] - listenTo: %s\n", arduinoCommand);
+            Serial.printf("[WSc] - val  : %s\n", val);
+            t6iotAudio.audioListenTo(val);
+
+          } else if (strcmp(arduinoCommand, "audioSetVol") == 0) {
+            Serial.printf("[WSc] - audioSetVol: %s\n", arduinoCommand);
+            Serial.printf("[WSc] - val  : %s\n", val);
+            t6iotAudio.audioSetVol(atoi(val));
+
+          } else if (strcmp(arduinoCommand, "audioDecreaseVol") == 0) {
+            Serial.printf("[WSc] - audioDecreaseVol: %s\n", arduinoCommand);
+            t6iotAudio.audioSetVol( t6iotAudio.audioGetVol() - 1 );
+
+          }else if (strcmp(arduinoCommand, "audioIncreaseVol") == 0) {
+            Serial.printf("[WSc] - audioIncreaseVol: %s\n", arduinoCommand);
+            t6iotAudio.audioSetVol( t6iotAudio.audioGetVol() + 1 );
 
           } else if (strcmp(arduinoCommand, "audioOutput") == 0) {
             Serial.println("[WSc] audioOutput");
@@ -356,8 +349,32 @@ void webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
       break;
   }
 }
-
-bool t6iot_Websockets::startWebsockets(String wsHost, uint16_t wsPort, String wsPath, String t6wsKey, String t6wsSecret, int messageInterval, int reconnectInterval, int timeoutInterval, int disconnectAfterFailure, String o_id, String o_secret) {
+void t6iot_Websockets::claimObject() {
+  Serial.println("[WSc] claimObject to WS server. object_id: " + _object_id);
+  String payload = "{\"object_id\": \"" + _object_id + "\"}";
+  ArduinoJWT jwt = ArduinoJWT(_object_secret);
+  DynamicJsonDocument json(256);
+  String databuf;
+  json["command"] = "claimObject";
+  json["object_id"] = _object_id;
+  json["signature"] = jwt.encodeJWT(payload);
+  serializeJson(json, databuf);
+  webSocket.sendTXT(databuf);
+}
+bool t6iot_Websockets::sendTXT(String data) {
+	if (claimed) {
+		webSocket.sendTXT(data);
+		return 1;
+	} else {
+		return 0;
+	}
+}
+bool t6iot_Websockets::isClaimed() {
+  Serial.println("[WSc] isClaimed");
+  return claimed;
+}
+bool t6iot_Websockets::startWebsockets(String wsHost, uint16_t wsPort, String wsPath, String t6wsKey, String t6wsSecret, int messageInterval, int reconnectInterval, int timeoutInterval, int disconnectAfterFailure, String o_id, String o_secret, t6iot_Audio t6iotWsAudio) {
+	t6iotWsAudio = t6iotWsAudio;
 	_object_id = o_id;
 	_object_secret = o_secret;
 	_messageInterval = messageInterval;
@@ -371,7 +388,6 @@ bool t6iot_Websockets::startWebsockets(String wsHost, uint16_t wsPort, String ws
 	Serial.println("t6 > Websockets started");
 	return 1;
 }
-
 void t6iot_Websockets::webSockets_loop() {
 	if ( WsConnected && _lastUpdate + _messageInterval < millis() ) {
 		//claimObject();

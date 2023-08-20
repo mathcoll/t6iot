@@ -1,5 +1,5 @@
 /*
- t6iot.cpp - v2.0.3
+ t6iot.cpp - v2.0.4
  Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
  - t6 website: https://www.internetcollaboratif.info
  - t6 iot: https://api.internetcollaboratif.info
@@ -11,23 +11,27 @@
 // nmap --script ssl-cert.nse -p 443 api.internetcollaboratif.info | grep SHA-1
 // Not valid after:  2023-10-09T05:45:42
 
-const char *fingerprint		= "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
-String DEFAULT_useragent	= "t6iot-library/2.0.3 (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
-String DEFAULT_host			= "api.internetcollaboratif.info";
-int DEFAULT_port			= 443;
-String DEFAULT_host_ws		= "ws.internetcollaboratif.info";
-int DEFAULT_port_ws			= 443;
-int DEFAULT_messageInterval = 15000;
-String DEFAULT_friendlyName = "t6ObjectLib";
-int DEFAULT_localPortMDNS	= 80;
-WiFiClientSecure			wifiClient;
-t6iot_Ssdp					t6iotSsdp;
-t6iot_Mdns					t6iotMdns;
-t6iot_Websockets			t6iotWebsockets;
-t6iot_Http					t6iotHttp;
+const char *fingerprint				= "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
+String DEFAULT_useragent			= "t6iot-library/2.0.4 (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
+String DEFAULT_host					= "api.internetcollaboratif.info";
+int DEFAULT_port					= 443;
+String DEFAULT_host_ws				= "ws.internetcollaboratif.info";
+int DEFAULT_port_ws					= 443;
+int DEFAULT_messageInterval 		= 15000;
+int DEFAULT_reconnectInterval 		= 5000;
+int DEFAULT_timeoutInterval 		= 3000;
+int DEFAULT_disconnectAfterFailure	= 2;
+int DEFAULT_localPortMDNS			= 80;
+String DEFAULT_friendlyName 		= "t6ObjectLib";
+
+WiFiClientSecure					wifiClient;
+t6iot_Ssdp							t6iotSsdp;
+t6iot_Mdns							t6iotMdns;
+t6iot_Http							t6iotHttp;
+t6iot_Audio							t6iotAudio;
+t6iot_Websockets					t6iotWebsockets;
 
 using namespace std;
-extern t6iot t6client;
 
 t6iot::t6iot(): TaskManager() {
 	Serial.println("t6 > Constructor");
@@ -259,16 +263,28 @@ bool t6iot::startMdns(String friendlyName, int localPortMDNS) {
 	return t6iotMdns.startMdns(friendlyName, localPortMDNS);
 }
 bool t6iot::startWebsockets(String host, int port) {
-	return t6iotWebsockets.startWebsockets(host, port, "/", _key, _secret, DEFAULT_messageInterval, 5000, 3000, 2, _object_id, _object_secret); // "ws.internetcollaboratif.info"
+	return t6iotWebsockets.startWebsockets(host, port, "/", _key, _secret, DEFAULT_messageInterval, DEFAULT_reconnectInterval, DEFAULT_timeoutInterval, DEFAULT_disconnectAfterFailure, _object_id, _object_secret, t6iotAudio);
 }
 bool t6iot::startWebsockets() {
-	return t6iotWebsockets.startWebsockets(DEFAULT_host_ws, DEFAULT_port_ws, "/", _key, _secret, DEFAULT_messageInterval, 5000, 3000, 2, _object_id, _object_secret);
+	return t6iotWebsockets.startWebsockets(
+		DEFAULT_host_ws,
+		DEFAULT_port_ws, "/",
+		_key, _secret,
+		DEFAULT_messageInterval,
+		DEFAULT_reconnectInterval,
+		DEFAULT_timeoutInterval,
+		DEFAULT_disconnectAfterFailure,
+		_object_id, _object_secret,
+		t6iotAudio);
 }
 void t6iot::webSockets_loop() {
 	t6iotWebsockets.webSockets_loop();
 }
-bool webSockets_sendTXT(String data) {
+/*bool webSockets_sendTXT(String data) {
 	return t6iotWebsockets.sendTXT(data);
+}*/
+bool t6iot::isClaimed() {
+	return t6iotWebsockets.isClaimed();
 }
 bool t6iot::startHttp() {
 	return t6iotHttp.startHttp(DEFAULT_localPortMDNS);
@@ -281,4 +297,13 @@ bool t6iot::addStaticRoutes() {
 }
 bool t6iot::addDynamicRoutes() {
 	return t6iotHttp.addDynamicRoutes();
+}
+void t6iot::audio_loop() {
+	t6iotAudio.audio_loop();
+}
+bool t6iot::audioListenTo(const char* url) {
+	return t6iotAudio.audioListenTo(url);
+}
+bool t6iot::audioSetVol(int vol) {
+	return t6iotAudio.audioSetVol(vol);
 }

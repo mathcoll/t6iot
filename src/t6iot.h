@@ -1,5 +1,5 @@
 /*
-  t6iot.h - v2.0.2
+  t6iot.h - v2.0.4
   Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
   - t6 website: https://www.internetcollaboratif.info
   - t6 iot: https://api.internetcollaboratif.info
@@ -7,16 +7,17 @@
 */
 
 #ifndef t6iot_h
-#define t6iot_h
+	#define t6iot_h
 	#include "Arduino.h"
 	#include <ArduinoJson.h>
 	#include <ArduinoJWT.h>
+	#include <TaskManager.h>
 	#include <WiFiClientSecure.h>
 	#include "t6iot_ssdp.h"
 	#include "t6iot_mdns.h"
 	#include "t6iot_http.h"
+	#include "t6iot_audio.h"
 	#include "t6iot_websockets.h"
-	#include <TaskManager.h>
 
 	#if defined(ESP8266)
 		#include <ESP8266WiFi.h>
@@ -47,12 +48,16 @@
 			bool startMdns(String friendlyName, int localPortMDNS);
 			bool startWebsockets();
 			bool startWebsockets(String host, int port);
+			bool webSockets_sendTXT(String data);
+			bool isClaimed();
+			void webSockets_loop();
 			bool startHttp();
 			bool startHttp(int port);
 			bool addStaticRoutes();
 			bool addDynamicRoutes();
-			void webSockets_loop();
-			bool webSockets_sendTXT(String data);
+			void audio_loop();
+			bool audioListenTo(const char* url);
+			bool audioSetVol(int vol);
 
 		private:
 			void set_endpoint(const String& endpoint);
@@ -69,4 +74,5 @@
 			const char* _secret;
 			String _getSignedPayload(String& payload, String& object_id, String& object_secret);
 	};
+	extern t6iot t6client;
 #endif
