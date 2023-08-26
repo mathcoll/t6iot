@@ -9,7 +9,7 @@
 #ifndef t6iot_h
 	#define t6iot_h
 	#include "Arduino.h"
-	#include <ArduinoJson.h>
+	#include <ArduinoOTA.h>
 	#include <ArduinoJWT.h>
 	#include <TaskManager.h>
 	#include <WiFiClientSecure.h>
@@ -24,7 +24,10 @@
 		#include <ESP8266HTTPClient.h>
 	#elif ESP32
 		#include <WiFi.h>
-		//#include <ArduinoHttpClient.h>
+		#include <HTTPClient.h>
+//		#include <ArduinoBearSSL.h>
+//		#include <WiFiClientSecure.h>
+//		#include <WiFiClientSecureBearSSL.h>
 		#define LED_BUILTIN 2
 	#endif
 
@@ -58,6 +61,17 @@
 			void audio_loop();
 			bool audioListenTo(const char* url);
 			bool audioSetVol(int vol);
+			bool isLocked();
+			void lockSleep();
+			void lockSleep(const long dur);
+			void unlockSleep();
+			void goToSleep(const long dur);
+			void activateOTA();
+			bool _http_started;
+			bool _ssdp_started;
+			bool _mdns_started;
+			bool _audio_started;
+			bool _websockets_started;
 
 		private:
 			void set_endpoint(const String& endpoint);
@@ -70,6 +84,8 @@
 			String _object_secret;
 			String _userAgent;
 			int _httpPort;
+			bool _locked;
+			bool _OTA_activated;
 			const char* _key;
 			const char* _secret;
 			String _getSignedPayload(String& payload, String& object_id, String& object_secret);

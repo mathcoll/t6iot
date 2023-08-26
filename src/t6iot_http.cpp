@@ -317,5 +317,5 @@ bool t6iot_Http::addDynamicRoutes() {
 		reboot = true;
 	});
 
-return 1;
+	return 1;
 }

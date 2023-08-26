@@ -10,29 +10,10 @@
    - Firewall : sudo tail -f /var/log/kern.log
 */
 
-#define WIFI_SSID             ""        //WIFI SSID
-#define WIFI_PASSWORD         ""        //WIFi Password
-
 #include <t6iot.h>
-t6iot t6client;                         // Create a new t6iot client
-String host = "192.168.0.15";           // You can use your own t6iot On Premise application
-int portHttp = 3000;                    // .. and using a custom port for t6iot http
-int portWs   = 4000;                    // .. and using a custom port for t6iot websockets
+#include "t6config.h"
 
-String object_id              = "";     // t6 Object Id, this is used on the useragent as well
-String object_secret          = "";   // optional t6 Object secret (32bits hexa) when using payload encryption
-const char* api_key           = "";     //
-const char* api_secret        = "";     //
-String flow_id                = "FAKE-flow_id";
-
-float sensorValue             = -1.0;   // Value read by the sensor
-const int VAL_PROBE           = 0;      // Analog pin 0
-const int power               = 13;     // VCC connected to sensor, this will be set as OUTPUT Power
-const int measurements        = 10;     // Number of measurements to make sure to sensor is OK
-long READInterval             = 30 * 60;// Interval between each READ in seconds // 30 minutes
-uint8_t                       readTask; // All tasks that can be cancelled
-#define SLEEP_DELAY_IN_SECONDS 1800     // Sleep duration. // 1800=30 minutes / 3600=60 minutes / 2700=45min
-
+t6iot t6client;                                // Create a new t6iot client
 struct sAverage {
   int32_t blockSum;
   uint16_t numSamples;
@@ -40,56 +21,57 @@ struct sAverage {
 struct sAverage sampleAve;
 
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(115200);                       // Begin Serial output
   Serial.flush();
-  Serial.println("t6 > BOOTING");
-  pinMode(power, OUTPUT);
-  
-  //t6client.set_server();                    // Leave host&port by default from t6iot library
-  t6client.set_server(host, portHttp, "");    // Set custom server host, port and useragent
+  pinMode(PWR_PROBE, OUTPUT);
+  delay(200);
+  Serial.println("t6 > BOOT Object");
+  //t6client.lockSleep(t6Timeout);            // TODO, prevent chip from deepsleep
+  //t6client.unlockSleep();                   // TODO, allow chip to deepsleep
+  t6client.set_wifi(WIFI_SSID, WIFI_PASSWORD);// Connect to Wifi network
 
-  // Set the API key and secret.
-  t6client.set_key(api_key);                  // Required to identify yourself
-  t6client.set_secret(api_secret);            // Required to identify yourself
+  if (USE_T6_CUSTOM_SERVER) {
+    t6client.set_server(host, portHttp, "");  // Set custom server host, port and useragent
+  } else {
+    t6client.set_server();                    // Use host & port from default t6iot library
+  }
 
-  // Set Object Id
+  t6client.set_key(api_key);                  // Required to identify yourself on t6
+  t6client.set_secret(api_secret);            // Required to identify yourself on t6
+
   t6client.set_object_id(object_id);          // Required for websockets & encryption
-
-  // Set Object Secret encryption
   t6client.set_object_secret(object_secret);  // Required for websockets & encryption
 
-  // Set the Wifi
-  t6client.set_wifi(WIFI_SSID, WIFI_PASSWORD);// Connect to network
-
   t6client.startHttp(80);                     // Load to serve Http files with a user interface
-  t6client.addStaticRoutes();
-  t6client.addDynamicRoutes();
-  t6client.startSsdp();
-  t6client.startMdns("customName");
-  t6client.startWebsockets(host, portWs);
+  t6client.addStaticRoutes();                 // Load Http static routes on the ESP
+  t6client.addDynamicRoutes();                // Load Http dynamic routes on the ESP
+  t6client.startSsdp();                       // Start SSDP
+  t6client.startMdns(object_name);            // Start MDNS
+  t6client.startWebsockets(host, portWs);     // Connect to t6 web-socket server
+  t6client.audioSetVol(3);                    // Set volume in a 1-10 range (I2S audio)
+  //t6client.activateOTA();                     // Activating Over The Air (OTA) update procedure
 
-  Serial.println("t6 > readTask ; will be triggered each " + String(READInterval) + "s...");
-  readTask = t6client.scheduleFixedRate(READInterval, readSample, TIME_SECONDS);           // Read sensor Value regularly
+                                              // Run only once
+  t6client.scheduleOnce(0, readSample, TIME_SECONDS);
+  Serial.println("t6 > readSample task as 'readTask' ; will be triggered each " + String(READINTERVAL) + "s...");
+
+                                              // Read sensor Value regularly
+  readTask = t6client.scheduleFixedRate(READINTERVAL, readSample, TIME_SECONDS);
   //t6client.cancelTask(readTask);            // Stop a task from executing again if it is a repeating task
 }
-
 void loop() {
   t6client.runLoop();                         // t6 TaskManager
-  t6client.webSockets_loop();
+  if(t6client._websockets_started) { t6client.webSockets_loop(); }
+  if(t6client._audio_started) { t6client.audio_loop(); }
   delay(250);
-
-  //readSample(); // Read the sensors.
-  //Serial.println("t6 > Sleeping ; will wake up in " + String(SLEEP_DELAY_IN_SECONDS) + "s...");
-  //ESP.deepSleep(SLEEP_DELAY_IN_SECONDS * 1000000, WAKE_RF_DEFAULT);
+  //t6client.goToSleep(SLEEP_DELAY_IN_SECONDS);
   //delay(SLEEP_DELAY_IN_SECONDS * 1000000);  // Use delay instead of deepSleep when HttpServer is enabled
 }
-
 int16_t addSampleToAverage(struct sAverage *ave, int16_t newSample) {
   ave->blockSum += newSample;
   ave->numSamples++;
   return newSample;
 }
-
 int16_t getAverage(struct sAverage *ave) {
   int16_t average = ave->blockSum / ave->numSamples;
   // get ready for the next block
@@ -97,16 +79,16 @@ int16_t getAverage(struct sAverage *ave) {
   ave->numSamples = 0;
   return average;
 }
-
 void readSample() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
-  digitalWrite(power, HIGH); // Turn "On"
+  digitalWrite(PWR_PROBE, HIGH); // Turn "On"
+  t6client.lockSleep();
   delay(500);
   int count=1;
-    Serial.println("Measuring:");
+  Serial.println("Measuring:");
   do {
-    sensorValue = constrain( map( analogRead(VAL_PROBE), 0, 1024, 100, 0 ) , 0.0, 1024.0);
+    sensorValue = constrain( map( analogRead(PIN_PROBE), 0, 1024, 100, 0 ) , 0.0, 1024.0);
     Serial.print(" * Measurement ");
     Serial.print(count);
     Serial.print("/");
@@ -125,7 +107,7 @@ void readSample() {
   } while (count <= measurements); // 10 valid measures expected
   delay(1000);
   Serial.println("------------------------------");
-  digitalWrite(power, LOW); // Turn "Off"
+  digitalWrite(PWR_PROBE, LOW); // Turn "Off"
   digitalWrite(LED_BUILTIN, HIGH);
 
   if (getAverage(&sampleAve) > -1) {
@@ -198,5 +180,6 @@ void readSample() {
     // Send the payload to the t6iot API.
     int status = t6client.createDatapoint(payload);
     Serial.println("t6 > Result status " + String(status));
+    t6client.unlockSleep();
   }
 }
