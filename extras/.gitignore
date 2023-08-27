@@ -1,1 +1,4 @@
 /arduino-lint
+/.secrets.baseline
+/arduino-lint.sh
+/detect-secrets.sh
