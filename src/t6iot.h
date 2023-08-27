@@ -26,7 +26,7 @@
 		#include <WiFi.h>
 		#include <HTTPClient.h>
 //		#include <ArduinoBearSSL.h>
-//		#include <WiFiClientSecure.h>
+		#include <WiFiClientSecure.h>
 //		#include <WiFiClientSecureBearSSL.h>
 		#define LED_BUILTIN 2
 	#endif

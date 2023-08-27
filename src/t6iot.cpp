@@ -9,9 +9,43 @@
 #include "t6iot.h"
 // nmap --script ssl-cert.nse -p 443 api.internetcollaboratif.info | grep SHA-1
 // Not valid after:  2023-10-09T05:45:42
+// openssl s_client -connect api.internetcollaboratif.info:443 -prexit -showcerts -state -status -tlsextdebug -verify 10
 
 const char *fingerprint				= "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
-//const char *fingerprint				= "E5 8C 1C C4 91 3B 38 63 4B E9 10 6E E3 AD 8E 6B 9D D9 81 4A";
+const char* root_ca PROGMEM = R"EOF(
+-----BEGIN CERTIFICATE-----
+MIIFYjCCBEqgAwIBAgIQd70NbNs2+RrqIQ/E8FjTDTANBgkqhkiG9w0BAQsFADBX
+MQswCQYDVQQGEwJCRTEZMBcGA1UEChMQR2xvYmFsU2lnbiBudi1zYTEQMA4GA1UE
+CxMHUm9vdCBDQTEbMBkGA1UEAxMSR2xvYmFsU2lnbiBSb290IENBMB4XDTIwMDYx
+OTAwMDA0MloXDTI4MDEyODAwMDA0MlowRzELMAkGA1UEBhMCVVMxIjAgBgNVBAoT
+GUdvb2dsZSBUcnVzdCBTZXJ2aWNlcyBMTEMxFDASBgNVBAMTC0dUUyBSb290IFIx
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAthECix7joXebO9y/lD63
+ladAPKH9gvl9MgaCcfb2jH/76Nu8ai6Xl6OMS/kr9rH5zoQdsfnFl97vufKj6bwS
+iV6nqlKr+CMny6SxnGPb15l+8Ape62im9MZaRw1NEDPjTrETo8gYbEvs/AmQ351k
+KSUjB6G00j0uYODP0gmHu81I8E3CwnqIiru6z1kZ1q+PsAewnjHxgsHA3y6mbWwZ
+DrXYfiYaRQM9sHmklCitD38m5agI/pboPGiUU+6DOogrFZYJsuB6jC511pzrp1Zk
+j5ZPaK49l8KEj8C8QMALXL32h7M1bKwYUH+E4EzNktMg6TO8UpmvMrUpsyUqtEj5
+cuHKZPfmghCN6J3Cioj6OGaK/GP5Afl4/Xtcd/p2h/rs37EOeZVXtL0m79YB0esW
+CruOC7XFxYpVq9Os6pFLKcwZpDIlTirxZUTQAs6qzkm06p98g7BAe+dDq6dso499
+iYH6TKX/1Y7DzkvgtdizjkXPdsDtQCv9Uw+wp9U7DbGKogPeMa3Md+pvez7W35Ei
+Eua++tgy/BBjFFFy3l3WFpO9KWgz7zpm7AeKJt8T11dleCfeXkkUAKIAf5qoIbap
+sZWwpbkNFhHax2xIPEDgfg1azVY80ZcFuctL7TlLnMQ/0lUTbiSw1nH69MG6zO0b
+9f6BQdgAmD06yK56mDcYBZUCAwEAAaOCATgwggE0MA4GA1UdDwEB/wQEAwIBhjAP
+BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTkrysmcRorSCeFL1JmLO/wiRNxPjAf
+BgNVHSMEGDAWgBRge2YaRQ2XyolQL30EzTSo//z9SzBgBggrBgEFBQcBAQRUMFIw
+JQYIKwYBBQUHMAGGGWh0dHA6Ly9vY3NwLnBraS5nb29nL2dzcjEwKQYIKwYBBQUH
+MAKGHWh0dHA6Ly9wa2kuZ29vZy9nc3IxL2dzcjEuY3J0MDIGA1UdHwQrMCkwJ6Al
+oCOGIWh0dHA6Ly9jcmwucGtpLmdvb2cvZ3NyMS9nc3IxLmNybDA7BgNVHSAENDAy
+MAgGBmeBDAECATAIBgZngQwBAgIwDQYLKwYBBAHWeQIFAwIwDQYLKwYBBAHWeQIF
+AwMwDQYJKoZIhvcNAQELBQADggEBADSkHrEoo9C0dhemMXoh6dFSPsjbdBZBiLg9
+NR3t5P+T4Vxfq7vqfM/b5A3Ri1fyJm9bvhdGaJQ3b2t6yMAYN/olUazsaL+yyEn9
+WprKASOshIArAoyZl+tJaox118fessmXn1hIVw41oeQa1v1vg4Fv74zPl6/AhSrw
+9U5pCZEt4Wi4wStz6dTZ/CLANx8LZh1J7QJVj2fhMtfTJr9w4z30Z209fOU0iOMy
++qduBmpvvYuR7hZL6Dupszfnw0Skfths18dG9ZKb59UhvmaSGZRVbNQpsg3BZlvi
+d0lIKO2d1xozclOzgjXPYovJJIultzkMu34qQb9Sz/yilrbCgj8=
+-----END CERTIFICATE-----
+)EOF";
+IPAddress							dns(8, 8, 8, 8); //Google dns
 String DEFAULT_useragent			= "t6iot-library/2.0.4 (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
 String DEFAULT_host					= "api.internetcollaboratif.info";
 int DEFAULT_port					= 443;
@@ -106,22 +140,18 @@ void t6iot::set_wifi(const String &wifi_ssid, const String &wifi_password) {
 	_ssid = wifi_ssid;
 	_password = wifi_password;
 	Serial.println();
-	Serial.print("t6 > Connecting to Wifi SSID: ");
+	Serial.print(F("t6 > Connecting to Wifi SSID: "));
 	Serial.println(_ssid);
 	WiFi.mode(WIFI_STA);
 	WiFi.begin(_ssid, _password);
+	WiFi.waitForConnectResult();
+	WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), dns);
 	if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-		Serial.println("t6 > WiFi Connect Failed! Rebooting...");
+		Serial.println(F("t6 > WiFi Connect Failed! Rebooting..."));
 		delay(1000);
-		Serial.print(".");
+		Serial.print(F("."));
 	} else {
-		Serial.println("t6 > WiFi Connected...");
-		#if defined(ESP8266)
-			Serial.print("t6 > WiFi getPhyMode(): ");
-			Serial.println(WiFi.getPhyMode());
-		#endif
-		Serial.print("t6 > WiFi IP Address: ");
-		Serial.println(WiFi.localIP());
+		Serial.println(F("t6 > WiFi Connected..."));
 		delay(1000);
 	}
 }
@@ -130,96 +160,83 @@ void t6iot::set_endpoint(const String &endpoint) {
 }
 void t6iot::set_key(const char *key) {
 	_key = key;
-	Serial.println("t6 > set_key is DONE");
+	Serial.println(F("t6 > set_key is DONE"));
 }
 void t6iot::set_secret(const char *secret) {
 	_secret = secret;
-	Serial.println("t6 > set_secret is DONE");
+	Serial.println(F("t6 > set_secret is DONE"));
 }
 void t6iot::set_object_id(String object_id) {
 	_object_id = object_id;
 	_userAgent = String(_userAgent + " +oid:" + _object_id);
-	Serial.print("t6 > Using User-Agent: "); Serial.println(_userAgent);
+	Serial.print(F("t6 > Using User-Agent: ")); Serial.println(_userAgent);
 }
 void t6iot::set_object_secret(String secret) {
 	_object_secret = secret;
-	Serial.println("t6 > Using secret from Object to encrypt payload");
+	Serial.println(F("t6 > Using secret from Object to encrypt payload"));
 }
 int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 	t6iot::set_endpoint("/v2.0.1/data/"); // Set the t6iot API endpoint.
 	String payloadStr;
 	serializeJson(payload, payloadStr);
-
 	if (false) { // TODO
 		payloadStr = _getSignedPayload(payloadStr, _object_id, _object_secret); // TODO
 	}
-	Serial.println("t6 > Adding datapoint(s) to: "); Serial.print(" * "); Serial.print(_httpProtocol); Serial.print(_httpHost); Serial.print(":"); Serial.print(_httpPort); Serial.println(_endpoint);
-	Serial.println("t6 > User-Agent: "); Serial.print(" * "); Serial.println(_userAgent);
-	Serial.println("t6 > payload: "); Serial.print(" * "); Serial.println(payloadStr);
+	Serial.println(F("t6 > Adding datapoint(s) to: ")); Serial.print(" * "); Serial.print(_httpProtocol); Serial.print(_httpHost); Serial.print(":"); Serial.print(_httpPort); Serial.println(_endpoint);
+	Serial.println(F("t6 > User-Agent: ")); Serial.print(" * "); Serial.println(_userAgent);
+	Serial.println(F("t6 > payload: ")); Serial.print(" * "); Serial.println(payloadStr);
 
 	if (_httpPort == 443) {
 		Serial.printf("t6 > HTTPS / Using fingerprint: %s\n", fingerprint);
-		#ifdef ESP8266
-			Serial.println("t6 > ESP8266");
-			std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
-			HTTPClient https;
-			int conn = https.begin(*client, String(_httpHost).c_str(), _httpPort, _endpoint, true);
-			client->setFingerprint(fingerprint);
-			/*
-			22:56:45.510 -> BSSL:_connectSSL: start connection
-			22:56:45.510 -> BSSL:_connectSSL: OOM error
-			22:56:45.510 -> [HTTP-Client] failed connect to api.internetcollaboratif.info:443
-			22:56:45.510 -> [HTTP-Client][returnError] error(-1): connection failed
-			22:56:45.543 -> t6 > httpCode failure aaaaa: [HTTP-Client][end] tcp is closed
-			*/
-			if (conn > 0) {
-				Serial.print(F("t6 > https.begin conn success: "));
-				Serial.println(conn);
-				https.setUserAgent(String(_httpHost).c_str());
-				https.addHeader("User-Agent", "t6iot-library " + String(_userAgent));
-				https.addHeader("Accept", "application/json");
-				https.addHeader("Content-Type", "application/json");
-				https.addHeader("Cache-Control", "no-cache");
-				https.addHeader("Accept-Encoding", "gzip, deflate, br");
-				https.addHeader("x-api-key", _key);
-				https.addHeader("x-api-secret", _secret);
-				https.addHeader("Content-Length", String((payloadStr).length()));
-				https.addHeader("Connection", "Close");
-				int httpCode = https.POST(payloadStr);
-				if (httpCode == 200 && payloadStr != "") {
-					String payloadRes = https.getString();
-					DynamicJsonDocument doc(2048);
-					DeserializationError error = deserializeJson(doc, payloadRes);
-					if (!error) {
-						return httpCode;
-					} else {
-						Serial.print(F("t6 > DeserializeJson() failed: "));
-						Serial.println(error.c_str());
-						return 500;
-					}
-				} else {
-					Serial.print(F("t6 > httpCode failure aaaaa: "));
-					String payloadRes = https.getString();
-					Serial.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-					Serial.println(payloadRes);
-					Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-					return httpCode;
+		Serial.println(F("t6 > ESP8266 & ESP32"));
+		Serial.println(F("t6 > _userAgent"));
+		Serial.println(_userAgent);
+		wifiClient.setCACert(root_ca);
+		int conn = wifiClient.connect(String(_httpHost).c_str(), _httpPort);
+		if (conn > 0) {
+			Serial.print(F("t6 > https.begin conn success: "));
+			Serial.println(conn);
+			wifiClient.println("POST " + String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ) + " HTTP/1.0");
+			wifiClient.print("User-Agent:"); wifiClient.println(_userAgent);
+			wifiClient.print("Host:"); wifiClient.println(_httpHost);
+			wifiClient.println("Accept: application/json");
+			wifiClient.println("Content-Type: application/json");
+			wifiClient.println("Cache-Control: no-cache");
+			wifiClient.println("Accept-Encoding: gzip, deflate, br");
+			wifiClient.print("x-api-key:"); wifiClient.println(_key);
+			wifiClient.print("x-api-secret:"); wifiClient.println(_secret);
+			wifiClient.print("Content-Length:"); wifiClient.println((payloadStr).length());
+			wifiClient.println("Connection: Close");
+			wifiClient.println();
+			wifiClient.println(payloadStr);
+
+			while (wifiClient.connected()) {
+				String line = wifiClient.readStringUntil('\n');
+				if (line == "\r") {
+					Serial.println(line);
+					break;
 				}
-			} else {
-				Serial.print(F("t6 > https.begin conn failure: "));
-				Serial.println(conn);
-				return conn;
 			}
-		#elif ESP32
-			Serial.println("t6 > ESP32");
-			return 501;
-		#endif
+			while (wifiClient.available()) {
+				char c = wifiClient.read();
+				Serial.write(c);
+			}
+			wifiClient.stop();
+			return conn;
+		} else {
+			Serial.print(F("t6 > https.begin conn failure: "));
+			Serial.println(conn);
+			return conn;
+		}
 	} else {
-		Serial.println("t6 > HTTP / Not using fingerprint / setInsecure");
+		Serial.println(F("t6 > HTTP / Not using fingerprint / setInsecure"));
+		Serial.println(F("t6 > ESP8266 & ESP32"));
+		Serial.println(F("t6 > _userAgent"));
+		Serial.println(_userAgent);
 		WiFiClient client;
 		HTTPClient http;
 		http.begin(client, String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ));
-		http.addHeader("User-Agent", "t6iot-library " + String(_userAgent));
+		http.addHeader("User-Agent", String(_userAgent));
 		http.addHeader("Accept", "application/json");
 		http.addHeader("Content-Type", "application/json");
 		http.addHeader("Cache-Control", "no-cache");
@@ -237,11 +254,11 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			return httpCode;
 		} else {
 			const String& payloadRes = http.getString();
-			Serial.print("t6 > Error Response: ");
+			Serial.print(F("t6 > Error Response: "));
 			Serial.println(httpCode);
-			Serial.println("t6 > payloadRes: EOE21>>");
+			Serial.println(F("t6 > payloadRes: EOE21>>"));
 			Serial.println(payloadRes);
-			Serial.println("<<EOE2");
+			Serial.println(F("<<EOE2"));
 			return httpCode;
 		}
 		http.end();
@@ -361,7 +378,7 @@ void t6iot::unlockSleep() {
 void t6iot::goToSleep(const long dur) {
 	if (!_locked) {
 		Serial.println("t6 > Sleeping ; will wake up in " + String(dur) + "s...");
-		Serial.println("t6 > Sleeping DISABLED - hardcoded");
+		Serial.println(F("t6 > Sleeping DISABLED - hardcoded"));
 		//ESP.deepSleep(dur * 1000000, WAKE_RF_DEFAULT);
 	}
 }

@@ -8,6 +8,10 @@
    - SSDP     : gssdp-discover -i eth0 -r 5
    - MDSN     : mdns-scan
    - Firewall : sudo tail -f /var/log/kern.log
+
+   ESP32 & ESP8266 known compatible architectures:
+   - ESP32-WROOM-DA module          / Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS
+   - NodeMCU 1.0 (ESP-12E) Module
 */
 
 #include <t6iot.h>
@@ -21,7 +25,7 @@ struct sAverage {
 struct sAverage sampleAve;
 
 void setup() {
-  Serial.begin(115200);                       // Begin Serial output
+  Serial.begin(115200);
   Serial.flush();
   pinMode(PWR_PROBE, OUTPUT);
   delay(200);
@@ -39,7 +43,7 @@ void setup() {
   t6client.set_key(api_key);                  // Required to identify yourself on t6
   t6client.set_secret(api_secret);            // Required to identify yourself on t6
 
-  t6client.set_object_id(object_id);          // Required for websockets & encryption
+  t6client.set_object_id(object_id);          // Required for websockets & encryption and used in the user-agent
   t6client.set_object_secret(object_secret);  // Required for websockets & encryption
 
   t6client.startHttp(80);                     // Load to serve Http files with a user interface
@@ -86,7 +90,7 @@ void readSample() {
   t6client.lockSleep();
   delay(500);
   int count=1;
-  Serial.println("Measuring:");
+  Serial.println("t6 > Measuring:");
   do {
     sensorValue = constrain( map( analogRead(PIN_PROBE), 0, 1024, 100, 0 ) , 0.0, 1024.0);
     Serial.print(" * Measurement ");
@@ -122,8 +126,8 @@ void readSample() {
     payload[index]["retention"]    = "retention1d";
     payload[index]["datatype_id"]  = "e7dbdc23-5fa8-4083-b3ec-bb99c08a2a35";
     payload[index]["object_id"]    = object_id;
-    payload[index]["longitude"]    = -117.98329726717841;
-    payload[index]["latitude"]     = 35.06649625390798;
+    payload[index]["longitude"]    = -117.98329726717841;  // This can be dynamic and sent to t6 iot server
+    payload[index]["latitude"]     = 35.06649625390798;    // This can be dynamic and sent to t6 iot server
     payload[index]["save"]         = false;
     payload[index]["publish"]      = true;
 
