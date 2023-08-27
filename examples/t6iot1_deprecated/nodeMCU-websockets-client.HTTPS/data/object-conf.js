@@ -1,0 +1,1 @@
+let config={"object_ip": "","object_port": "","wsHost": "","wsPort": "","wsPath": "/ws","friendlyName": "","t6Object_id": ""};
