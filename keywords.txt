@@ -12,6 +12,11 @@ t6iot_Mdns	KEYWORD1
 t6iot_Http	KEYWORD1
 t6iot_Audio	KEYWORD1
 t6iot_Websockets	KEYWORD1
+bool _http_started	KEYWORD1
+bool _ssdp_started	KEYWORD1
+bool _mdns_started	KEYWORD1
+bool _audio_started	KEYWORD1
+bool _websockets_started	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
@@ -29,14 +34,20 @@ createDatapoints	KEYWORD2
 startSsdp	KEYWORD2
 startMdns	KEYWORD2
 startWebsockets	KEYWORD2
+webSockets_sendTXT	KEYWORD2
+isClaimed	KEYWORD2
+webSockets_loop	KEYWORD2
 startHttp	KEYWORD2
 addStaticRoutes	KEYWORD2
 addDynamicRoutes	KEYWORD2
-webSockets_loop	KEYWORD2
-webSockets_sendTXT	KEYWORD2
 audio_loop	KEYWORD2
 audioListenTo	KEYWORD2
 audioSetVol	KEYWORD2
+isLocked	KEYWORD2
+lockSleep	KEYWORD2
+unlockSleep	KEYWORD2
+goToSleep	KEYWORD2
+activateOTA	KEYWORD2
 
 
 ######################################
@@ -52,3 +63,14 @@ WAKE_RF_DEFAULT	LITERAL1
 USE_T6_CUSTOM_SERVER	LITERAL1
 WIFI_SSID	LITERAL1
 WIFI_PASSWORD	LITERAL1
+host	LITERAL1
+portHttp	LITERAL1
+portWs	LITERAL1
+object_name	LITERAL1
+object_id	LITERAL1
+object_secret	LITERAL1
+flow_id	LITERAL1
+api_key	LITERAL1
+api_secret	LITERAL1
+sensorValue	LITERAL1
+measurements	LITERAL1
