@@ -22,6 +22,7 @@
 	#if defined(ESP8266)
 		#include <ESP8266WiFi.h>
 		#include <ESP8266HTTPClient.h>
+		#include <ArduinoHttpClient.h>
 	#elif ESP32
 		#include <WiFi.h>
 		#include <HTTPClient.h>

@@ -145,7 +145,10 @@ void t6iot::set_wifi(const String &wifi_ssid, const String &wifi_password) {
 	WiFi.mode(WIFI_STA);
 	WiFi.begin(_ssid, _password);
 	WiFi.waitForConnectResult();
-	WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), dns);
+	#ifdef ESP32
+		// ESP32 require a dns ?
+		WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), dns);
+	#endif
 	if (WiFi.waitForConnectResult() != WL_CONNECTED) {
 		Serial.println(F("t6 > WiFi Connect Failed! Rebooting..."));
 		delay(1000);
@@ -188,81 +191,164 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 
 	if (_httpPort == 443) {
 		Serial.printf("t6 > HTTPS / Using fingerprint: %s\n", fingerprint);
-		Serial.println(F("t6 > ESP8266 & ESP32"));
-		Serial.println(F("t6 > _userAgent"));
-		Serial.println(_userAgent);
-		wifiClient.setCACert(root_ca);
-		int conn = wifiClient.connect(String(_httpHost).c_str(), _httpPort);
-		if (conn > 0) {
-			Serial.print(F("t6 > https.begin conn success: "));
-			Serial.println(conn);
-			wifiClient.println("POST " + String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ) + " HTTP/1.0");
-			wifiClient.print("User-Agent:"); wifiClient.println(_userAgent);
-			wifiClient.print("Host:"); wifiClient.println(_httpHost);
-			wifiClient.println("Accept: application/json");
-			wifiClient.println("Content-Type: application/json");
-			wifiClient.println("Cache-Control: no-cache");
-			wifiClient.println("Accept-Encoding: gzip, deflate, br");
-			wifiClient.print("x-api-key:"); wifiClient.println(_key);
-			wifiClient.print("x-api-secret:"); wifiClient.println(_secret);
-			wifiClient.print("Content-Length:"); wifiClient.println((payloadStr).length());
-			wifiClient.println("Connection: Close");
-			wifiClient.println();
-			wifiClient.println(payloadStr);
-
-			while (wifiClient.connected()) {
-				String line = wifiClient.readStringUntil('\n');
-				if (line == "\r") {
-					Serial.println(line);
-					break;
+		#if defined(ESP8266)
+			Serial.println(F("t6 > ESP8266"));
+			Serial.println(F("t6 > _userAgent"));
+			Serial.println(_userAgent);
+			WiFiClientSecure client;
+			std::unique_ptr<BearSSL::WiFiClientSecure>client8266(new BearSSL::WiFiClientSecure);
+			HTTPClient https;
+			int conn = https.begin(*client8266, String(_httpHost).c_str(), _httpPort, _endpoint, true);
+			client8266->setFingerprint(fingerprint);
+			if (conn > 0) {
+				Serial.print(F("t6 > https.begin conn success: "));
+				Serial.println(conn);
+				https.setUserAgent(String(_userAgent));
+				https.addHeader("User-Agent", String(_userAgent));
+				https.addHeader("Accept", "application/json");
+				https.addHeader("Content-Type", "application/json");
+				https.addHeader("Cache-Control", "no-cache");
+				https.addHeader("Accept-Encoding", "gzip, deflate, br");
+				https.addHeader("x-api-key", _key);
+				https.addHeader("x-api-secret", _secret);
+				https.addHeader("Content-Length", String((payloadStr).length()));
+				https.addHeader("Connection", "Close");
+				int httpCode = https.POST(payloadStr);
+				if (httpCode == 200 && payloadStr != "") {
+					String payloadRes = https.getString();
+					DynamicJsonDocument doc(2048);
+					DeserializationError error = deserializeJson(doc, payloadRes);
+					if (!error) {
+						return httpCode;
+					} else {
+						Serial.print(F("t6 > DeserializeJson() failed: "));
+						Serial.println(error.c_str());
+						return 500;
+					}
+				} else {
+					Serial.print(F("t6 > httpCode failure aaaaa: "));
+					String payloadRes = https.getString();
+					Serial.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+					Serial.println(payloadRes);
+					Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+					return httpCode;
 				}
+			} else {
+				Serial.print(F("t6 > https.begin conn failure: "));
+				Serial.println(conn);
+				return conn;
 			}
-			while (wifiClient.available()) {
-				char c = wifiClient.read();
-				Serial.write(c);
+		#elif ESP32
+			Serial.println(F("t6 > ESP32"));
+			Serial.println(F("t6 > _userAgent"));
+			Serial.println(_userAgent);
+			wifiClient.setCACert(root_ca);
+			int conn = wifiClient.connect(String(_httpHost).c_str(), _httpPort);
+			if (conn > 0) {
+				Serial.print(F("t6 > https.begin conn success: "));
+				Serial.println(conn);
+				wifiClient.println("POST " + String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ) + " HTTP/1.0");
+				wifiClient.print("User-Agent:"); wifiClient.println(_userAgent);
+				wifiClient.print("Host:"); wifiClient.println(_httpHost);
+				wifiClient.println("Accept: application/json");
+				wifiClient.println("Content-Type: application/json");
+				wifiClient.println("Cache-Control: no-cache");
+				wifiClient.println("Accept-Encoding: gzip, deflate, br");
+				wifiClient.print("x-api-key:"); wifiClient.println(_key);
+				wifiClient.print("x-api-secret:"); wifiClient.println(_secret);
+				wifiClient.print("Content-Length:"); wifiClient.println((payloadStr).length());
+				wifiClient.println("Connection: Close");
+				wifiClient.println();
+				wifiClient.println(payloadStr);
+
+				while (wifiClient.connected()) {
+					String line = wifiClient.readStringUntil('\n');
+					if (line == "\r") {
+						Serial.println(line);
+						break;
+					}
+				}
+				while (wifiClient.available()) {
+					char c = wifiClient.read();
+					Serial.write(c);
+				}
+				wifiClient.stop();
+				return conn;
+			} else {
+				Serial.print(F("t6 > https.begin conn failure: "));
+				Serial.println(conn);
+				return conn;
 			}
-			wifiClient.stop();
-			return conn;
-		} else {
-			Serial.print(F("t6 > https.begin conn failure: "));
-			Serial.println(conn);
-			return conn;
-		}
+		#endif
 	} else {
 		Serial.println(F("t6 > HTTP / Not using fingerprint / setInsecure"));
-		Serial.println(F("t6 > ESP8266 & ESP32"));
-		Serial.println(F("t6 > _userAgent"));
-		Serial.println(_userAgent);
-		WiFiClient client;
-		HTTPClient http;
-		http.begin(client, String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ));
-		http.addHeader("User-Agent", String(_userAgent));
-		http.addHeader("Accept", "application/json");
-		http.addHeader("Content-Type", "application/json");
-		http.addHeader("Cache-Control", "no-cache");
-		http.addHeader("Accept-Encoding", "gzip, deflate, br");
-		http.addHeader("x-api-key", _key);
-		http.addHeader("x-api-secret", _secret);
-		http.addHeader("Content-Length", String((payloadStr).length()));
-		http.addHeader("Connection", "Close");
-		int httpCode = http.POST(payloadStr); //Body
-		if (httpCode > 0) {
-			const String& payloadRes = http.getString();
-			Serial.print("t6 > OK Response: ");
-			Serial.println(httpCode);
-			Serial.println(payloadRes);
+		#if defined(ESP8266)
+			Serial.println(F("t6 > ESP8266"));
+			Serial.println(F("t6 > _userAgent"));
+			Serial.println(_userAgent);
+			WiFiClient wifi;
+			HttpClient client = HttpClient(wifi, _httpHost, _httpPort);
+			client.beginRequest();
+			client.post("/v2.0.1/data/");
+			client.sendHeader("User-Agent", String(_userAgent));
+			client.sendHeader("Accept", "application/json");
+			client.sendHeader("Content-Type", "application/json");
+			client.sendHeader("Cache-Control", "no-cache");
+			client.sendHeader("Accept-Encoding", "gzip, deflate, br");
+			client.sendHeader("x-api-key", _key);
+			client.sendHeader("x-api-secret", _secret);
+			client.sendHeader("Content-Length", (payloadStr).length());
+			//client.beginBody();
+			client.print(payloadStr);
+			client.endRequest();
+
+			int httpCode = client.responseStatusCode();
+
+			if (httpCode == 200 && payloadStr != "") {
+				return httpCode;
+			} else {
+				Serial.print(F("t6 > httpCode failure httpCode: "));
+				Serial.println(httpCode);
+				String payloadRes = client.responseBody();
+				Serial.println(payloadRes);
+				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+				return httpCode;
+			}
+		#elif ESP32
+			Serial.println(F("t6 > ESP32"));
+			Serial.println(F("t6 > _userAgent"));
+			Serial.println(_userAgent);
+			WiFiClient client;
+			HTTPClient http;
+			http.begin(client, String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ));
+			http.addHeader("User-Agent", String(_userAgent));
+			http.addHeader("Accept", "application/json");
+			http.addHeader("Content-Type", "application/json");
+			http.addHeader("Cache-Control", "no-cache");
+			http.addHeader("Accept-Encoding", "gzip, deflate, br");
+			http.addHeader("x-api-key", _key);
+			http.addHeader("x-api-secret", _secret);
+			http.addHeader("Content-Length", String((payloadStr).length()));
+			http.addHeader("Connection", "Close");
+			int httpCode = http.POST(payloadStr); //Body
+			if (httpCode > 0) {
+				const String& payloadRes = http.getString();
+				Serial.print("t6 > OK Response: ");
+				Serial.println(httpCode);
+				Serial.println(payloadRes);
+				return httpCode;
+			} else {
+				const String& payloadRes = http.getString();
+				Serial.print(F("t6 > Error Response: "));
+				Serial.println(httpCode);
+				Serial.println(F("t6 > payloadRes: EOE21>>"));
+				Serial.println(payloadRes);
+				Serial.println(F("<<EOE2"));
+				return httpCode;
+			}
+			http.end();
 			return httpCode;
-		} else {
-			const String& payloadRes = http.getString();
-			Serial.print(F("t6 > Error Response: "));
-			Serial.println(httpCode);
-			Serial.println(F("t6 > payloadRes: EOE21>>"));
-			Serial.println(payloadRes);
-			Serial.println(F("<<EOE2"));
-			return httpCode;
-		}
-		http.end();
-		return httpCode;
+		#endif
 	}
 }
 int t6iot::createDatapoints(DynamicJsonDocument &payload) {
@@ -379,7 +465,7 @@ void t6iot::goToSleep(const long dur) {
 	if (!_locked) {
 		Serial.println("t6 > Sleeping ; will wake up in " + String(dur) + "s...");
 		Serial.println(F("t6 > Sleeping DISABLED - hardcoded"));
-		//ESP.deepSleep(dur * 1000000, WAKE_RF_DEFAULT);
+		ESP.deepSleep(dur * 1000000, WAKE_RF_DEFAULT);
 	}
 }
 void t6iot::activateOTA() {

@@ -13,6 +13,7 @@
    - ESP32-WROOM-DA module          / Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS
    - NodeMCU 1.0 (ESP-12E) Module // Using nodemcu board v2.7.4: https://github.com/arrowhead-f/ArrowheadESP/issues/6#issuecomment-865923278
    - WEMOS D1 R32
+   - ESP8266/Lolin(WEMOS) D1 Mini Pro
 */
 
 #include <t6iot.h>
