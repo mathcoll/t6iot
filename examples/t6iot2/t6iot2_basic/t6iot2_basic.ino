@@ -10,10 +10,10 @@
    - Firewall : sudo tail -f /var/log/kern.log
 
    ESP32 & ESP8266 known compatible architectures:
-   - ESP32-WROOM-DA module          / Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS
-   - NodeMCU 1.0 (ESP-12E) Module // Using nodemcu board v2.7.4: https://github.com/arrowhead-f/ArrowheadESP/issues/6#issuecomment-865923278
-   - WEMOS D1 R32
-   - ESP8266/Lolin(WEMOS) D1 Mini Pro
+   - ESP32 v2.0.11/WROOM-DA module          / Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS
+   - ESP32 v2.0.11/WEMOS D1 R32
+   - ESP8266 v3.1.2/Lolin(WEMOS) D1 Mini Pro
+   - ESP8266 v3.1.2/NodeMCU 1.0 (ESP-12E) Module
 */
 
 #include <t6iot.h>
@@ -37,7 +37,7 @@ void setup() {
   t6client.set_wifi(WIFI_SSID, WIFI_PASSWORD);// Connect to Wifi network
 
   if (USE_T6_CUSTOM_SERVER) {
-    t6client.set_server(host, portHttp, "");  // Set custom server host, port and useragent
+    t6client.set_server(host, portHttp);      // Set custom server host, port
   } else {
     t6client.set_server();                    // Use host & port from default t6iot library
   }
