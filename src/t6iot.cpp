@@ -464,8 +464,11 @@ void t6iot::unlockSleep() {
 void t6iot::goToSleep(const long dur) {
 	if (!_locked) {
 		Serial.println("t6 > Sleeping ; will wake up in " + String(dur) + "s...");
-		Serial.println(F("t6 > Sleeping DISABLED - hardcoded"));
-		ESP.deepSleep(dur * 1000000, WAKE_RF_DEFAULT);
+		#if defined(ESP8266)
+			ESP.deepSleep(dur * 1000000, WAKE_RF_DEFAULT);
+		#elif ESP32
+			esp_sleep_enable_timer_wakeup(dur * 1000000);
+		#endif
 	}
 }
 void t6iot::activateOTA() {
