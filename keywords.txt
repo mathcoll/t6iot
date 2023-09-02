@@ -25,6 +25,7 @@ ESP	KEYWORD2
 t6iot	KEYWORD2
 set_server	KEYWORD2
 set_key	KEYWORD2
+set_useragent	KEYWORD2
 set_secret	KEYWORD2
 set_object_id	KEYWORD2
 set_object_secret	KEYWORD2
@@ -64,6 +65,7 @@ USE_T6_CUSTOM_SERVER	LITERAL1
 WIFI_SSID	LITERAL1
 WIFI_PASSWORD	LITERAL1
 host	LITERAL1
+useragent	LITERAL1
 portHttp	LITERAL1
 portWs	LITERAL1
 object_name	LITERAL1

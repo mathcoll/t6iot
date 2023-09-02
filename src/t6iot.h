@@ -1,5 +1,5 @@
 /*
-  t6iot.h - v2.0.4
+  t6iot - v2.0.4
   Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
   - t6 website: https://www.internetcollaboratif.info
   - t6 iot: https://api.internetcollaboratif.info
@@ -23,6 +23,7 @@
 		#include <ESP8266WiFi.h>
 		#include <ESP8266HTTPClient.h>
 		#include <ArduinoHttpClient.h>
+		#include <WiFiClientSecureBearSSL.h>
 	#elif ESP32
 		#include <WiFi.h>
 		#include <HTTPClient.h>
@@ -39,6 +40,7 @@
 			void set_server(String host);
 			void set_server(String host, int port);
 			void set_server(String host, int port, String useragent);
+			void set_useragent(String useragent);
 			void set_key(const char* key);
 			void set_secret(const char* secret);
 			void set_object_id(String object_id);

@@ -10,7 +10,7 @@
    - Firewall : sudo tail -f /var/log/kern.log
 
    ESP32 & ESP8266 known compatible architectures:
-   - ESP32 v2.0.11/WROOM-DA module          / Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS
+   - ESP32 v2.0.11/WROOM-DA module / Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS
    - ESP32 v2.0.11/WEMOS D1 R32
    - ESP8266 v3.1.2/Lolin(WEMOS) D1 Mini Pro
    - ESP8266 v3.1.2/NodeMCU 1.0 (ESP-12E) Module
@@ -32,8 +32,8 @@ void setup() {
   pinMode(PWR_PROBE, OUTPUT);
   delay(200);
   Serial.println("t6 > BOOT Object");
-  //t6client.lockSleep(t6Timeout);            // TODO, prevent chip from deepsleep
-  //t6client.unlockSleep();                   // TODO, allow chip to deepsleep
+  //t6client.lockSleep(t6Timeout);            // Prevent chip from deepsleep
+  //t6client.unlockSleep();                   // Allow chip to deepsleep
   t6client.set_wifi(WIFI_SSID, WIFI_PASSWORD);// Connect to Wifi network
 
   if (USE_T6_CUSTOM_SERVER) {
@@ -41,6 +41,7 @@ void setup() {
   } else {
     t6client.set_server();                    // Use host & port from default t6iot library
   }
+  t6client.set_useragent(useragent);          // Customize User-Agent
 
   t6client.set_key(api_key);                  // Required to identify yourself on t6
   t6client.set_secret(api_secret);            // Required to identify yourself on t6
@@ -55,7 +56,7 @@ void setup() {
   t6client.startMdns(object_name);            // Start MDNS
   t6client.startWebsockets(host, portWs);     // Connect to t6 web-socket server
   t6client.audioSetVol(3);                    // Set volume in a 1-10 range (I2S audio)
-  //t6client.activateOTA();                     // Activating Over The Air (OTA) update procedure
+  //t6client.activateOTA();                   // NOT IMPLEMENTED YET - Activating Over The Air (OTA) update procedure
 
                                               // Run only once
   t6client.scheduleOnce(0, readSample, TIME_SECONDS);
@@ -71,7 +72,7 @@ void loop() {
   if(t6client._audio_started) { t6client.audio_loop(); }
   delay(250);
   //t6client.goToSleep(SLEEP_DELAY_IN_SECONDS);
-  //delay(SLEEP_DELAY_IN_SECONDS * 1000000);  // Use delay instead of deepSleep when HttpServer is enabled
+  //delay(SLEEP_DELAY_IN_SECONDS);  // Use delay instead of deepSleep when HttpServer is enabled
 }
 int16_t addSampleToAverage(struct sAverage *ave, int16_t newSample) {
   ave->blockSum += newSample;
@@ -134,6 +135,7 @@ void readSample() {
     payload[index]["publish"]      = true;
 
     meta[index]["sensor"]          = "sample sensor";
+    /*
     rules[index][0]["conditions"]["all"][0]["fact"]        = "flow";
     rules[index][0]["conditions"]["all"][0]["operator"]    = "equal";
     rules[index][0]["conditions"]["all"][0]["value"]       = flow_id;
@@ -156,7 +158,7 @@ void readSample() {
     rules[index][1]["event"]["params"]["text"]             = "Geofencing > outside by {distance} meter(s)";
     rules[index][1]["event"]["params"]["html"]             = "<h1>Geofencing</h1><br /> &gt; outside by {distance} meter(s)";
     rules[index][1]["priority"]                            = "2";
-
+    */
     payload[index]["meta"]          = meta[index];
     payload[index]["rules"]         = rules[index];
     // payload[index]["unit"]          = "26a4be78-1c02-4a41-acc1-14d8e6b29a84";

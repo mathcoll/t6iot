@@ -1,10 +1,10 @@
 /*
- t6iot.cpp - v2.0.4
- Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
- - t6 website: https://www.internetcollaboratif.info
- - t6 iot: https://api.internetcollaboratif.info
- - Api doc: https://api.internetcollaboratif.info/docs/
- */
+  t6iot - v2.0.4
+  Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
+  - t6 website: https://www.internetcollaboratif.info
+  - t6 iot: https://api.internetcollaboratif.info
+  - Api doc: https://api.internetcollaboratif.info/docs/
+*/
 
 #include "t6iot.h"
 // nmap --script ssl-cert.nse -p 443 api.internetcollaboratif.info | grep SHA-1
@@ -98,6 +98,15 @@ t6iot::t6iot(): TaskManager() {
 	Serial.print("t6 > getSketchMD5"); Serial.println(ESP.getSketchMD5());
 	Serial.print("t6 > getFlashChipSize"); Serial.println(ESP.getFlashChipSize());
 	Serial.print("t6 > getFlashChipSpeed"); Serial.println(ESP.getFlashChipSpeed());
+}
+void t6iot::set_useragent(String useragent) {
+	if ( !useragent.isEmpty() ) {
+		Serial.println("t6 > Using CUSTOM UA");
+		_userAgent = useragent;
+	} else {
+		Serial.println("t6 > Using DEFAULT UA");
+		_userAgent = DEFAULT_useragent;
+	}
 }
 void t6iot::set_server() {
 	Serial.println("t6 > Using DEFAULT host, port  & UA");
@@ -193,55 +202,36 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 		Serial.printf("t6 > HTTPS / Using fingerprint: %s\n", fingerprint);
 		#if defined(ESP8266)
 			Serial.println(F("t6 > ESP8266"));
-			Serial.println(F("t6 > _userAgent"));
-			Serial.println(_userAgent);
-			WiFiClientSecure client;
-			std::unique_ptr<BearSSL::WiFiClientSecure>client8266(new BearSSL::WiFiClientSecure);
 			HTTPClient https;
-			int conn = https.begin(*client8266, String(_httpHost).c_str(), _httpPort, _endpoint, true);
-			client8266->setFingerprint(fingerprint);
-			if (conn > 0) {
-				Serial.print(F("t6 > https.begin conn success: "));
-				Serial.println(conn);
-				https.setUserAgent(String(_userAgent));
-				https.addHeader("User-Agent", String(_userAgent));
-				https.addHeader("Accept", "application/json");
-				https.addHeader("Content-Type", "application/json");
-				https.addHeader("Cache-Control", "no-cache");
-				https.addHeader("Accept-Encoding", "gzip, deflate, br");
-				https.addHeader("x-api-key", _key);
-				https.addHeader("x-api-secret", _secret);
-				https.addHeader("Content-Length", String((payloadStr).length()));
-				https.addHeader("Connection", "Close");
-				int httpCode = https.POST(payloadStr);
-				if (httpCode == 200 && payloadStr != "") {
-					String payloadRes = https.getString();
-					DynamicJsonDocument doc(2048);
-					DeserializationError error = deserializeJson(doc, payloadRes);
-					if (!error) {
-						return httpCode;
-					} else {
-						Serial.print(F("t6 > DeserializeJson() failed: "));
-						Serial.println(error.c_str());
-						return 500;
-					}
-				} else {
-					Serial.print(F("t6 > httpCode failure aaaaa: "));
-					String payloadRes = https.getString();
-					Serial.println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
-					Serial.println(payloadRes);
-					Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-					return httpCode;
-				}
+			BearSSL::WiFiClientSecure newSecure;
+			newSecure.setFingerprint(fingerprint);
+			int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _endpoint);
+			https.setUserAgent(String(_userAgent));
+			https.addHeader("User-Agent", String(_userAgent));
+			https.addHeader("Accept", "application/json");
+			https.addHeader("Content-Type", "application/json");
+			https.addHeader("Cache-Control", "no-cache");
+			https.addHeader("Accept-Encoding", "gzip, deflate, br");
+			https.addHeader("x-api-key", _key);
+			https.addHeader("x-api-secret", _secret);
+	//		https.addHeader("Content-Length", String((payloadStr).length()));
+			int httpCode = https.POST(payloadStr);
+			if (httpCode == 200 && payloadStr != "") {
+				String payload = https.getString();
+				Serial.print(F("t6 > payload: "));
+				Serial.println(payload);
+				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+				return httpCode;
 			} else {
-				Serial.print(F("t6 > https.begin conn failure: "));
-				Serial.println(conn);
-				return conn;
+				Serial.print(F("t6 > httpCode failure httpCode: "));
+				Serial.println(httpCode);
+				String payload = https.getString();
+				Serial.println(payload);
+				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+				return httpCode;
 			}
 		#elif ESP32
 			Serial.println(F("t6 > ESP32"));
-			Serial.println(F("t6 > _userAgent"));
-			Serial.println(_userAgent);
 			wifiClient.setCACert(root_ca);
 			int conn = wifiClient.connect(String(_httpHost).c_str(), _httpPort);
 			if (conn > 0) {
@@ -284,8 +274,6 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 		Serial.println(F("t6 > HTTP / Not using fingerprint / setInsecure"));
 		#if defined(ESP8266)
 			Serial.println(F("t6 > ESP8266"));
-			Serial.println(F("t6 > _userAgent"));
-			Serial.println(_userAgent);
 			WiFiClient wifi;
 			HttpClient client = HttpClient(wifi, _httpHost, _httpPort);
 			client.beginRequest();
@@ -316,8 +304,6 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			}
 		#elif ESP32
 			Serial.println(F("t6 > ESP32"));
-			Serial.println(F("t6 > _userAgent"));
-			Serial.println(_userAgent);
 			WiFiClient client;
 			HTTPClient http;
 			http.begin(client, String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ));
