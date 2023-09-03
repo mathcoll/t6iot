@@ -9,11 +9,7 @@
    - MDSN     : mdns-scan
    - Firewall : sudo tail -f /var/log/kern.log
 
-   ESP32 & ESP8266 known compatible architectures:
-   - ESP32 v2.0.11/WROOM-DA module / Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS
-   - ESP32 v2.0.11/WEMOS D1 R32
-   - ESP8266 v3.1.2/Lolin(WEMOS) D1 Mini Pro
-   - ESP8266 v3.1.2/NodeMCU 1.0 (ESP-12E) Module
+   See Readme for compilation informations: https://github.com/mathcoll/t6iot/blob/master/README.md
 */
 
 #include <t6iot.h>
@@ -54,7 +50,11 @@ void setup() {
   t6client.addDynamicRoutes();                // Load Http dynamic routes on the ESP
   t6client.startSsdp();                       // Start SSDP
   t6client.startMdns(object_name);            // Start MDNS
-  t6client.startWebsockets(host, portWs);     // Connect to t6 web-socket server
+  if (USE_T6_CUSTOM_SERVER) {
+    t6client.set_server(host, portWs);
+  } else {
+    t6client.startWebsockets();                // Connect to t6 web-socket server
+  }
   t6client.audioSetVol(3);                    // Set volume in a 1-10 range (I2S audio)
   //t6client.activateOTA();                   // NOT IMPLEMENTED YET - Activating Over The Air (OTA) update procedure
 
@@ -70,7 +70,7 @@ void loop() {
   t6client.runLoop();                         // t6 TaskManager
   if(t6client._websockets_started) { t6client.webSockets_loop(); }
   if(t6client._audio_started) { t6client.audio_loop(); }
-  delay(250);
+  delay(100);
   //t6client.goToSleep(SLEEP_DELAY_IN_SECONDS);
   //delay(SLEEP_DELAY_IN_SECONDS);  // Use delay instead of deepSleep when HttpServer is enabled
 }
@@ -96,6 +96,7 @@ void readSample() {
   Serial.println("t6 > Measuring:");
   do {
     sensorValue = constrain( map( analogRead(PIN_PROBE), 0, 1024, 100, 0 ) , 0.0, 1024.0);
+    sensorValue = sensorValue*500/1024; // Converting unit and transforming measurement when necessary
     Serial.print(" * Measurement ");
     Serial.print(count);
     Serial.print("/");

@@ -11,7 +11,7 @@
 // Not valid after:  2023-10-09T05:45:42
 // openssl s_client -connect api.internetcollaboratif.info:443 -prexit -showcerts -state -status -tlsextdebug -verify 10
 
-const char *fingerprint				= "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
+const char *fingerprint = "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
 const char* root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIFYjCCBEqgAwIBAgIQd70NbNs2+RrqIQ/E8FjTDTANBgkqhkiG9w0BAQsFADBX
@@ -47,16 +47,16 @@ d0lIKO2d1xozclOzgjXPYovJJIultzkMu34qQb9Sz/yilrbCgj8=
 )EOF";
 IPAddress							dns(8, 8, 8, 8); //Google dns
 String DEFAULT_useragent			= "t6iot-library/2.0.4 (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
+String DEFAULT_friendlyName 		= "t6ObjectLib";
 String DEFAULT_host					= "api.internetcollaboratif.info";
-int DEFAULT_port					= 443;
 String DEFAULT_host_ws				= "ws.internetcollaboratif.info";
+int DEFAULT_port					= 443;
 int DEFAULT_port_ws					= 443;
 int DEFAULT_messageInterval 		= 15000;
 int DEFAULT_reconnectInterval 		= 5000;
 int DEFAULT_timeoutInterval 		= 3000;
 int DEFAULT_disconnectAfterFailure	= 2;
 int DEFAULT_localPortMDNS			= 80;
-String DEFAULT_friendlyName 		= "t6ObjectLib";
 bool _locked						= false;
 bool _OTA_activated					= false;
 bool _http_started					= false;
@@ -215,6 +215,7 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			https.addHeader("x-api-key", _key);
 			https.addHeader("x-api-secret", _secret);
 	//		https.addHeader("Content-Length", String((payloadStr).length()));
+
 			int httpCode = https.POST(payloadStr);
 			if (httpCode == 200 && payloadStr != "") {
 				String payload = https.getString();
@@ -276,6 +277,35 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			Serial.println(F("t6 > ESP8266"));
 			WiFiClient wifi;
 			HttpClient client = HttpClient(wifi, _httpHost, _httpPort);
+
+			HTTPClient http;
+			int checkBegin = http.begin(wifi, _httpHost, _httpPort, _endpoint);
+			Serial.print(F("t6 > checkBegin: "));
+			Serial.println(checkBegin);
+			http.addHeader("User-Agent", String(_userAgent));
+			http.addHeader("Accept", "application/json");
+			http.addHeader("Content-Type", "application/json");
+			http.addHeader("Cache-Control", "no-cache");
+			http.addHeader("Accept-Encoding", "gzip, deflate, br");
+			http.addHeader("x-api-key", _key);
+			http.addHeader("x-api-secret", _secret);
+
+			int httpCode = http.POST(payloadStr);
+			if (httpCode == 200 && payloadStr != "") {
+				String payload = http.getString();
+				Serial.print(F("t6 > payload: "));
+				Serial.println(payload);
+				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+				return httpCode;
+			} else {
+				Serial.print(F("t6 > httpCode failure httpCode: "));
+				Serial.println(httpCode);
+				String payload = http.getString();
+				Serial.println(payload);
+				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+				return httpCode;
+			}
+/*
 			client.beginRequest();
 			client.post("/v2.0.1/data/");
 			client.sendHeader("User-Agent", String(_userAgent));
@@ -302,6 +332,7 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
 				return httpCode;
 			}
+*/
 		#elif ESP32
 			Serial.println(F("t6 > ESP32"));
 			WiFiClient client;
@@ -391,7 +422,6 @@ bool t6iot::startWebsockets() {
 		DEFAULT_disconnectAfterFailure,
 		_object_id, _object_secret,
 		t6iotAudio);
-	return false;
 }
 bool t6iot::startWebsockets(String host, int port) {
 	_websockets_started = true;
@@ -442,7 +472,7 @@ void t6iot::lockSleep() {
 void t6iot::lockSleep(const long dur) {
 	Serial.println(dur);
 	_locked = true;
-	//t6iot::scheduleOnce(dur, [] {_locked = false;}); // TODO
+	//t6iot::schedule(dur, [] {_locked = false;}); // TODO
 }
 void t6iot::unlockSleep() {
 	_locked = false;
