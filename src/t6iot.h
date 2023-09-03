@@ -57,6 +57,7 @@
 			bool webSockets_sendTXT(String data);
 			bool isClaimed();
 			void webSockets_loop();
+			bool startAudio();
 			bool startHttp();
 			bool startHttp(int port);
 			bool addStaticRoutes();
@@ -67,7 +68,9 @@
 			bool isLocked();
 			void lockSleep();
 			void lockSleep(const long dur);
+			bool setSleepDuration(const long dur);
 			void unlockSleep();
+			void goToSleep();
 			void goToSleep(const long dur);
 			void activateOTA();
 			bool _http_started;
@@ -91,6 +94,7 @@
 			bool _OTA_activated;
 			const char* _key;
 			const char* _secret;
+			long _sleepDuration;
 			String _getSignedPayload(String& payload, String& object_id, String& object_secret);
 	};
 	extern t6iot t6client;

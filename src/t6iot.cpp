@@ -109,7 +109,7 @@ void t6iot::set_useragent(String useragent) {
 	}
 }
 void t6iot::set_server() {
-	Serial.println("t6 > Using DEFAULT host, port  & UA");
+	Serial.println("t6 > Using DEFAULT host, port & UA");
 	set_server(DEFAULT_host, DEFAULT_port, DEFAULT_useragent);
 }
 void t6iot::set_server(String host) {
@@ -421,13 +421,13 @@ bool t6iot::startWebsockets() {
 		DEFAULT_timeoutInterval,
 		DEFAULT_disconnectAfterFailure,
 		_object_id, _object_secret,
-		t6iotAudio);
+		t6iotAudio, _audio_started);
 }
 bool t6iot::startWebsockets(String host, int port) {
 	_websockets_started = true;
 	Serial.print(host);
 	Serial.print(port);
-	return t6iotWebsockets.startWebsockets(host, port, "/", _key, _secret, DEFAULT_messageInterval, DEFAULT_reconnectInterval, DEFAULT_timeoutInterval, DEFAULT_disconnectAfterFailure, _object_id, _object_secret, t6iotAudio);
+	return t6iotWebsockets.startWebsockets(host, port, "/", _key, _secret, DEFAULT_messageInterval, DEFAULT_reconnectInterval, DEFAULT_timeoutInterval, DEFAULT_disconnectAfterFailure, _object_id, _object_secret, t6iotAudio, _audio_started);
 }
 void t6iot::webSockets_loop() {
 	t6iotWebsockets.webSockets_loop();
@@ -452,19 +452,35 @@ bool t6iot::addStaticRoutes() {
 bool t6iot::addDynamicRoutes() {
 	return t6iotHttp.addDynamicRoutes();
 }
+bool t6iot::startAudio() {
+	_audio_started = true;
+	return _audio_started;
+}
 void t6iot::audio_loop() {
-	t6iotAudio.audio_loop();
+	if (_audio_started) {
+		t6iotAudio.audio_loop();
+	}
 }
 bool t6iot::audioListenTo(const char* url) {
-	_audio_started = true;
-	return t6iotAudio.audioListenTo(url);
+	if (_audio_started) {
+		return t6iotAudio.audioListenTo(url);
+	} else {
+		return false;
+	}
 }
 bool t6iot::audioSetVol(int vol) {
-	_audio_started = true;
-	return t6iotAudio.audioSetVol(vol);
+	if (_audio_started) {
+		return t6iotAudio.audioSetVol(vol);
+	} else {
+		return false;
+	}
 }
 bool t6iot::isLocked() {
 	return _locked;
+}
+bool t6iot::setSleepDuration(const long dur) {
+	_sleepDuration = dur;
+	return true;
 }
 void t6iot::lockSleep() {
 	_locked = true;
@@ -476,6 +492,9 @@ void t6iot::lockSleep(const long dur) {
 }
 void t6iot::unlockSleep() {
 	_locked = false;
+}
+void t6iot::goToSleep() {
+	return goToSleep(_sleepDuration);
 }
 void t6iot::goToSleep(const long dur) {
 	if (!_locked) {

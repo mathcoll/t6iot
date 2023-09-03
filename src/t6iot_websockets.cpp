@@ -358,6 +358,7 @@ void t6iot_Websockets::claimObject() {
   String databuf;
   json["command"] = "claimObject";
   json["object_id"] = _object_id;
+  json["t6_feat_audio"] = _audio_started;
   json["signature"] = jwt.encodeJWT(payload);
   serializeJson(json, databuf);
   webSocket.sendTXT(databuf);
@@ -374,8 +375,9 @@ bool t6iot_Websockets::isClaimed() {
   Serial.println("[WSc] isClaimed");
   return claimed;
 }
-bool t6iot_Websockets::startWebsockets(String wsHost, uint16_t wsPort, String wsPath, String t6wsKey, String t6wsSecret, int messageInterval, int reconnectInterval, int timeoutInterval, int disconnectAfterFailure, String o_id, String o_secret, t6iot_Audio audio) {
+bool t6iot_Websockets::startWebsockets(String wsHost, uint16_t wsPort, String wsPath, String t6wsKey, String t6wsSecret, int messageInterval, int reconnectInterval, int timeoutInterval, int disconnectAfterFailure, String o_id, String o_secret, t6iot_Audio audio, bool audio_started) {
 	t6iotWsAudio = audio;
+	_audio_started = audio_started;
 	_object_id = o_id;
 	_object_secret = o_secret;
 	_messageInterval = messageInterval;

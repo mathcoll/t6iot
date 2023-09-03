@@ -17,4 +17,4 @@ Ths following board have been tested:
 |ESP8266 v3.1.2|NodeMCU 1.0 (ESP-12E) Module|✔http ✔https ✔createDatapoint ✔Ssdp ✔Mdns ✔Websockets ❌Audio ❌OTA|Do not activate all features together as is can turn to oom|
 |ESP8266 v3.1.2|Lolin(WEMOS) D1 Mini Pro|⁉️http ⁉️https ⁉️createDatapoint ⁉️Ssdp ⁉️Mdns ⁉️Websockets ⁉️Audio ❌OTA||
 |ESP32 v2.0.11|WEMOS D1 R32|⁉️http ⁉️https ⁉️createDatapoint ⁉️Ssdp ⁉️Mdns ⁉️Websockets ⁉️Audio ❌OTA||
-|ESP32 v2.0.11|WROOM-DA module|✔http ✔https ⁉️createDatapoint ⁉️Ssdp ⁉️Mdns ⁉️Websockets ⁉️Audio ❌OTA|Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS|
+|ESP32 v2.0.11|WROOM-DA module|✔http ✔https ⁉️createDatapoint ✔Ssdp ⁉️Mdns ✔Websockets ⁉️Audio ❌OTA|Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS|

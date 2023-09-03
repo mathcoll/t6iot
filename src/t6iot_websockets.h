@@ -15,7 +15,7 @@
 	class t6iot_Websockets {
 		public:
 			t6iot_Websockets();
-			bool startWebsockets(String wsHost, uint16_t wsPort, String wsPath, String t6wsKey, String t6wsSecret, int messageInterval, int reconnectInterval, int timeoutInterval, int disconnectAfterFailure, String o_id, String o_secret, t6iot_Audio t6iotWsAudio);
+			bool startWebsockets(String wsHost, uint16_t wsPort, String wsPath, String t6wsKey, String t6wsSecret, int messageInterval, int reconnectInterval, int timeoutInterval, int disconnectAfterFailure, String o_id, String o_secret, t6iot_Audio t6iotWsAudio, bool audio_started);
 			bool isClaimed();
 			void webSockets_loop();
 			void claimObject();
@@ -24,6 +24,7 @@
 		private:
 			String _object_id;
 			String _object_secret;
+			bool _audio_started;
 			int _messageInterval;
 			unsigned long _lastUpdate;
 	};

@@ -32,32 +32,42 @@ void setup() {
   //t6client.unlockSleep();                   // Allow chip to deepsleep
   t6client.set_wifi(WIFI_SSID, WIFI_PASSWORD);// Connect to Wifi network
 
-  if (USE_T6_CUSTOM_SERVER) {
+  if (T6_USE_CUSTOM_SERVER) {
     t6client.set_server(host, portHttp);      // Set custom server host, port
   } else {
     t6client.set_server();                    // Use host & port from default t6iot library
   }
-  t6client.set_useragent(useragent);          // Customize User-Agent
-
+  if (!useragent.isEmpty()) {
+    t6client.set_useragent(useragent);        // Customize User-Agent
+  }
+  t6client.setSleepDuration(SLEEP_DURATION_SEC);// Set sleep duration
   t6client.set_key(api_key);                  // Required to identify yourself on t6
   t6client.set_secret(api_secret);            // Required to identify yourself on t6
-
   t6client.set_object_id(object_id);          // Required for websockets & encryption and used in the user-agent
   t6client.set_object_secret(object_secret);  // Required for websockets & encryption
-
-  t6client.startHttp(80);                     // Load to serve Http files with a user interface
-  t6client.addStaticRoutes();                 // Load Http static routes on the ESP
-  t6client.addDynamicRoutes();                // Load Http dynamic routes on the ESP
-  t6client.startSsdp();                       // Start SSDP
-  t6client.startMdns(object_name);            // Start MDNS
-  if (USE_T6_CUSTOM_SERVER) {
-    t6client.set_server(host, portWs);
-  } else {
-    t6client.startWebsockets();                // Connect to t6 web-socket server
+  if (T6_FEAT_HTTP) {
+    t6client.startHttp(80);                   // Load to serve Http files with a user interface
+    t6client.addStaticRoutes();               // Load Http static routes on the ESP
+    t6client.addDynamicRoutes();              // Load Http dynamic routes on the ESP
   }
-  t6client.audioSetVol(3);                    // Set volume in a 1-10 range (I2S audio)
-  //t6client.activateOTA();                   // NOT IMPLEMENTED YET - Activating Over The Air (OTA) update procedure
-
+  if (T6_FEAT_SSDP) {
+    t6client.startSsdp();                     // Start SSDP
+  }
+  if (T6_FEAT_MDNS) {
+    t6client.startMdns(object_name);          // Start MDNS
+  }
+  if (T6_FEAT_AUDIO) {
+    t6client.startAudio();                    // Activate and start Audio (I2S audio)
+    t6client.audioSetVol(3);                  // Set volume in a 1-10 range (I2S audio)
+  }
+  if (T6_USE_CUSTOM_SERVER && T6_FEAT_WEBSOCKETS) {
+    t6client.startWebsockets(host, portWs);
+  } else {
+    t6client.startWebsockets();               // Connect to t6 web-socket server
+  }
+  if (T6_FEAT_OTA) {
+    t6client.activateOTA();                   // NOT IMPLEMENTED YET - Activating Over The Air (OTA) update procedure
+  }
                                               // Run only once
   t6client.scheduleOnce(0, readSample, TIME_SECONDS);
   Serial.println("t6 > readSample task as 'readTask' ; will be triggered each " + String(READINTERVAL) + "s...");
@@ -68,11 +78,11 @@ void setup() {
 }
 void loop() {
   t6client.runLoop();                         // t6 TaskManager
-  if(t6client._websockets_started) { t6client.webSockets_loop(); }
-  if(t6client._audio_started) { t6client.audio_loop(); }
-  delay(100);
-  //t6client.goToSleep(SLEEP_DELAY_IN_SECONDS);
-  //delay(SLEEP_DELAY_IN_SECONDS);  // Use delay instead of deepSleep when HttpServer is enabled
+  if(t6client._websockets_started && T6_FEAT_WEBSOCKETS) { t6client.webSockets_loop(); }
+  if(t6client._audio_started && T6_FEAT_AUDIO) { t6client.audio_loop(); }
+  delay(200);
+  //t6client.goToSleep(SLEEP_DURATION_SEC);
+  //delay(SLEEP_DURATION_SEC);  // Use delay instead of deepSleep when HttpServer is enabled
 }
 int16_t addSampleToAverage(struct sAverage *ave, int16_t newSample) {
   ave->blockSum += newSample;
@@ -85,6 +95,9 @@ int16_t getAverage(struct sAverage *ave) {
   ave->blockSum = 0;
   ave->numSamples = 0;
   return average;
+}
+void goToSleep() {
+  t6client.goToSleep();
 }
 void readSample() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -190,5 +203,6 @@ void readSample() {
     int status = t6client.createDatapoint(payload);
     Serial.println("t6 > Result status " + String(status));
     t6client.unlockSleep();
+    sleepTask = t6client.scheduleFixedRate(0, goToSleep, TIME_SECONDS);
   }
 }
