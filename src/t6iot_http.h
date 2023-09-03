@@ -11,8 +11,12 @@
 	#define FILEFS LittleFS
 	#include <ESPAsyncWebServer.h>
 	#include <ArduinoJson.h>
-
-
+	#include <StreamString.h>
+	#ifdef ESP8266
+	  #define ESP_GETCHIPID ESP.getChipId()
+	#elif ESP32
+	  #define ESP_GETCHIPID (uint32_t)ESP.getEfuseMac()
+	#endif
 
 	class t6iot_Http {
 		public:
@@ -20,6 +24,7 @@
 			bool startHttp(int port);
 			bool addStaticRoutes();
 			bool addDynamicRoutes();
+			void setSsdp(int localPortSSDP, String deviceType, String friendlyName, String modelName, String modelNumber, String modelURL, String manufacturer, String manufacturerURL, int advertiseInterval);
 
 		private:
 			String getPinMode(int pin);

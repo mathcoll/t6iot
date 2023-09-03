@@ -196,13 +196,15 @@ void readSample() {
     // payload[index]["unit"]         = "26a4be78-1c02-4a41-acc1-14d8e6b29a84";
     // payload[index]["timestamp"]  = millis(); // By default, timestamp will be handled by server
     */
-  
+
     // TODO signature
   
     // Send the payload to the t6iot API.
     int status = t6client.createDatapoint(payload);
     Serial.println("t6 > Result status " + String(status));
     t6client.unlockSleep();
-    sleepTask = t6client.scheduleFixedRate(0, goToSleep, TIME_SECONDS);
+    if (!T6_FEAT_HTTP) {
+      sleepTask = t6client.scheduleFixedRate(0, goToSleep, TIME_SECONDS);
+    }
   }
 }

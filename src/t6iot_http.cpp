@@ -13,6 +13,36 @@ const char* PARAM_INPUT_RESOLUTION        = "resolution";
 const char* PARAM_INPUT_CHANNEL           = "channel";
 const char* PARAM_INPUT_MODE              = "mode";
 bool reboot                               = false;
+static const char* ssdpTemplate = R"EOF(<?xml version="1.0"?>
+<root xmlns="urn:schemas-upnp-org:device-1-0">
+  <specVersion>
+    <major>1</major>
+    <minor>0</minor>
+  </specVersion>
+  <URLBase>http://%s/</URLBase>
+  <device>
+    <deviceType>%s</deviceType>
+    <friendlyName>%s</friendlyName>
+    <presentationURL>%s</presentationURL>
+    <serialNumber>%s</serialNumber>
+    <modelName>%s</modelName>
+    <modelNumber>%s</modelNumber>
+    <modelURL>%s</modelURL>
+    <manufacturer>%s</manufacturer>
+    <manufacturerURL>%s</manufacturerURL>
+    <UDN>uuid:a774f8f2-c180-4e26-8544-cda0e6%02x%02x%02x</UDN>
+  </device>
+</root>
+)EOF";
+int SSDP_localPortSSDP;
+String SSDP_deviceType;
+String SSDP_friendlyName;
+String SSDP_modelName;
+String SSDP_modelNumber;
+String SSDP_modelURL;
+String SSDP_manufacturer;
+String SSDP_manufacturerURL;
+int SSDP_advertiseInterval;
 
 t6iot_Http::t6iot_Http() {
 	Serial.println("t6 > t6iot_http Constructor");
@@ -34,7 +64,17 @@ bool t6iot_Http::startHttp(int port) {
 		return 1;
 	}
 }
-
+void t6iot_Http::setSsdp(int localPortSSDP, String deviceType, String friendlyName, String modelName, String modelNumber, String modelURL, String manufacturer, String manufacturerURL, int advertiseInterval) {
+	SSDP_localPortSSDP = localPortSSDP;
+	SSDP_deviceType = deviceType;
+	SSDP_friendlyName = friendlyName;
+	SSDP_modelName = modelName;
+	SSDP_modelNumber = modelNumber;
+	SSDP_modelURL = modelURL;
+	SSDP_manufacturer = manufacturer;
+	SSDP_manufacturerURL = manufacturerURL;
+	SSDP_advertiseInterval = advertiseInterval;
+}
 bool t6iot_Http::addStaticRoutes() {
 	serverHttp.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
 		request->send(FILEFS, "/index.html", "text/html");
@@ -126,6 +166,28 @@ bool t6iot_Http::unsubscribe_chan(String channel) {
 }
 
 bool t6iot_Http::addDynamicRoutes() {
+	serverHttp.on("/description.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
+			StreamString output;
+			if (output.reserve(512)) {
+				output.printf(ssdpTemplate,
+					WiFi.localIP().toString().c_str(),
+					String(SSDP_deviceType).c_str(),
+					String(SSDP_friendlyName).c_str(),
+					String("/description.xml").c_str(),
+					String("object_id_uuidv4").c_str(),
+					String(SSDP_modelName).c_str(),
+					String(SSDP_modelNumber).c_str(),
+					String(SSDP_modelURL).c_str(),
+					String(SSDP_manufacturer).c_str(),
+					String(SSDP_manufacturerURL).c_str(),
+					(uint8_t)((ESP_GETCHIPID >> 16) & 0xff),
+					(uint8_t)((ESP_GETCHIPID >> 8) & 0xff),
+					(uint8_t) ESP_GETCHIPID & 0xff);
+				request->send(200, "text/xml", (String) output);
+			} else {
+				request->send(500);
+			}
+		});
 	serverHttp.on("/digitalWrite", HTTP_GET, [](AsyncWebServerRequest *request) {
 		String _pin = (request->getParam((PARAM_INPUT_PIN))->value());
 		String _value = (request->getParam((PARAM_INPUT_VALUE))->value());

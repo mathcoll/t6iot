@@ -396,6 +396,9 @@ String t6iot::_getSignedPayload(String &payload, String &object_id, String &obje
 }
 bool t6iot::startSsdp() {
 	_ssdp_started = true;
+	if (_http_started) {
+		t6iotHttp.setSsdp(80, "upnp:rootdevice", "t6Object", "t6 IoT", "1.0.0", "https://github.com/mathcoll/t6iot", "Internet Collaboratif", "https://www.internetcollaboratif.info", 600);
+	}
 	return t6iotSsdp.startSsdp(80, "upnp:rootdevice", "t6Object", "t6 IoT", "1.0.0", "https://github.com/mathcoll/t6iot", "Internet Collaboratif", "https://www.internetcollaboratif.info", 600);
 }
 bool t6iot::startMdns() {
