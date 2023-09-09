@@ -48,23 +48,7 @@
 			void set_wifi(const String& ssid, const String& pass);
 			int createDatapoint(DynamicJsonDocument& payload);
 			int createDatapoints(DynamicJsonDocument& payload);
-			bool startSsdp();
-			bool startMdns();
-			bool startMdns(String friendlyName);
-			bool startMdns(String friendlyName, int localPortMDNS);
-			bool startWebsockets();
-			bool startWebsockets(String host, int port);
-			bool webSockets_sendTXT(String data);
-			bool isClaimed();
-			void webSockets_loop();
-			bool startAudio();
-			bool startHttp();
-			bool startHttp(int port);
-			bool addStaticRoutes();
-			bool addDynamicRoutes();
-			void audio_loop();
-			bool audioListenTo(const char* url);
-			bool audioSetVol(int vol);
+
 			bool isLocked();
 			void lockSleep();
 			void lockSleep(const long dur);
@@ -72,6 +56,31 @@
 			void unlockSleep();
 			void goToSleep();
 			void goToSleep(const long dur);
+
+			bool startSsdp();
+			bool startSsdp(String friendlyName);
+
+			bool startMdns();
+			bool startMdns(String friendlyName);
+			bool startMdns(String friendlyName, int DEFAULT_portHTTP);
+			bool startMdns(String friendlyName, int DEFAULT_portHTTP, int DEFAULT_portWEBSOCKETS);
+			void mdns_loop();
+
+			bool startWebsockets();
+			bool startWebsockets(String host, int port);
+			bool webSockets_sendTXT(String data);
+			bool isClaimed();
+			void webSockets_loop();
+
+			bool startAudio();
+			bool audioListenTo(const char* url);
+			bool audioSetVol(int vol);
+			void audio_loop();
+
+			bool startHttp();
+			bool startHttp(int port);
+			bool addStaticRoutes();
+			bool addDynamicRoutes();
 			void activateOTA();
 			bool _http_started;
 			bool _ssdp_started;

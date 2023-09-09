@@ -50,23 +50,25 @@ void setup() {
     t6client.addStaticRoutes();               // Load Http static routes on the ESP
     t6client.addDynamicRoutes();              // Load Http dynamic routes on the ESP
   }
-  if (T6_FEAT_SSDP) {
-    t6client.startSsdp();                     // Start SSDP
-  }
-  if (T6_FEAT_MDNS) {
-    t6client.startMdns(object_name);          // Start MDNS
-  }
   if (T6_FEAT_AUDIO) {
     t6client.startAudio();                    // Activate and start Audio (I2S audio)
     t6client.audioSetVol(3);                  // Set volume in a 1-10 range (I2S audio)
   }
-  if (T6_USE_CUSTOM_SERVER && T6_FEAT_WEBSOCKETS) {
-    t6client.startWebsockets(host, portWs);
-  } else {
-    t6client.startWebsockets();               // Connect to t6 web-socket server
+  if (T6_FEAT_WEBSOCKETS) {
+    if(T6_USE_CUSTOM_SERVER) {
+      t6client.startWebsockets(host, portWs);
+    } else {
+      t6client.startWebsockets();             // Connect to t6 web-socket server
+    }
   }
   if (T6_FEAT_OTA) {
     t6client.activateOTA();                   // NOT IMPLEMENTED YET - Activating Over The Air (OTA) update procedure
+  }
+  if (T6_FEAT_MDNS) {
+    t6client.startMdns(object_name);          // Start MDNS
+  }
+  if (T6_FEAT_SSDP) {
+    t6client.startSsdp(object_name);          // Start SSDP, suggested to start SSDP at last
   }
                                               // Run only once
   t6client.scheduleOnce(0, readSample, TIME_SECONDS);
@@ -80,6 +82,7 @@ void loop() {
   t6client.runLoop();                         // t6 TaskManager
   if(t6client._websockets_started && T6_FEAT_WEBSOCKETS) { t6client.webSockets_loop(); }
   if(t6client._audio_started && T6_FEAT_AUDIO) { t6client.audio_loop(); }
+  if(t6client._mdns_started && T6_FEAT_MDNS) { t6client.mdns_loop(); }
   delay(200);
   //t6client.goToSleep(SLEEP_DURATION_SEC);
   //delay(SLEEP_DURATION_SEC);  // Use delay instead of deepSleep when HttpServer is enabled
@@ -203,7 +206,7 @@ void readSample() {
     int status = t6client.createDatapoint(payload);
     Serial.println("t6 > Result status " + String(status));
     t6client.unlockSleep();
-    if (!T6_FEAT_HTTP) {
+    if (!T6_FEAT_HTTP && !T6_FEAT_MDNS && !T6_FEAT_SSDP && !T6_FEAT_WEBSOCKETS) {
       sleepTask = t6client.scheduleFixedRate(0, goToSleep, TIME_SECONDS);
     }
   }

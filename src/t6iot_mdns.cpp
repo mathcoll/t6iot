@@ -10,9 +10,35 @@ t6iot_Mdns::t6iot_Mdns() {
 	Serial.println("t6 > t6iot_Mdns Constructor");
 }
 
-bool t6iot_Mdns::startMdns(String friendlyName, int localPortMDNS) {
-	MDNS.begin(String(friendlyName).c_str());
-	MDNS.addService("http", "tcp", localPortMDNS);
+bool t6iot_Mdns::startMdns(String friendlyName, int portHTTP) {
+	return startMdns(friendlyName, portHTTP, 0, true, false);
+}
+
+bool t6iot_Mdns::startMdns(String friendlyName, int portHTTP, int portWEBSOCKETS) {
+	return startMdns(friendlyName, portHTTP, portWEBSOCKETS, true, true);
+}
+
+bool t6iot_Mdns::startMdns(String friendlyName, int portHTTP, int portWEBSOCKETS, bool http_started, bool websockets_started) {
+	int attempt = 10;
+	if ( !MDNS.begin(friendlyName) ) { //.c_str()
+		Serial.println("t6 > MDNS error!");
+		while (attempt>0) { attempt--; delay(1000); }
+	}
+	if (http_started) {
+		MDNS.addService("http", "tcp", portHTTP);
+		Serial.println("t6 > MDNS Http service announced");
+	} else {
+		Serial.println("t6 > MDNS Http service disabled, not announced!");
+	}
+	if (websockets_started) {
+		MDNS.addService("socket", "tcp", portWEBSOCKETS);
+		Serial.println("t6 > MDNS Socket service announced");
+	} else {
+		Serial.println("t6 > MDNS Socket service disabled, not announced!");
+	}
 	Serial.println("t6 > MDNS started");
 	return 1;
+}
+void t6iot_Mdns::mdns_loop() {
+	MDNS.update();
 }

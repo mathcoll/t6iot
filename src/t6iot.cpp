@@ -57,6 +57,8 @@ int DEFAULT_reconnectInterval 		= 5000;
 int DEFAULT_timeoutInterval 		= 3000;
 int DEFAULT_disconnectAfterFailure	= 2;
 int DEFAULT_localPortMDNS			= 80;
+int DEFAULT_portHTTP				= 80;
+int DEFAULT_portWEBSOCKETS			= 4000;
 bool _locked						= false;
 bool _OTA_activated					= false;
 bool _http_started					= false;
@@ -206,6 +208,7 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			BearSSL::WiFiClientSecure newSecure;
 			newSecure.setFingerprint(fingerprint);
 			int checkBegin = https.begin(newSecure, _httpHost, _httpPort, _endpoint);
+//			https.setUserAgent(_userAgent);
 			https.setUserAgent(String(_userAgent));
 			https.addHeader("User-Agent", String(_userAgent));
 			https.addHeader("Accept", "application/json");
@@ -282,6 +285,7 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			int checkBegin = http.begin(wifi, _httpHost, _httpPort, _endpoint);
 			Serial.print(F("t6 > checkBegin: "));
 			Serial.println(checkBegin);
+//			http.setUserAgent(_userAgent);
 			http.addHeader("User-Agent", String(_userAgent));
 			http.addHeader("Accept", "application/json");
 			http.addHeader("Content-Type", "application/json");
@@ -395,23 +399,39 @@ String t6iot::_getSignedPayload(String &payload, String &object_id, String &obje
 	return signedPayloadAsString;
 }
 bool t6iot::startSsdp() {
+	return startSsdp(DEFAULT_friendlyName);
+}
+bool t6iot::startSsdp(String friendlyName) {
 	_ssdp_started = true;
+	DEFAULT_friendlyName = friendlyName;
 	if (_http_started) {
-		t6iotHttp.setSsdp(80, "upnp:rootdevice", "t6Object", "t6 IoT", "1.0.0", "https://github.com/mathcoll/t6iot", "Internet Collaboratif", "https://www.internetcollaboratif.info", 600);
+		// modelName
+		// modelNumber
+		// modelURL
+		// manufacturer
+		// manufacturerURL
+		t6iotHttp.setSsdp(80, "upnp:rootdevice", DEFAULT_friendlyName, "t6 IoT", "1.0.0", "https://github.com/mathcoll/t6iot", "Internet Collaboratif", "https://www.internetcollaboratif.info", 600);
 	}
-	return t6iotSsdp.startSsdp(80, "upnp:rootdevice", "t6Object", "t6 IoT", "1.0.0", "https://github.com/mathcoll/t6iot", "Internet Collaboratif", "https://www.internetcollaboratif.info", 600);
+	return t6iotSsdp.startSsdp(80, "upnp:rootdevice", DEFAULT_friendlyName, "t6 IoT", "1.0.0", "https://github.com/mathcoll/t6iot", "Internet Collaboratif", "https://www.internetcollaboratif.info", 600);
 }
 bool t6iot::startMdns() {
 	_mdns_started = true;
-	return t6iotMdns.startMdns(DEFAULT_friendlyName, DEFAULT_localPortMDNS);
+	return t6iotMdns.startMdns(DEFAULT_friendlyName, DEFAULT_portHTTP, DEFAULT_portWEBSOCKETS, _http_started, _websockets_started);
 }
 bool t6iot::startMdns(String friendlyName) {
 	_mdns_started = true;
-	return t6iotMdns.startMdns(friendlyName, DEFAULT_localPortMDNS);
+	DEFAULT_friendlyName = friendlyName;
+	return t6iotMdns.startMdns(friendlyName, DEFAULT_portHTTP, DEFAULT_portWEBSOCKETS, _http_started, _websockets_started);
 }
-bool t6iot::startMdns(String friendlyName, int localPortMDNS) {
+bool t6iot::startMdns(String friendlyName, int DEFAULT_portHTTP, int DEFAULT_portWEBSOCKETS) {
 	_mdns_started = true;
-	return t6iotMdns.startMdns(friendlyName, localPortMDNS);
+	DEFAULT_friendlyName = friendlyName;
+	return t6iotMdns.startMdns(friendlyName, DEFAULT_portHTTP, DEFAULT_portWEBSOCKETS, _http_started, _websockets_started);
+}
+void t6iot::mdns_loop() {
+	if (_mdns_started) {
+		t6iotMdns.mdns_loop();
+	}
 }
 bool t6iot::startWebsockets() {
 	_websockets_started = true;

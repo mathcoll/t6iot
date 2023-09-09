@@ -20,7 +20,10 @@
 			t6iot_Mdns();
 			bool startMdns();
 			bool startMdns(String friendlyName);
-			bool startMdns(String friendlyName, int localPortMDNS);
+			bool startMdns(String friendlyName, int portHTTP);
+			bool startMdns(String friendlyName, int portHTTP, int portWEBSOCKETS);
+			bool startMdns(String friendlyName, int portHTTP, int portWEBSOCKETS, bool http_started, bool websockets_started);
+			void mdns_loop();
 
 		private:
 	};
