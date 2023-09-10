@@ -22,7 +22,8 @@ bool t6iot_Ssdp::startSsdp(int localPortSSDP, String deviceType, String friendly
 	SSDP.setManufacturer(manufacturer);
 	SSDP.setManufacturerURL(manufacturerURL);
 	SSDP.setInterval(advertiseInterval);
-    SSDP.setUUID("a774f8f2-c180-4e26-8544");
+	SSDP.setTTL(advertiseInterval);
+	SSDP.setUUID("a774f8f2-c180-4e26-8544");
 	SSDP.setURL("/");
 	#if defined(ESP32)
 		SSDP.setServerName("t6iot/2.0.4");
