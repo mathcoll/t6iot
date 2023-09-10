@@ -13,25 +13,34 @@ const char* PARAM_INPUT_RESOLUTION        = "resolution";
 const char* PARAM_INPUT_CHANNEL           = "channel";
 const char* PARAM_INPUT_MODE              = "mode";
 bool reboot                               = false;
-static const char* ssdpTemplate = R"EOF(<?xml version="1.0"?>
+static const char *ssdpTemplate = R"EOF(<?xml version="1.0"?>
 <root xmlns="urn:schemas-upnp-org:device-1-0">
-  <specVersion>
-    <major>1</major>
-    <minor>0</minor>
-  </specVersion>
-  <URLBase>http://%s/</URLBase>
-  <device>
-    <deviceType>%s</deviceType>
-    <friendlyName>%s</friendlyName>
-    <presentationURL>%s</presentationURL>
-    <serialNumber>%s</serialNumber>
-    <modelName>%s</modelName>
-    <modelNumber>%s</modelNumber>
-    <modelURL>%s</modelURL>
-    <manufacturer>%s</manufacturer>
-    <manufacturerURL>%s</manufacturerURL>
-    <UDN>uuid:a774f8f2-c180-4e26-8544-cda0e6%02x%02x%02x</UDN>
-  </device>
+	<specVersion>
+		<major>1</major>
+		<minor>0</minor>
+	</specVersion>
+	<URLBase>http://%s/</URLBase>
+	<device>
+		<deviceType>%s</deviceType>
+		<friendlyName>%s</friendlyName>
+		<presentationURL>%s</presentationURL>
+		<serialNumber>%s</serialNumber>
+		<modelName>%s</modelName>
+		<modelNumber>%s</modelNumber>
+		<modelURL>%s</modelURL>
+		<manufacturer>%s</manufacturer>
+		<manufacturerURL>%s</manufacturerURL>
+		<UDN>uuid:a774f8f2-c180-4e26-8544-cda0e6%02x%02x%02x</UDN>
+		<iconList>
+			<icon>
+				<mimetype>image/format</mimetype>
+				<width>32</width>
+				<height>32</height>
+				<depth>24h</depth>
+				<url>icon-32x32.png</url>
+			</icon>
+		</iconList>
+	</device>
 </root>
 )EOF";
 int SSDP_localPortSSDP;
@@ -45,22 +54,22 @@ String SSDP_manufacturerURL;
 int SSDP_advertiseInterval;
 
 t6iot_Http::t6iot_Http() {
-	Serial.println("t6 > t6iot_http Constructor");
+	Serial.println(F("t6 > t6iot_http Constructor"));
 }
 
 bool t6iot_Http::startHttp(int port) {
 	if (!FILEFS.begin()) {
-		Serial.println("t6 > An Error has occurred while mounting FS");
+		Serial.println(F("t6 > An Error has occurred while mounting FS"));
 		return 0;
 	} else {
-		Serial.println("t6 > FS mounted");
+		Serial.println(F("t6 > FS mounted"));
 		serverHttp.begin();
-		Serial.println("t6 > HTTP listening to:");
-		Serial.print("t6 > http://");
+		Serial.println(F("t6 > HTTP listening to:"));
+		Serial.print(F("t6 > http://"));
 		Serial.print(WiFi.localIP().toString().c_str());
-		Serial.print(":");
+		Serial.print(F(":"));
 		Serial.println(port);
-		Serial.println("t6 > HTTP started");
+		Serial.println(F("t6 > HTTP started"));
 		return 1;
 	}
 }
@@ -88,17 +97,11 @@ bool t6iot_Http::addStaticRoutes() {
 	serverHttp.on("/fonts/Material-Icons.woff2", HTTP_GET, [](AsyncWebServerRequest *request) {
 		request->send(FILEFS, "/fonts/Material-Icons.woff2", "font/woff2");
 	});
-	serverHttp.on("/t6show.js", HTTP_GET, [](AsyncWebServerRequest *request) {
-		request->send(FILEFS, "/t6show.js", "text/javascript");
-	});
 	serverHttp.on("/t6show-min.js", HTTP_GET, [](AsyncWebServerRequest *request) {
 		request->send(FILEFS, "/t6show-min.js", "text/javascript");
 	});
 	serverHttp.on("/t6show-min.js.map", HTTP_GET, [](AsyncWebServerRequest *request) {
 		request->send(FILEFS, "/t6show-min.js.map", "application/json");
-	});
-	serverHttp.on("/style.css", HTTP_GET, [](AsyncWebServerRequest *request) {
-		request->send(FILEFS, "/style.css", "text/css");
 	});
 	serverHttp.on("/t6app.min.css", HTTP_GET, [](AsyncWebServerRequest *request) {
 		request->send(FILEFS, "/t6app.min.css", "text/css");
@@ -129,7 +132,6 @@ bool t6iot_Http::addStaticRoutes() {
 		response->setCode(404);
 		request->send(response);
 	});
-
 	return 1;
 }
 String t6iot_Http::getPinMode(int pin) {
@@ -167,64 +169,60 @@ bool t6iot_Http::unsubscribe_chan(String channel) {
 
 bool t6iot_Http::addDynamicRoutes() {
 	serverHttp.on("/description.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
-			StreamString output;
-			if (output.reserve(512)) {
-				output.printf(ssdpTemplate,
-					WiFi.localIP().toString().c_str(),
-					String(SSDP_deviceType).c_str(),
-					String(SSDP_friendlyName).c_str(),
-					String("/description.xml").c_str(),
-					String("object_id_uuidv4").c_str(),
-					String(SSDP_modelName).c_str(),
-					String(SSDP_modelNumber).c_str(),
-					String(SSDP_modelURL).c_str(),
-					String(SSDP_manufacturer).c_str(),
-					String(SSDP_manufacturerURL).c_str(),
-					(uint8_t)((ESP_GETCHIPID >> 16) & 0xff),
-					(uint8_t)((ESP_GETCHIPID >> 8) & 0xff),
-					(uint8_t) ESP_GETCHIPID & 0xff);
-				request->send(200, "text/xml", (String) output);
-			} else {
-				request->send(500);
-			}
-		});
+		StreamString output;
+		if (output.reserve(512)) {
+			output.printf(ssdpTemplate,
+				WiFi.localIP().toString().c_str(),
+				String(SSDP_deviceType).c_str(),
+				String(SSDP_friendlyName).c_str(),
+				String("/description.xml").c_str(),
+				String("object_id_uuidv4").c_str(),
+				String(SSDP_modelName).c_str(),
+				String(SSDP_modelNumber).c_str(),
+				String(SSDP_modelURL).c_str(),
+				String(SSDP_manufacturer).c_str(),
+				String(SSDP_manufacturerURL).c_str(),
+				(uint8_t)((ESP_GETCHIPID >> 16) & 0xff),
+				(uint8_t)((ESP_GETCHIPID >> 8) & 0xff),
+				(uint8_t) ESP_GETCHIPID & 0xff);
+			request->send(200, "text/xml", (String) output);
+		} else {
+			request->send(500);
+		}
+	});
 	serverHttp.on("/digitalWrite", HTTP_GET, [](AsyncWebServerRequest *request) {
 		String _pin = (request->getParam((PARAM_INPUT_PIN))->value());
 		String _value = (request->getParam((PARAM_INPUT_VALUE))->value());
 		if (_pin && _value) {
-			Serial.print("pinMode: ");
+			Serial.print(F("pinMode: "));
 			pinMode(_pin.toInt(), OUTPUT);
-			Serial.println("OUTPUT");
+			Serial.println(F("OUTPUT"));
 			if (_value.toInt() == 0) {
 				digitalWrite(_pin.toInt(), LOW);
 			} else if (_value.toInt() == 1) {
 				digitalWrite(_pin.toInt(), HIGH);
 			}
 		}
-		Serial.print("GPIO: ");
+		Serial.print(F("GPIO: "));
 		Serial.print(_pin);
-		Serial.print(" is set to: ");
+		Serial.print(F(" is set to: "));
 		Serial.println(_value);
-		request->send(201, "application/json",
-				"{\"status\": \"OK\", \"pin\": \"" + String(_pin)
-						+ "\", \"value\": \"" + String(_value) + "\"}");
+		request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \"" + String(_pin) + "\", \"value\": \"" + String(_value) + "\"}");
 	});
 	serverHttp.on("/analogWrite", HTTP_GET, [](AsyncWebServerRequest *request) {
 		String _pin = (request->getParam((PARAM_INPUT_PIN))->value());
 		String _value = (request->getParam((PARAM_INPUT_VALUE))->value());
 		if (_pin && _value) {
-			Serial.print("pinMode: ");
+			Serial.print(F("pinMode: "));
 			pinMode(_pin.toInt(), OUTPUT);
-			Serial.println("OUTPUT");
+			Serial.println(F("OUTPUT"));
 			analogWrite(_pin.toInt(), _value.toInt());
 		}
-		Serial.print("GPIO: ");
+		Serial.print(F("GPIO: "));
 		Serial.print(_pin);
-		Serial.print(" is set to: ");
+		Serial.print(F(" is set to: "));
 		Serial.println(_value);
-		request->send(201, "application/json",
-				"{\"status\": \"OK\", \"pin\": \"" + String(_pin)
-						+ "\", \"value\": \"" + String(_value) + "\"}");
+		request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \"" + String(_pin) + "\", \"value\": \"" + String(_value) + "\"}");
 	});
 	serverHttp.on("/setPinMode", HTTP_GET, [](AsyncWebServerRequest *request) {
 		String _pin = (request->getParam((PARAM_INPUT_PIN))->value());
@@ -232,22 +230,13 @@ bool t6iot_Http::addDynamicRoutes() {
 		if (_pin && _mode) {
 			if (_mode == "INPUT") {
 				pinMode(_pin.toInt(), INPUT);
-				request->send(201, "application/json",
-						"{\"status\": \"OK\", \"pin\": \""
-								+ String(_pin)
-								+ "\", \"value\": \"INPUT\"}");
+				request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \"" + String(_pin) + "\", \"value\": \"INPUT\"}");
 			} else if (_mode == "OUTPUT") {
 				pinMode(_pin.toInt(), OUTPUT);
-				request->send(201, "application/json",
-						"{\"status\": \"OK\", \"pin\": \""
-								+ String(_pin)
-								+ "\", \"value\": \"OUTPUT\"}");
+				request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \"" + String(_pin) + "\", \"value\": \"OUTPUT\"}");
 			} else {
 				pinMode(_pin.toInt(), OUTPUT);
-				request->send(201, "application/json",
-						"{\"status\": \"OK\", \"pin\": \""
-								+ String(_pin)
-								+ "\", \"value\": \"OUTPUT\"}");
+				request->send(201, "application/json", "{\"status\": \"OK\", \"pin\": \"" + String(_pin) + "\", \"value\": \"OUTPUT\"}");
 			}
 		}
 	});
@@ -267,9 +256,7 @@ bool t6iot_Http::addDynamicRoutes() {
 			currentVal = String(analogValue, DEC);
 		}
 		Serial.println("analogRead: " + currentVal);
-		request->send(200, "application/json",
-				"{\"status\": \"OK\", \"pin\": \"" + _pin
-						+ "\", \"value\": \"" + currentVal + "\"}");
+		request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \"" + _pin + "\", \"value\": \"" + currentVal + "\"}");
 	});
 	serverHttp.on("/digitalRead", HTTP_GET, [](AsyncWebServerRequest *request) {
 		String _pin = (request->getParam((PARAM_INPUT_PIN))->value());
@@ -278,10 +265,7 @@ bool t6iot_Http::addDynamicRoutes() {
 			currentVal = String(digitalRead(_pin.toInt()), DEC);
 		}
 		Serial.println("digitalRead: " + currentVal);
-		request->send(200, "application/json",
-				"{\"status\": \"OK\", \"pin\": \"" + _pin
-						+ "\", \"value\": \"" + currentVal.toInt()
-						+ "\"}");
+		request->send(200, "application/json", "{\"status\": \"OK\", \"pin\": \"" + _pin + "\", \"value\": \"" + currentVal.toInt() + "\"}");
 	});
 	serverHttp.on("/audioOutput", HTTP_GET, [](AsyncWebServerRequest *request) {
 		String _value = (request->getParam((PARAM_INPUT_VALUE))->value());
@@ -297,17 +281,13 @@ bool t6iot_Http::addDynamicRoutes() {
 			 delete sam;
 			 */
 		}
-		request->send(201, "application/json",
-				"{\"status\": \"OK\", \"snack\": \"Message played "
-						+ message_decoded + "\"}");
+		request->send(201, "application/json", "{\"status\": \"OK\", \"snack\": \"Message played " + message_decoded + "\"}");
 	});
 	serverHttp.on("/getValues", HTTP_GET, [](AsyncWebServerRequest *request) {
 		String _pin = (request->getParam((PARAM_INPUT_PIN))->value());
 		String currentVal;
 		String output;
-		const byte allPins[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13,
-				14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-				30, 31, 32, 33, 34, 35, 36, 37, 38, 39 };
+		const byte allPins[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39 };
 		const byte COUNT = sizeof(allPins);
 		if (_pin) {
 			StaticJsonDocument < 4096 > jsonValues;
@@ -319,7 +299,7 @@ bool t6iot_Http::addDynamicRoutes() {
 				npin["value"] = String(digitalRead((allPins[p])), DEC);
 			}
 			serializeJson(jsonValues, output);
-			Serial.println("");
+			Serial.println(F(""));
 			Serial.println(output);
 		}
 		request->send(200, "application/json", output);
@@ -328,17 +308,10 @@ bool t6iot_Http::addDynamicRoutes() {
 		String _channel = (request->getParam((PARAM_INPUT_CHANNEL))->value());
 		if (_channel) {
 			if (t6iotHttp.subscribe_chan(_channel)) {
-				request->send(201, "application/json",
-						"{\"status\": \"OK\", \"subscribe\": \""
-								+ _channel
-								+ "\", \"subscriptions\": \"undefined\", \"snack\": \"Subscribed to channel '"
-								+ _channel + "'\"}");
+				request->send(201, "application/json","{\"status\": \"OK\", \"subscribe\": \""+ _channel+ "\", \"subscriptions\": \"undefined\", \"snack\": \"Subscribed to channel '" + _channel + "'\"}");
 			} else {
 				request->send(412, "application/json",
-						"{\"status\": \"NOT\", \"subscribe\": \""
-								+ _channel
-								+ "\", \"subscriptions\": \"undefined\", \"snack\": \"Failed to subscribe to channel '"
-								+ _channel + "'\"}");
+						"{\"status\": \"NOT\", \"subscribe\": \"" + _channel + "\", \"subscriptions\": \"undefined\", \"snack\": \"Failed to subscribe to channel '" + _channel + "'\"}");
 			}
 		}
 	});
@@ -347,16 +320,9 @@ bool t6iot_Http::addDynamicRoutes() {
 		if (_channel) {
 			if (t6iotHttp.unsubscribe_chan(_channel)) {
 				request->send(201, "application/json",
-						"{\"status\": \"OK\", \"unsubscribe\": \""
-								+ _channel
-								+ "\", \"subscriptions\": \"undefined\", \"snack\": \"Unsubscribed from channel '"
-								+ _channel + "'\"}");
+						"{\"status\": \"OK\", \"unsubscribe\": \"" + _channel + "\", \"subscriptions\": \"undefined\", \"snack\": \"Unsubscribed from channel '" + _channel + "'\"}");
 			} else {
-				request->send(412, "application/json",
-						"{\"status\": \"NOT\", \"unsubscribe\": \""
-								+ _channel
-								+ "\", \"subscriptions\": \"undefined\", \"snack\": \"Failed to unsubscribe to channel '"
-								+ _channel + "'\"}");
+				request->send(412, "application/json", "{\"status\": \"NOT\", \"unsubscribe\": \"" + _channel + "\", \"subscriptions\": \"undefined\", \"snack\": \"Failed to unsubscribe to channel '" + _channel + "'\"}");
 			}
 		}
 	});
@@ -370,9 +336,7 @@ bool t6iot_Http::addDynamicRoutes() {
 		 }
 		 */
 		String heap = String(ESP.getFreeHeap());
-		request->send(200, "application/json",
-				"{\"status\": \"OK\", \"heap\": \"" + heap
-						+ "\", \"snack\": \"Heap: " + heap + "\"}");
+		request->send(200, "application/json", "{\"status\": \"OK\", \"heap\": \"" + heap + "\", \"snack\": \"Heap: " + heap + "\"}");
 	});
 	serverHttp.on("/reboot", HTTP_GET, [](AsyncWebServerRequest *request) {
 		request->send(FILEFS, "/reboot.html", "text/html");

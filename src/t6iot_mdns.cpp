@@ -7,7 +7,7 @@
 #include "t6iot_mdns.h"
 
 t6iot_Mdns::t6iot_Mdns() {
-	Serial.println("t6 > t6iot_Mdns Constructor");
+	Serial.println(F("t6 > t6iot_Mdns Constructor"));
 }
 
 bool t6iot_Mdns::startMdns(String friendlyName, int portHTTP) {
@@ -23,28 +23,28 @@ bool t6iot_Mdns::startMdns(String friendlyName, int portHTTP, int portWEBSOCKETS
 
 	#if defined(ESP8266)
 		if ( !MDNS.begin(friendlyName) ) {
-			Serial.println("t6 > MDNS error!");
+			Serial.println(F("t6 > MDNS error!"));
 			while (attempt>0) { attempt--; delay(1000); }
 		}
 	#elif ESP32
 		if ( !MDNS.begin(friendlyName.c_str()) ) {
-			Serial.println("t6 > MDNS error!");
+			Serial.println(F("t6 > MDNS error!"));
 			while (attempt>0) { attempt--; delay(1000); }
 		}
 	#endif
 	if (http_started) {
 		MDNS.addService("http", "tcp", portHTTP);
-		Serial.println("t6 > MDNS Http service announced");
+		Serial.println(F("t6 > MDNS Http service announced"));
 	} else {
-		Serial.println("t6 > MDNS Http service disabled, not announced!");
+		Serial.println(F("t6 > MDNS Http service disabled, not announced!"));
 	}
 	if (websockets_started) {
 		MDNS.addService("socket", "tcp", portWEBSOCKETS);
-		Serial.println("t6 > MDNS Socket service announced");
+		Serial.println(F("t6 > MDNS Socket service announced"));
 	} else {
-		Serial.println("t6 > MDNS Socket service disabled, not announced!");
+		Serial.println(F("t6 > MDNS Socket service disabled, not announced!"));
 	}
-	Serial.println("t6 > MDNS started");
+	Serial.println(F("t6 > MDNS started"));
 	return 1;
 }
 void t6iot_Mdns::mdns_loop() {

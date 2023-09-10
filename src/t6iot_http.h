@@ -13,9 +13,9 @@
 	#include <ArduinoJson.h>
 	#include <StreamString.h>
 	#ifdef ESP8266
-	  #define ESP_GETCHIPID ESP.getChipId()
+		#define ESP_GETCHIPID ESP.getChipId()
 	#elif ESP32
-	  #define ESP_GETCHIPID (uint32_t)ESP.getEfuseMac()
+		#define ESP_GETCHIPID (uint32_t)ESP.getEfuseMac()
 	#endif
 
 	class t6iot_Http {

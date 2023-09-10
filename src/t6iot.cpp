@@ -77,29 +77,29 @@ t6iot_Websockets					t6iotWebsockets;
 using namespace std;
 
 t6iot::t6iot(): TaskManager() {
-	Serial.println("t6 > Constructor");
+	Serial.println(F("t6 > Constructor"));
 	#ifdef ESP8266
-		Serial.print("t6 > getResetReason"); Serial.println(ESP.getResetReason());
-		Serial.print("t6 > getHeapFragmentation"); Serial.println(ESP.getHeapFragmentation());
-		Serial.print("t6 > getMaxFreeBlockSize"); Serial.println(ESP.getMaxFreeBlockSize());
-		Serial.print("t6 > getChipId"); Serial.println(ESP.getChipId());
-		Serial.print("t6 > getCoreVersion"); Serial.println(ESP.getCoreVersion());
-		Serial.print("t6 > getFlashChipId"); Serial.println(ESP.getFlashChipId());
-		Serial.print("t6 > getFlashChipRealSize"); Serial.println(ESP.getFlashChipRealSize());
-		Serial.print("t6 > checkFlashCRC"); Serial.println(ESP.checkFlashCRC());
-		Serial.print("t6 > getVcc"); Serial.println(ESP.getVcc());
+		Serial.print(F("t6 > getResetReason")); Serial.println(ESP.getResetReason());
+		Serial.print(F("t6 > getHeapFragmentation")); Serial.println(ESP.getHeapFragmentation());
+		Serial.print(F("t6 > getMaxFreeBlockSize")); Serial.println(ESP.getMaxFreeBlockSize());
+		Serial.print(F("t6 > getChipId")); Serial.println(ESP.getChipId());
+		Serial.print(F("t6 > getCoreVersion")); Serial.println(ESP.getCoreVersion());
+		Serial.print(F("t6 > getFlashChipId")); Serial.println(ESP.getFlashChipId());
+		Serial.print(F("t6 > getFlashChipRealSize")); Serial.println(ESP.getFlashChipRealSize());
+		Serial.print(F("t6 > checkFlashCRC")); Serial.println(ESP.checkFlashCRC());
+		Serial.print(F("t6 > getVcc")); Serial.println(ESP.getVcc());
 	#elif ESP32
-		Serial.print("t6 > getFreeHeap"); Serial.println(ESP.getFreeHeap());
-		Serial.print("t6 > getChipModel"); Serial.println(ESP.getChipModel());
+		Serial.print(F("t6 > getFreeHeap")); Serial.println(ESP.getFreeHeap());
+		Serial.print(F("t6 > getChipModel")); Serial.println(ESP.getChipModel());
 	#endif
-	Serial.print("t6 > getFlashChipMode"); Serial.println(ESP.getFlashChipMode());
-	Serial.print("t6 > getSdkVersion"); Serial.println(ESP.getSdkVersion());
-	Serial.print("t6 > getCpuFreqMHz"); Serial.println(ESP.getCpuFreqMHz());
-	Serial.print("t6 > getSketchSize"); Serial.println(ESP.getSketchSize());
-	Serial.print("t6 > getFreeSketchSpace"); Serial.println(ESP.getFreeSketchSpace());
-	Serial.print("t6 > getSketchMD5"); Serial.println(ESP.getSketchMD5());
-	Serial.print("t6 > getFlashChipSize"); Serial.println(ESP.getFlashChipSize());
-	Serial.print("t6 > getFlashChipSpeed"); Serial.println(ESP.getFlashChipSpeed());
+	Serial.print(F("t6 > getFlashChipMode")); Serial.println(ESP.getFlashChipMode());
+	Serial.print(F("t6 > getSdkVersion")); Serial.println(ESP.getSdkVersion());
+	Serial.print(F("t6 > getCpuFreqMHz")); Serial.println(ESP.getCpuFreqMHz());
+	Serial.print(F("t6 > getSketchSize")); Serial.println(ESP.getSketchSize());
+	Serial.print(F("t6 > getFreeSketchSpace")); Serial.println(ESP.getFreeSketchSpace());
+	Serial.print(F("t6 > getSketchMD5")); Serial.println(ESP.getSketchMD5());
+	Serial.print(F("t6 > getFlashChipSize")); Serial.println(ESP.getFlashChipSize());
+	Serial.print(F("t6 > getFlashChipSpeed")); Serial.println(ESP.getFlashChipSpeed());
 }
 void t6iot::set_useragent(String useragent) {
 	if ( !useragent.isEmpty() ) {
@@ -155,11 +155,14 @@ void t6iot::set_wifi(const String &wifi_ssid, const String &wifi_password) {
 	Serial.println(_ssid);
 	WiFi.mode(WIFI_STA);
 	WiFi.begin(_ssid, _password);
-	WiFi.waitForConnectResult();
+//	WiFi.setSleep(false);
 	#ifdef ESP32
 		// ESP32 require a dns ?
 		WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), dns);
+		Serial.println("t6 > Wifi is using DNS config");
+		Serial.println(WiFi.dnsIP());
 	#endif
+//	WiFi.waitForConnectResult();
 	if (WiFi.waitForConnectResult() != WL_CONNECTED) {
 		Serial.println(F("t6 > WiFi Connect Failed! Rebooting..."));
 		delay(1000);
@@ -224,14 +227,14 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 				String payload = https.getString();
 				Serial.print(F("t6 > payload: "));
 				Serial.println(payload);
-				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+				Serial.println("<");
 				return httpCode;
 			} else {
 				Serial.print(F("t6 > httpCode failure httpCode: "));
 				Serial.println(httpCode);
 				String payload = https.getString();
 				Serial.println(payload);
-				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+				Serial.println("<");
 				return httpCode;
 			}
 		#elif ESP32
@@ -240,6 +243,7 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			int conn = wifiClient.connect(String(_httpHost).c_str(), _httpPort);
 			if (conn > 0) {
 				Serial.print(F("t6 > https.begin conn success: "));
+				Serial.println(String(_httpHost).c_str());
 				Serial.println(conn);
 				wifiClient.println("POST " + String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ) + " HTTP/1.0");
 				wifiClient.print("User-Agent:"); wifiClient.println(_userAgent);
@@ -270,6 +274,7 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 				return conn;
 			} else {
 				Serial.print(F("t6 > https.begin conn failure: "));
+				Serial.println(String(_httpHost).c_str());
 				Serial.println(conn);
 				return conn;
 			}
@@ -299,44 +304,16 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 				String payload = http.getString();
 				Serial.print(F("t6 > payload: "));
 				Serial.println(payload);
-				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+				Serial.println("<");
 				return httpCode;
 			} else {
 				Serial.print(F("t6 > httpCode failure httpCode: "));
 				Serial.println(httpCode);
 				String payload = http.getString();
 				Serial.println(payload);
-				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
+				Serial.println("<");
 				return httpCode;
 			}
-/*
-			client.beginRequest();
-			client.post("/v2.0.1/data/");
-			client.sendHeader("User-Agent", String(_userAgent));
-			client.sendHeader("Accept", "application/json");
-			client.sendHeader("Content-Type", "application/json");
-			client.sendHeader("Cache-Control", "no-cache");
-			client.sendHeader("Accept-Encoding", "gzip, deflate, br");
-			client.sendHeader("x-api-key", _key);
-			client.sendHeader("x-api-secret", _secret);
-			client.sendHeader("Content-Length", (payloadStr).length());
-			//client.beginBody();
-			client.print(payloadStr);
-			client.endRequest();
-
-			int httpCode = client.responseStatusCode();
-
-			if (httpCode == 200 && payloadStr != "") {
-				return httpCode;
-			} else {
-				Serial.print(F("t6 > httpCode failure httpCode: "));
-				Serial.println(httpCode);
-				String payloadRes = client.responseBody();
-				Serial.println(payloadRes);
-				Serial.println("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<");
-				return httpCode;
-			}
-*/
 		#elif ESP32
 			Serial.println(F("t6 > ESP32"));
 			WiFiClient client;
@@ -362,9 +339,9 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 				const String& payloadRes = http.getString();
 				Serial.print(F("t6 > Error Response: "));
 				Serial.println(httpCode);
-				Serial.println(F("t6 > payloadRes: EOE21>>"));
+				Serial.print(F("t6 > payload: "));
 				Serial.println(payloadRes);
-				Serial.println(F("<<EOE2"));
+				Serial.println(F("<"));
 				return httpCode;
 			}
 			http.end();
@@ -384,18 +361,16 @@ String t6iot::_getSignedPayload(String &payload, String &object_id, String &obje
 	Serial.println(object_id);
 	Serial.println(object_secret);
 	/*
-	 payload.printTo(payloadString);
-	 signedJson = jwt.encodeJWT( payloadString );
-
-	 const int BUFFER_SIZE = JSON_OBJECT_SIZE(25);
-	 StaticJsonBuffer<BUFFER_SIZE> jsonBufferSigned;
-	 JsonObject& signedPayload = jsonBufferSigned.createObject();
-	 signedPayload["signedPayload"] = signedJson;
-	 signedPayload["object_id"] = object_id;
-	 signedPayload.prettyPrintTo(Serial);
-
-	 signedPayload.printTo(signedPayloadAsString);
-	 */
+	payload.printTo(payloadString);
+	signedJson = jwt.encodeJWT( payloadString );
+	const int BUFFER_SIZE = JSON_OBJECT_SIZE(25);
+	StaticJsonBuffer<BUFFER_SIZE> jsonBufferSigned;
+	JsonObject& signedPayload = jsonBufferSigned.createObject();
+	signedPayload["signedPayload"] = signedJson;
+	signedPayload["object_id"] = object_id;
+	signedPayload.prettyPrintTo(Serial);
+	signedPayload.printTo(signedPayloadAsString);
+	*/
 	return signedPayloadAsString;
 }
 bool t6iot::startSsdp() {

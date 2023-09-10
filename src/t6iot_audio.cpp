@@ -12,18 +12,18 @@ int _volume        = 5;
 
 #if defined(ESP8266)
 	t6iot_Audio::t6iot_Audio() {
-
+//		Serial.println(F("t6 > t6iot_Audio is disabled on ESP8266"));
 	}
 	void t6iot_Audio::audio_loop() {
 
 	}
 	bool t6iot_Audio::audioListenTo(const char* url) {
-//		Serial.print("t6 > audioListenTo");
+//		Serial.print(F("t6 > audioListenTo"));
 //		Serial.println(url);
 		return 0;
 	}
 	bool t6iot_Audio::audioSetVol(int volume) {
-//		Serial.print("t6 > audioSetVol");
+//		Serial.print(F("t6 > audioSetVol"));
 //		Serial.println(url);
 		_volume = volume;
 		return 0;
@@ -35,7 +35,7 @@ int _volume        = 5;
 	#include "Audio.h"
 	Audio audio;
 	t6iot_Audio::t6iot_Audio() {
-		Serial.println("t6 > t6iot_Audio Constructor");
+		Serial.println(F("t6 > t6iot_Audio Constructor"));
 	}
 	void t6iot_Audio::audio_loop() {
 		audio.loop();

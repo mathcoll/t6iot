@@ -1,1 +1,0 @@
-let config={"object_ip": "192.168.0.19","object_port": "80","wsHost": "192.168.0.15","wsPort": "4000","wsPath": "/ws","friendlyName": "friendlyName","t6Object_id": "a06dfa8a-ddeb-4bf6-885a-6fb4f1f84b01"};
