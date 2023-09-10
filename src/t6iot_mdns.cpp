@@ -20,10 +20,18 @@ bool t6iot_Mdns::startMdns(String friendlyName, int portHTTP, int portWEBSOCKETS
 
 bool t6iot_Mdns::startMdns(String friendlyName, int portHTTP, int portWEBSOCKETS, bool http_started, bool websockets_started) {
 	int attempt = 10;
-	if ( !MDNS.begin(friendlyName) ) { //.c_str()
-		Serial.println("t6 > MDNS error!");
-		while (attempt>0) { attempt--; delay(1000); }
-	}
+
+	#if defined(ESP8266)
+		if ( !MDNS.begin(friendlyName) ) {
+			Serial.println("t6 > MDNS error!");
+			while (attempt>0) { attempt--; delay(1000); }
+		}
+	#elif ESP32
+		if ( !MDNS.begin(friendlyName.c_str()) ) {
+			Serial.println("t6 > MDNS error!");
+			while (attempt>0) { attempt--; delay(1000); }
+		}
+	#endif
 	if (http_started) {
 		MDNS.addService("http", "tcp", portHTTP);
 		Serial.println("t6 > MDNS Http service announced");
@@ -40,5 +48,8 @@ bool t6iot_Mdns::startMdns(String friendlyName, int portHTTP, int portWEBSOCKETS
 	return 1;
 }
 void t6iot_Mdns::mdns_loop() {
-	MDNS.update();
+	#if defined(ESP8266)
+		MDNS.update();
+	#elif ESP32
+	#endif
 }

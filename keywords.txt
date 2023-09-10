@@ -21,34 +21,35 @@ bool _websockets_started	KEYWORD1
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
-ESP	KEYWORD2
 t6iot	KEYWORD2
 set_server	KEYWORD2
-set_key	KEYWORD2
 set_useragent	KEYWORD2
+set_key	KEYWORD2
 set_secret	KEYWORD2
 set_object_id	KEYWORD2
 set_object_secret	KEYWORD2
 set_wifi	KEYWORD2
 createDatapoint	KEYWORD2
 createDatapoints	KEYWORD2
+isLocked	KEYWORD2
+lockSleep	KEYWORD2
+setSleepDuration	KEYWORD2
+unlockSleep	KEYWORD2
+goToSleep	KEYWORD2
 startSsdp	KEYWORD2
 startMdns	KEYWORD2
+mdns_loop	KEYWORD2
 startWebsockets	KEYWORD2
 webSockets_sendTXT	KEYWORD2
 isClaimed	KEYWORD2
 webSockets_loop	KEYWORD2
+startAudio	KEYWORD2
+audioListenTo	KEYWORD2
+audioSetVol	KEYWORD2
+audio_loop	KEYWORD2
 startHttp	KEYWORD2
 addStaticRoutes	KEYWORD2
 addDynamicRoutes	KEYWORD2
-startAudio	KEYWORD2
-audio_loop	KEYWORD2
-audioListenTo	KEYWORD2
-audioSetVol	KEYWORD2
-isLocked	KEYWORD2
-lockSleep	KEYWORD2
-unlockSleep	KEYWORD2
-goToSleep	KEYWORD2
 activateOTA	KEYWORD2
 
 
