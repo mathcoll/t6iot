@@ -83,7 +83,7 @@ void loop() {
   if(t6client._websockets_started && T6_FEAT_WEBSOCKETS) { t6client.webSockets_loop(); }
   if(t6client._audio_started && T6_FEAT_AUDIO) { t6client.audio_loop(); }
   if(t6client._mdns_started && T6_FEAT_MDNS) { t6client.mdns_loop(); }
-  delay(200);
+  delay(100);
   //t6client.goToSleep(SLEEP_DURATION_SEC);
   //delay(SLEEP_DURATION_SEC);  // Use delay instead of deepSleep when HttpServer is enabled
 }
