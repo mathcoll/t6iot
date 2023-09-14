@@ -412,7 +412,7 @@ bool t6iot::startWebsockets() {
 	_websockets_started = true;
 	return t6iotWebsockets.startWebsockets(
 		DEFAULT_host_ws,
-		DEFAULT_port_ws, "/",
+		DEFAULT_port_ws, "/ws",
 		_key, _secret,
 		DEFAULT_messageInterval,
 		DEFAULT_reconnectInterval,

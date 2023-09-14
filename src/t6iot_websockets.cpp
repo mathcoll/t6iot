@@ -350,8 +350,8 @@ bool t6iot_Websockets::sendTXT(String data) {
 	}
 }
 bool t6iot_Websockets::isClaimed() {
-  Serial.println(F("t6 > isClaimed"));
-  return claimed;
+	Serial.println(F("t6 > isClaimed"));
+	return claimed;
 }
 bool t6iot_Websockets::startWebsockets(String wsHost, uint16_t wsPort, String wsPath, String t6wsKey, String t6wsSecret, int messageInterval, int reconnectInterval, int timeoutInterval, int disconnectAfterFailure, String o_id, String o_secret, t6iot_Audio audio, bool audio_started) {
 	t6iotWsAudio = audio;

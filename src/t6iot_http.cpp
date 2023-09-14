@@ -85,6 +85,11 @@ void t6iot_Http::setSsdp(int localPortSSDP, String deviceType, String friendlyNa
 	SSDP_advertiseInterval = advertiseInterval;
 }
 bool t6iot_Http::addStaticRoutes() {
+	if(SSDP_friendlyName) {
+		serverHttp.on("/ssdp/service-desc.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
+			request->send(FILEFS, "/ssdp/service-desc.xml", "application/xml");
+		});
+	}
 	serverHttp.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
 		request->send(FILEFS, "/index.html", "text/html");
 	});
