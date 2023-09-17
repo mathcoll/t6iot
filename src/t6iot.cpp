@@ -1,5 +1,4 @@
 /*
-  t6iot - v2.0.4
   Created by Mathieu Lory <mathieu@internetcollaboratif.info>.
   - t6 website: https://www.internetcollaboratif.info
   - t6 iot: https://api.internetcollaboratif.info
