@@ -103,12 +103,22 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
 				//config.messageInterval = config.messageIntervalOnceClaimed;
 				claimed = true;
 				t6iotWsAudio.audioSetVol(6);
-				/*
-				 file = new AudioFileSourcePROGMEM( development_mp3, sizeof(development_mp3) );
+/*
+File file = LittleFS.open("/buffer.mp3", "w+");
+if(file) {
+	Serial.println("t6 > opening file for writing");
+	file.print(file_buffer);
+	Serial.println("t6 > >>>>>>>>>>>>>>>>>>>");
+	Serial.println(file_buffer);
+	Serial.println("t6 > <<<<<<<<<<<<<<<<<<<");
+	file.close();
+	t6iotWsAudio.connecttoFS("/buffer.mp3");
+} else {
+	Serial.println("t6 > Error opening file for writing");
+}*/
 
-				 Serial.println(">>>>>>>>>>>>>>>>>>>");
-				 Serial.println(file_buffer);
-				 Serial.println("<<<<<<<<<<<<<<<<<<<");
+				//file = new AudioFileSourcePROGMEM( development_mp3, sizeof(development_mp3) );
+				/*
 				 AudioOutputI2SNoDAC *audioOutputi2s;
 				 audioOutputi2s = new AudioOutputI2SNoDAC(0);
 				 audioOutputi2s->SetGain(0.9);
@@ -284,6 +294,7 @@ void webSocketEvent(WStype_t type, uint8_t *payload, size_t length) {
 				 wav->begin(file, audioOutputi2s);
 				 }
 				 */
+				Serial.println(file_buffer);
 				Serial.println(F("t6 > tts audio stored to file_buffer"));
 
 				// Reset the buffer index for the next message

@@ -45,6 +45,7 @@ void setup() {
   t6client.set_secret(api_secret);            // Required to identify yourself on t6
   t6client.set_object_id(object_id);          // Required for websockets & encryption and used in the user-agent
   t6client.set_object_secret(object_secret);  // Required for websockets & encryption
+
   if (T6_FEAT_HTTP) {
     t6client.startHttp(80);                   // Load to serve Http files with a user interface
     t6client.addStaticRoutes();               // Load Http static routes on the ESP
@@ -52,7 +53,7 @@ void setup() {
   }
   if (T6_FEAT_AUDIO) {
     t6client.startAudio();                    // Activate and start Audio (I2S audio)
-    t6client.audioSetVol(3);                  // Set volume in a 1-10 range (I2S audio)
+    t6client.audioSetVol(5);                  // Set volume in a 1-10 range (I2S audio)
   }
   if (T6_FEAT_WEBSOCKETS) {
     if(T6_USE_CUSTOM_SERVER) {
@@ -79,11 +80,11 @@ void setup() {
   //t6client.cancelTask(readTask);            // Stop a task from executing again if it is a repeating task
 }
 void loop() {
-  t6client.runLoop();                         // t6 TaskManager
   if(t6client._websockets_started && T6_FEAT_WEBSOCKETS) { t6client.webSockets_loop(); }
   if(t6client._audio_started && T6_FEAT_AUDIO) { t6client.audio_loop(); }
   if(t6client._mdns_started && T6_FEAT_MDNS) { t6client.mdns_loop(); }
-  delay(100);
+  t6client.runLoop();                         // t6 TaskManager
+  delay(5);
   //t6client.goToSleep(SLEEP_DURATION_SEC);
   //delay(SLEEP_DURATION_SEC);  // Use delay instead of deepSleep when HttpServer is enabled
 }

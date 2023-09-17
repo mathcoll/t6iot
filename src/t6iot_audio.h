@@ -13,7 +13,10 @@
 			t6iot_Audio();
 			void audio_loop();
 			bool audioListenTo(const char* url);
+			bool playAudio();
 			bool audioSetVol(int volume);
+			bool stopSong();
+			bool connecttoFS(const char* filename);
 			int audioGetVol();
 
 		private:

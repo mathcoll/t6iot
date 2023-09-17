@@ -78,28 +78,7 @@ using namespace std;
 
 t6iot::t6iot(): TaskManager() {
 	Serial.println(F("t6 > Constructor"));
-	#ifdef ESP8266
-		Serial.print(F("t6 > getResetReason")); Serial.println(ESP.getResetReason());
-		Serial.print(F("t6 > getHeapFragmentation")); Serial.println(ESP.getHeapFragmentation());
-		Serial.print(F("t6 > getMaxFreeBlockSize")); Serial.println(ESP.getMaxFreeBlockSize());
-		Serial.print(F("t6 > getChipId")); Serial.println(ESP.getChipId());
-		Serial.print(F("t6 > getCoreVersion")); Serial.println(ESP.getCoreVersion());
-		Serial.print(F("t6 > getFlashChipId")); Serial.println(ESP.getFlashChipId());
-		Serial.print(F("t6 > getFlashChipRealSize")); Serial.println(ESP.getFlashChipRealSize());
-		Serial.print(F("t6 > checkFlashCRC")); Serial.println(ESP.checkFlashCRC());
-		Serial.print(F("t6 > getVcc")); Serial.println(ESP.getVcc());
-	#elif ESP32
-		Serial.print(F("t6 > getFreeHeap")); Serial.println(ESP.getFreeHeap());
-		Serial.print(F("t6 > getChipModel")); Serial.println(ESP.getChipModel());
-	#endif
-	Serial.print(F("t6 > getFlashChipMode")); Serial.println(ESP.getFlashChipMode());
-	Serial.print(F("t6 > getSdkVersion")); Serial.println(ESP.getSdkVersion());
-	Serial.print(F("t6 > getCpuFreqMHz")); Serial.println(ESP.getCpuFreqMHz());
-	Serial.print(F("t6 > getSketchSize")); Serial.println(ESP.getSketchSize());
-	Serial.print(F("t6 > getFreeSketchSpace")); Serial.println(ESP.getFreeSketchSpace());
-	Serial.print(F("t6 > getSketchMD5")); Serial.println(ESP.getSketchMD5());
-	Serial.print(F("t6 > getFlashChipSize")); Serial.println(ESP.getFlashChipSize());
-	Serial.print(F("t6 > getFlashChipSpeed")); Serial.println(ESP.getFlashChipSpeed());
+
 }
 void t6iot::set_useragent(String useragent) {
 	if ( !useragent.isEmpty() ) {
@@ -159,7 +138,7 @@ void t6iot::set_wifi(const String &wifi_ssid, const String &wifi_password) {
 	#ifdef ESP32
 		// ESP32 require a dns ?
 		WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), dns);
-		Serial.println("t6 > Wifi is using DNS config");
+		Serial.print("t6 > Wifi is using DNS: ");
 		Serial.println(WiFi.dnsIP());
 	#endif
 //	WiFi.waitForConnectResult();
@@ -171,6 +150,28 @@ void t6iot::set_wifi(const String &wifi_ssid, const String &wifi_password) {
 		Serial.println(F("t6 > WiFi Connected..."));
 		delay(1000);
 	}
+	#ifdef ESP8266
+		Serial.print(F("t6 > getResetReason: ")); Serial.println(ESP.getResetReason());
+		Serial.print(F("t6 > getHeapFragmentation: ")); Serial.println(ESP.getHeapFragmentation());
+		Serial.print(F("t6 > getMaxFreeBlockSize: ")); Serial.println(ESP.getMaxFreeBlockSize());
+		Serial.print(F("t6 > getChipId: ")); Serial.println(ESP.getChipId());
+		Serial.print(F("t6 > getCoreVersion: ")); Serial.println(ESP.getCoreVersion());
+		Serial.print(F("t6 > getFlashChipId: ")); Serial.println(ESP.getFlashChipId());
+		Serial.print(F("t6 > getFlashChipRealSize: ")); Serial.println(ESP.getFlashChipRealSize());
+		Serial.print(F("t6 > checkFlashCRC: ")); Serial.println(ESP.checkFlashCRC());
+		Serial.print(F("t6 > getVcc: ")); Serial.println(ESP.getVcc());
+	#elif ESP32
+		Serial.print(F("t6 > getFreeHeap: ")); Serial.println(ESP.getFreeHeap());
+		Serial.print(F("t6 > getChipModel: ")); Serial.println(ESP.getChipModel());
+	#endif
+	Serial.print(F("t6 > getFlashChipMode: ")); Serial.println(ESP.getFlashChipMode());
+	Serial.print(F("t6 > getSdkVersion: ")); Serial.println(ESP.getSdkVersion());
+	Serial.print(F("t6 > getCpuFreqMHz: ")); Serial.println(ESP.getCpuFreqMHz());
+	Serial.print(F("t6 > getSketchSize: ")); Serial.println(ESP.getSketchSize());
+	Serial.print(F("t6 > getFreeSketchSpace: ")); Serial.println(ESP.getFreeSketchSpace());
+	Serial.print(F("t6 > getSketchMD5: ")); Serial.println(ESP.getSketchMD5());
+	Serial.print(F("t6 > getFlashChipSize: ")); Serial.println(ESP.getFlashChipSize());
+	Serial.print(F("t6 > getFlashChipSpeed: ")); Serial.println(ESP.getFlashChipSpeed());
 }
 void t6iot::set_endpoint(const String &endpoint) {
 	_endpoint = endpoint;
@@ -461,6 +462,7 @@ void t6iot::audio_loop() {
 }
 bool t6iot::audioListenTo(const char* url) {
 	if (_audio_started) {
+		t6iotAudio.stopSong();
 		return t6iotAudio.audioListenTo(url);
 	} else {
 		return false;
