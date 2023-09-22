@@ -10,7 +10,8 @@
 // Not valid after:  2023-10-09T05:45:42
 // openssl s_client -connect api.internetcollaboratif.info:443 -prexit -showcerts -state -status -tlsextdebug -verify 10
 
-const char *fingerprint = "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
+//const char *fingerprint = "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
+const char *fingerprint = "8927 a6ab ff80 1a22 9bb1 41d6 c990 5cde 1294 df84";
 const char* root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIFYjCCBEqgAwIBAgIQd70NbNs2+RrqIQ/E8FjTDTANBgkqhkiG9w0BAQsFADBX
