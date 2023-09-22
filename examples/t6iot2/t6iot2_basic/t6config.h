@@ -1,6 +1,6 @@
 #define WIFI_SSID             ""                // WIFI SSID & Password
 #define WIFI_PASSWORD         ""
-#define USE_T6_CUSTOM_SERVER  false             // You can use your own t6iot On Premise application
+#define T6_USE_CUSTOM_SERVER  false             // You can use your own t6iot On Premise application
 String host                   = "";             // .. Customer server IP or domain
 int portHttp                  = 3000;           // .. and using a custom port for t6iot http
 int portWs                    = 4000;           // .. and using a custom port for t6iot websockets
