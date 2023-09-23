@@ -20,6 +20,5 @@ Ths following board have been tested:
 |ESP32 v2.0.11|WROOM-DA module|❌http ✔https ✔createDatapoint ✔Ssdp ✔Mdns ✔Websockets ⁉️Audio ❌OTA ✔HttpServer|Minimal SPIFFS 1.9MB APP with OTA/190KB SPIFFS|
 
 
-
+## Known bugs
 * ESP8266 user-agent is not customizable
-* ESP32 connection on websockets fails in default server, but works fine on custom server
