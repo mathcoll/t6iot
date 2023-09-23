@@ -12,11 +12,12 @@ t6iot_Mdns	KEYWORD1
 t6iot_Http	KEYWORD1
 t6iot_Audio	KEYWORD1
 t6iot_Websockets	KEYWORD1
-bool _http_started	KEYWORD1
-bool _ssdp_started	KEYWORD1
-bool _mdns_started	KEYWORD1
-bool _audio_started	KEYWORD1
-bool _websockets_started	KEYWORD1
+_http_started	KEYWORD1
+_ssdp_started	KEYWORD1
+_mdns_started	KEYWORD1
+_audio_started	KEYWORD1
+_OTA_started	KEYWORD1
+_websockets_started	KEYWORD1
 
 
 #######################################
@@ -52,6 +53,7 @@ startHttp	KEYWORD2
 addStaticRoutes	KEYWORD2
 addDynamicRoutes	KEYWORD2
 activateOTA	KEYWORD2
+ota_loop	KEYWORD2
 
 
 ######################################

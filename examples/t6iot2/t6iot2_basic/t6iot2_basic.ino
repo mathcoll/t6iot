@@ -207,7 +207,7 @@ void readSample() {
     int status = t6client.createDatapoint(payload);
     Serial.println("t6 > Result status " + String(status));
     t6client.unlockSleep();
-    if (!T6_FEAT_HTTP && !T6_FEAT_MDNS && !T6_FEAT_SSDP && !T6_FEAT_WEBSOCKETS) {
+    if (!T6_FEAT_HTTP && !T6_FEAT_MDNS && !T6_FEAT_SSDP && !T6_FEAT_WEBSOCKETS && !T6_FEAT_OTA) {
       sleepTask = t6client.scheduleFixedRate(0, goToSleep, TIME_SECONDS);
     }
   }

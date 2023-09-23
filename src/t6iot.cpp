@@ -10,6 +10,8 @@
 // Not valid after:  2023-10-09T05:45:42
 // openssl s_client -connect api.internetcollaboratif.info:443 -prexit -showcerts -state -status -tlsextdebug -verify 10
 
+String VERSION = "2.0.5";
+
 //const char *fingerprint = "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
 const char *fingerprint = "8927 a6ab ff80 1a22 9bb1 41d6 c990 5cde 1294 df84";
 const char* root_ca PROGMEM = R"EOF(
@@ -46,7 +48,7 @@ d0lIKO2d1xozclOzgjXPYovJJIultzkMu34qQb9Sz/yilrbCgj8=
 -----END CERTIFICATE-----
 )EOF";
 IPAddress							dns(8, 8, 8, 8); //Google dns
-String DEFAULT_useragent			= "t6iot-library/2.0.4 (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
+String DEFAULT_useragent			= "t6iot-library/"+String(VERSION)+" (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
 String DEFAULT_friendlyName 		= "t6ObjectLib";
 String DEFAULT_host					= "api.internetcollaboratif.info";
 String DEFAULT_host_ws				= "ws.internetcollaboratif.info";
@@ -60,7 +62,7 @@ int DEFAULT_localPortMDNS			= 80;
 int DEFAULT_portHTTP				= 80;
 int DEFAULT_portWEBSOCKETS			= 443;
 bool _locked						= false;
-bool _OTA_activated					= false;
+bool _OTA_started					= false;
 bool _http_started					= false;
 bool _ssdp_started					= false;
 bool _mdns_started					= false;
@@ -507,8 +509,46 @@ void t6iot::goToSleep(const long dur) {
 	}
 }
 void t6iot::activateOTA() {
-	_OTA_activated = true;
+	return activateOTA(DEFAULT_friendlyName);
+}
+void t6iot::activateOTA(String friendlyName) {
+	_OTA_started = true;
+	DEFAULT_friendlyName = friendlyName;
 	_locked = true;
-	ArduinoOTA.handle();
+	ArduinoOTA.setHostname(DEFAULT_friendlyName.c_str());
+	ArduinoOTA.onStart([]() {
+		String type;
+		if (ArduinoOTA.getCommand() == U_FLASH) {
+			type = "sketch";
+		} else {  // U_FS
+			type = "filesystem";
+		}
+
+		// NOTE: if updating FS this would be the place to unmount FS using FS.end()
+		Serial.println("t6 > Start updating " + type);
+	});
+	ArduinoOTA.onEnd([]() {
+		Serial.println("\nEnd");
+	});
+	ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+		Serial.printf("t6 > Progress: %u%%\r", (progress / (total / 100)));
+	});
+	ArduinoOTA.onError([](ota_error_t error) {
+		Serial.printf("t6 > Error[%u]: ", error);
+		if (error == OTA_AUTH_ERROR) {
+			Serial.println("Auth Failed");
+		} else if (error == OTA_BEGIN_ERROR) {
+			Serial.println("Begin Failed");
+		} else if (error == OTA_CONNECT_ERROR) {
+			Serial.println("Connect Failed");
+		} else if (error == OTA_RECEIVE_ERROR) {
+			Serial.println("Receive Failed");
+		} else if (error == OTA_END_ERROR) {
+			Serial.println("End Failed");
+		}
+	});
 	ArduinoOTA.begin();
+}
+void t6iot::ota_loop() {
+	ArduinoOTA.handle();
 }

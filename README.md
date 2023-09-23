@@ -21,4 +21,4 @@ Ths following board have been tested:
 
 
 ## Known bugs
-* ESP8266 user-agent is not customizable
+* 
