@@ -15,6 +15,8 @@
 #include <t6iot.h>
 #include "t6config.h"
 
+int OTAcurrentVersion = 1;                     // The source version of the current file that can be updated OTA
+
 t6iot t6client;                                // Create a new t6iot client
 struct sAverage {
   int32_t blockSum;
@@ -28,6 +30,7 @@ void setup() {
   pinMode(PWR_PROBE, OUTPUT);
   delay(200);
   Serial.println("t6 > BOOT Object");
+  t6client.debug(1);                          // Display additional debug information
   //t6client.lockSleep(t6Timeout);            // Prevent chip from deepsleep
   //t6client.unlockSleep();                   // Allow chip to deepsleep
   t6client.set_wifi(WIFI_SSID, WIFI_PASSWORD);// Connect to Wifi network
@@ -63,7 +66,7 @@ void setup() {
     }
   }
   if (T6_FEAT_OTA) {
-    t6client.activateOTA();                   // NOT IMPLEMENTED YET - Activating Over The Air (OTA) update procedure
+    t6client.activateOTA(object_name);        // Activating Over The Air (OTA) update procedure
   }
   if (T6_FEAT_MDNS) {
     t6client.startMdns(object_name);          // Start MDNS
@@ -71,18 +74,23 @@ void setup() {
   if (T6_FEAT_SSDP) {
     t6client.startSsdp(object_name);          // Start SSDP, suggested to start SSDP at last
   }
-                                              // Run only once
-  t6client.scheduleOnce(0, readSample, TIME_SECONDS);
-  Serial.println("t6 > readSample task as 'readTask' ; will be triggered each " + String(READINTERVAL) + "s...");
 
-                                              // Read sensor Value regularly
-  readTask = t6client.scheduleFixedRate(READINTERVAL, readSample, TIME_SECONDS);
+                                              // Run those tasks only once, and now
+  t6client.scheduleOnce(0, checkOta,   TIME_SECONDS);
+  t6client.scheduleOnce(0, readSample, TIME_SECONDS);
+
+                                              // Schedule tasks
+  if (T6_FEAT_OTA) {
+    otaTask  = t6client.scheduleFixedRate(CHECKOTAINTERVAL, checkOta,   TIME_SECONDS);
+  }
+  readTask = t6client.scheduleFixedRate(READINTERVAL,     readSample, TIME_SECONDS);
   //t6client.cancelTask(readTask);            // Stop a task from executing again if it is a repeating task
 }
 void loop() {
   if(t6client._websockets_started && T6_FEAT_WEBSOCKETS) { t6client.webSockets_loop(); }
-  if(t6client._audio_started && T6_FEAT_AUDIO) { t6client.audio_loop(); }
-  if(t6client._mdns_started && T6_FEAT_MDNS) { t6client.mdns_loop(); }
+  if(t6client._audio_started && T6_FEAT_AUDIO)           { t6client.audio_loop(); }
+  if(t6client._mdns_started && T6_FEAT_MDNS)             { t6client.mdns_loop(); }
+  if(t6client._OTA_started && T6_FEAT_OTA)               { t6client.ota_loop(); }
   t6client.runLoop();                         // t6 TaskManager
   delay(5);
   //t6client.goToSleep(SLEEP_DURATION_SEC);
@@ -103,6 +111,9 @@ int16_t getAverage(struct sAverage *ave) {
 void goToSleep() {
   t6client.goToSleep();
 }
+void checkOta() {
+  t6client.getOtaLatestVersion(object_id, OTAcurrentVersion);
+}
 void readSample() {
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
@@ -112,9 +123,8 @@ void readSample() {
   int count=1;
   Serial.println("t6 > Measuring:");
   do {
-    sensorValue = constrain( map( analogRead(PIN_PROBE), 0, 1024, 100, 0 ) , 0.0, 1024.0);
-    sensorValue = sensorValue*500/1024; // Converting unit and transforming measurement when necessary
-    Serial.print(" * Measurement ");
+    sensorValue = constrain(analogRead(PIN_PROBE), 0.0, 10000.0);
+    Serial.print("     * Measurement ");
     Serial.print(count);
     Serial.print("/");
     Serial.print(measurements);

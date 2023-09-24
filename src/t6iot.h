@@ -82,8 +82,12 @@
 			bool addDynamicRoutes();
 			void activateOTA();
 			void activateOTA(String friendlyName);
+			void deployOTA(String user_id, String object_id, String source_id);
+			void getOtaLatestVersion(String object_id, int OTAcurrentVersion);
 			void ota_loop();
+			int debug(int level);
 
+			int _DEBUG;
 			bool _http_started;
 			bool _ssdp_started;
 			bool _mdns_started;
