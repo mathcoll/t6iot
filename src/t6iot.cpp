@@ -10,7 +10,7 @@
 // Not valid after:  2023-10-09T05:45:42
 // openssl s_client -connect api.internetcollaboratif.info:443 -prexit -showcerts -state -status -tlsextdebug -verify 10
 
-String VERSION = "2.0.6";
+String VERSION = "2.0.7";
 
 const char *fingerprint = "bd31 2c2c b9c6 275c 07d5 06f7 0926 c24c c11f 86e1";
 const char* root_ca PROGMEM = R"EOF(
