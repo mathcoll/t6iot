@@ -10,8 +10,9 @@
 // Not valid after:  2023-10-09T05:45:42
 // openssl s_client -connect api.internetcollaboratif.info:443 -prexit -showcerts -state -status -tlsextdebug -verify 10
 
-//const char *fingerprint = "12 3f 14 75 f4 aa bf 13 ce e7 13 28 c8 d2 13 56 0c 9b 5f 34";
-const char *fingerprint = "8927 a6ab ff80 1a22 9bb1 41d6 c990 5cde 1294 df84";
+String VERSION = "2.0.6";
+
+const char *fingerprint = "bd31 2c2c b9c6 275c 07d5 06f7 0926 c24c c11f 86e1";
 const char* root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIFYjCCBEqgAwIBAgIQd70NbNs2+RrqIQ/E8FjTDTANBgkqhkiG9w0BAQsFADBX
@@ -46,7 +47,7 @@ d0lIKO2d1xozclOzgjXPYovJJIultzkMu34qQb9Sz/yilrbCgj8=
 -----END CERTIFICATE-----
 )EOF";
 IPAddress							dns(8, 8, 8, 8); //Google dns
-String DEFAULT_useragent			= "t6iot-library/2.0.4 (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
+String DEFAULT_useragent			= "t6iot-library/"+String(VERSION)+" (Arduino; rv:2.2.0; +https://www.internetcollaboratif.info)";
 String DEFAULT_friendlyName 		= "t6ObjectLib";
 String DEFAULT_host					= "api.internetcollaboratif.info";
 String DEFAULT_host_ws				= "ws.internetcollaboratif.info";
@@ -60,12 +61,13 @@ int DEFAULT_localPortMDNS			= 80;
 int DEFAULT_portHTTP				= 80;
 int DEFAULT_portWEBSOCKETS			= 443;
 bool _locked						= false;
-bool _OTA_activated					= false;
+bool _OTA_started					= false;
 bool _http_started					= false;
 bool _ssdp_started					= false;
 bool _mdns_started					= false;
 bool _audio_started					= false;
 bool _websockets_started			= false;
+int _DEBUG							= 0;
 
 WiFiClientSecure					wifiClient;
 t6iot_Ssdp							t6iotSsdp;
@@ -77,32 +79,46 @@ t6iot_Websockets					t6iotWebsockets;
 using namespace std;
 
 t6iot::t6iot(): TaskManager() {
-	Serial.println(F("t6 > Constructor"));
+	if (_DEBUG > 0) {
+		Serial.println(F("t6 > Constructor"));
+	}
 
 }
 void t6iot::set_useragent(String useragent) {
 	if ( !useragent.isEmpty() ) {
-		Serial.println("t6 > Using CUSTOM UA");
+		if (_DEBUG > 0) {
+			Serial.println("t6 > Using CUSTOM UA");
+		}
 		_userAgent = useragent;
 	} else {
-		Serial.println("t6 > Using DEFAULT UA");
+		if (_DEBUG > 0) {
+			Serial.println("t6 > Using DEFAULT UA");
+		}
 		_userAgent = DEFAULT_useragent;
 	}
 }
 void t6iot::set_server() {
-	Serial.println("t6 > Using DEFAULT host, port & UA");
+	if (_DEBUG > 0) {
+		Serial.println("t6 > Using DEFAULT host, port & UA");
+	}
 	set_server(DEFAULT_host, DEFAULT_port, DEFAULT_useragent);
 }
 void t6iot::set_server(String host) {
-	Serial.println("t6 > Using DEFAULT port & UA");
+	if (_DEBUG > 0) {
+		Serial.println("t6 > Using DEFAULT port & UA");
+	}
 	set_server(host, DEFAULT_port, DEFAULT_useragent);
 }
 void t6iot::set_server(String host, int port) {
-	Serial.println("t6 > Using DEFAULT UA");
+	if (_DEBUG > 0) {
+		Serial.println("t6 > Using DEFAULT UA");
+	}
 	set_server(host, port, DEFAULT_useragent);
 }
 void t6iot::set_server(String host, int port, String useragent) {
-	Serial.println("t6 > Setting host, port & UA");
+	if (_DEBUG > 0) {
+		Serial.println("t6 > Setting host, port & UA");
+	}
 	if ( !host.isEmpty() ) {
 		_httpHost = host;
 	} else {
@@ -123,75 +139,99 @@ void t6iot::set_server(String host, int port, String useragent) {
 	} else {
 		_httpProtocol = "http://";
 	}
-	Serial.print("t6 > Using protocol: ");
-	Serial.println(_httpProtocol);
+	if (_DEBUG > 0) {
+		Serial.print("t6 > Using protocol: ");
+		Serial.println(_httpProtocol);
+	}
 }
 void t6iot::set_wifi(const String &wifi_ssid, const String &wifi_password) {
 	_ssid = wifi_ssid;
 	_password = wifi_password;
 	Serial.println();
-	Serial.print(F("t6 > Connecting to Wifi SSID: "));
-	Serial.println(_ssid);
+	if(_DEBUG) {
+		Serial.print(F("t6 > Connecting to Wifi SSID: "));
+		Serial.println(_ssid);
+	}
 	WiFi.mode(WIFI_STA);
 	WiFi.begin(_ssid, _password);
 //	WiFi.setSleep(false);
 	#ifdef ESP32
 		// ESP32 require a dns ?
 		WiFi.config(WiFi.localIP(), WiFi.gatewayIP(), WiFi.subnetMask(), dns);
-		Serial.print("t6 > Wifi is using DNS: ");
-		Serial.println(WiFi.dnsIP());
+		if(_DEBUG) {
+			Serial.print(F("t6 > Wifi is using DNS: ")); Serial.println(WiFi.dnsIP());
+		}
 	#endif
 //	WiFi.waitForConnectResult();
 	if (WiFi.waitForConnectResult() != WL_CONNECTED) {
-		Serial.println(F("t6 > WiFi Connect Failed! Rebooting..."));
-		delay(1000);
+		if(_DEBUG) {
+			Serial.println(F("t6 > WiFi Connect Failed! Rebooting..."));
+			delay(1000);
+		}
 		Serial.print(F("."));
 	} else {
-		Serial.println(F("t6 > WiFi Connected..."));
+		if(_DEBUG) {
+			Serial.println(F("t6 > WiFi Connected..."));
+			Serial.print(F("t6 > WiFi localIP: ")); Serial.println(WiFi.localIP());
+		}
 		delay(1000);
 	}
 	#ifdef ESP8266
-		Serial.print(F("t6 > getResetReason: ")); Serial.println(ESP.getResetReason());
-		Serial.print(F("t6 > getHeapFragmentation: ")); Serial.println(ESP.getHeapFragmentation());
-		Serial.print(F("t6 > getMaxFreeBlockSize: ")); Serial.println(ESP.getMaxFreeBlockSize());
-		Serial.print(F("t6 > getChipId: ")); Serial.println(ESP.getChipId());
-		Serial.print(F("t6 > getCoreVersion: ")); Serial.println(ESP.getCoreVersion());
-		Serial.print(F("t6 > getFlashChipId: ")); Serial.println(ESP.getFlashChipId());
-		Serial.print(F("t6 > getFlashChipRealSize: ")); Serial.println(ESP.getFlashChipRealSize());
-		Serial.print(F("t6 > checkFlashCRC: ")); Serial.println(ESP.checkFlashCRC());
-		Serial.print(F("t6 > getVcc: ")); Serial.println(ESP.getVcc());
+		if(_DEBUG) {
+			Serial.print(F("t6 > getResetReason: ")); Serial.println(ESP.getResetReason());
+			Serial.print(F("t6 > getHeapFragmentation: ")); Serial.println(ESP.getHeapFragmentation());
+			Serial.print(F("t6 > getMaxFreeBlockSize: ")); Serial.println(ESP.getMaxFreeBlockSize());
+			Serial.print(F("t6 > getChipId: ")); Serial.println(ESP.getChipId());
+			Serial.print(F("t6 > getCoreVersion: ")); Serial.println(ESP.getCoreVersion());
+			Serial.print(F("t6 > getFlashChipId: ")); Serial.println(ESP.getFlashChipId());
+			Serial.print(F("t6 > getFlashChipRealSize: ")); Serial.println(ESP.getFlashChipRealSize());
+			Serial.print(F("t6 > checkFlashCRC: ")); Serial.println(ESP.checkFlashCRC());
+			Serial.print(F("t6 > getVcc: ")); Serial.println(ESP.getVcc());
+		}
 	#elif ESP32
-		Serial.print(F("t6 > getFreeHeap: ")); Serial.println(ESP.getFreeHeap());
-		Serial.print(F("t6 > getChipModel: ")); Serial.println(ESP.getChipModel());
+		if(_DEBUG) {
+			Serial.print(F("t6 > getFreeHeap: ")); Serial.println(ESP.getFreeHeap());
+			Serial.print(F("t6 > getChipModel: ")); Serial.println(ESP.getChipModel());
+		}
 	#endif
-	Serial.print(F("t6 > getFlashChipMode: ")); Serial.println(ESP.getFlashChipMode());
-	Serial.print(F("t6 > getSdkVersion: ")); Serial.println(ESP.getSdkVersion());
-	Serial.print(F("t6 > getCpuFreqMHz: ")); Serial.println(ESP.getCpuFreqMHz());
-	Serial.print(F("t6 > getSketchSize: ")); Serial.println(ESP.getSketchSize());
-	Serial.print(F("t6 > getFreeSketchSpace: ")); Serial.println(ESP.getFreeSketchSpace());
-	Serial.print(F("t6 > getSketchMD5: ")); Serial.println(ESP.getSketchMD5());
-	Serial.print(F("t6 > getFlashChipSize: ")); Serial.println(ESP.getFlashChipSize());
-	Serial.print(F("t6 > getFlashChipSpeed: ")); Serial.println(ESP.getFlashChipSpeed());
+	if(_DEBUG) {
+		Serial.print(F("t6 > getFlashChipMode: ")); Serial.println(ESP.getFlashChipMode());
+		Serial.print(F("t6 > getSdkVersion: ")); Serial.println(ESP.getSdkVersion());
+		Serial.print(F("t6 > getCpuFreqMHz: ")); Serial.println(ESP.getCpuFreqMHz());
+		Serial.print(F("t6 > getSketchSize: ")); Serial.println(ESP.getSketchSize());
+		Serial.print(F("t6 > getFreeSketchSpace: ")); Serial.println(ESP.getFreeSketchSpace());
+		Serial.print(F("t6 > getSketchMD5: ")); Serial.println(ESP.getSketchMD5());
+		Serial.print(F("t6 > getFlashChipSize: ")); Serial.println(ESP.getFlashChipSize());
+		Serial.print(F("t6 > getFlashChipSpeed: ")); Serial.println(ESP.getFlashChipSpeed());
+	}
 }
 void t6iot::set_endpoint(const String &endpoint) {
 	_endpoint = endpoint;
 }
 void t6iot::set_key(const char *key) {
 	_key = key;
-	Serial.println(F("t6 > set_key is DONE"));
+	if (_DEBUG > 0) {
+		Serial.println(F("t6 > set_key is DONE"));
+	}
 }
 void t6iot::set_secret(const char *secret) {
 	_secret = secret;
-	Serial.println(F("t6 > set_secret is DONE"));
+	if (_DEBUG > 0) {
+		Serial.println(F("t6 > set_secret is DONE"));
+	}
 }
 void t6iot::set_object_id(String object_id) {
 	_object_id = object_id;
 	_userAgent = String(_userAgent + " +oid:" + _object_id);
-	Serial.print(F("t6 > Using User-Agent: ")); Serial.println(_userAgent);
+	if (_DEBUG > 0) {
+		Serial.print(F("t6 > Using User-Agent: ")); Serial.println(_userAgent);
+	}
 }
 void t6iot::set_object_secret(String secret) {
 	_object_secret = secret;
-	Serial.println(F("t6 > Using secret from Object to encrypt payload"));
+	if (_DEBUG > 0) {
+		Serial.println(F("t6 > Using secret from Object to encrypt payload"));
+	}
 }
 int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 	t6iot::set_endpoint("/v2.0.1/data/"); // Set the t6iot API endpoint.
@@ -200,14 +240,20 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 	if (false) { // TODO
 		payloadStr = _getSignedPayload(payloadStr, _object_id, _object_secret); // TODO
 	}
-	Serial.println(F("t6 > Adding datapoint(s) to: ")); Serial.print(" * "); Serial.print(_httpProtocol); Serial.print(_httpHost); Serial.print(":"); Serial.print(_httpPort); Serial.println(_endpoint);
-	Serial.println(F("t6 > User-Agent: ")); Serial.print(" * "); Serial.println(_userAgent);
-	Serial.println(F("t6 > payload: ")); Serial.print(" * "); Serial.println(payloadStr);
+	if (_DEBUG > 0) {
+		Serial.println(F("t6 > Adding datapoint(s) to: ")); Serial.print(F("     * ")); Serial.print(_httpProtocol); Serial.print(_httpHost); Serial.print(":"); Serial.print(_httpPort); Serial.println(_endpoint);
+		Serial.println(F("t6 > User-Agent: ")); Serial.print(F("     * ")); Serial.println(_userAgent);
+		Serial.println(F("t6 > payload: ")); Serial.print(F("     * ")); Serial.println(payloadStr);
+	}
 
 	if (_httpPort == 443) {
-		Serial.printf("t6 > HTTPS / Using fingerprint: %s\n", fingerprint);
+		if (_DEBUG > 0) {
+			Serial.printf("t6 > HTTPS / Using fingerprint: %s\n", fingerprint);
+		}
 		#if defined(ESP8266)
-			Serial.println(F("t6 > ESP8266"));
+			if (_DEBUG > 0) {
+				Serial.println(F("t6 > ESP8266"));
+			}
 			HTTPClient https;
 			BearSSL::WiFiClientSecure newSecure;
 			newSecure.setFingerprint(fingerprint);
@@ -226,26 +272,34 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			int httpCode = https.POST(payloadStr);
 			if (httpCode == 200 && payloadStr != "") {
 				String payload = https.getString();
-				Serial.print(F("t6 > payload: "));
-				Serial.println(payload);
-				Serial.println("<");
+				if (_DEBUG > 0) {
+					Serial.print(F("t6 > payload: "));
+					Serial.println(payload);
+					Serial.println("<");
+				}
 				return httpCode;
 			} else {
-				Serial.print(F("t6 > httpCode failure httpCode: "));
-				Serial.println(httpCode);
-				String payload = https.getString();
-				Serial.println(payload);
-				Serial.println("<");
+				if (_DEBUG > 0) {
+					Serial.print(F("t6 > httpCode failure httpCode: "));
+					Serial.println(httpCode);
+					String payload = https.getString();
+					Serial.println(payload);
+					Serial.println("<");
+				}
 				return httpCode;
 			}
 		#elif ESP32
-			Serial.println(F("t6 > ESP32"));
+			if (_DEBUG > 0) {
+				Serial.println(F("t6 > ESP32"));
+			}
 			wifiClient.setCACert(root_ca);
 			int conn = wifiClient.connect(String(_httpHost).c_str(), _httpPort);
 			if (conn > 0) {
-				Serial.print(F("t6 > https.begin conn success: "));
-				Serial.println(String(_httpHost).c_str());
-				Serial.println(conn);
+				if (_DEBUG > 0) {
+					Serial.print(F("t6 > https.begin conn success: "));
+					Serial.println(String(_httpHost).c_str());
+					Serial.println(conn);
+				}
 				wifiClient.println("POST " + String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ) + " HTTP/1.0");
 				wifiClient.print("User-Agent:"); wifiClient.println(_userAgent);
 				wifiClient.print("Host:"); wifiClient.println(_httpHost);
@@ -274,23 +328,30 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 				wifiClient.stop();
 				return conn;
 			} else {
-				Serial.print(F("t6 > https.begin conn failure: "));
-				Serial.println(String(_httpHost).c_str());
-				Serial.println(conn);
+				if (_DEBUG > 0) {
+					Serial.print(F("t6 > https.begin conn failure: "));
+					Serial.println(String(_httpHost).c_str());
+					Serial.println(conn);
+				}
 				return conn;
 			}
 		#endif
 	} else {
-		Serial.println(F("t6 > HTTP / Not using fingerprint / setInsecure"));
+		if (_DEBUG > 0) {
+			Serial.println(F("t6 > HTTP / Not using fingerprint / setInsecure"));
+		}
 		#if defined(ESP8266)
-			Serial.println(F("t6 > ESP8266"));
+			if (_DEBUG > 0) {
+				Serial.println(F("t6 > ESP8266"));
+			}
 			WiFiClient wifi;
 			HttpClient client = HttpClient(wifi, _httpHost, _httpPort);
 
 			HTTPClient http;
 			int checkBegin = http.begin(wifi, _httpHost, _httpPort, _endpoint);
-			Serial.print(F("t6 > checkBegin: "));
-			Serial.println(checkBegin);
+			if (_DEBUG > 0) {
+				Serial.print(F("t6 > checkBegin: ")); Serial.println(checkBegin);
+			}
 //			http.setUserAgent(_userAgent);
 			http.addHeader("User-Agent", String(_userAgent));
 			http.addHeader("Accept", "application/json");
@@ -303,20 +364,26 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			int httpCode = http.POST(payloadStr);
 			if (httpCode == 200 && payloadStr != "") {
 				String payload = http.getString();
-				Serial.print(F("t6 > payload: "));
-				Serial.println(payload);
-				Serial.println("<");
+				if (_DEBUG > 0) {
+					Serial.print(F("t6 > payload: "));
+					Serial.println(payload);
+					Serial.println("<");
+				}
 				return httpCode;
 			} else {
-				Serial.print(F("t6 > httpCode failure httpCode: "));
-				Serial.println(httpCode);
-				String payload = http.getString();
-				Serial.println(payload);
-				Serial.println("<");
+				if (_DEBUG > 0) {
+					Serial.print(F("t6 > httpCode failure httpCode: "));
+					Serial.println(httpCode);
+					String payload = http.getString();
+					Serial.println(payload);
+					Serial.println("<");
+				}
 				return httpCode;
 			}
 		#elif ESP32
-			Serial.println(F("t6 > ESP32"));
+			if (_DEBUG > 0) {
+				Serial.println(F("t6 > ESP32"));
+			}
 			WiFiClient client;
 			HTTPClient http;
 			http.begin(client, String(_httpProtocol) + String(_httpHost).c_str() + ":" + String(_httpPort).c_str() + String( _endpoint ));
@@ -332,17 +399,21 @@ int t6iot::createDatapoint(DynamicJsonDocument &payload) {
 			int httpCode = http.POST(payloadStr); //Body
 			if (httpCode > 0) {
 				const String& payloadRes = http.getString();
-				Serial.print("t6 > OK Response: ");
-				Serial.println(httpCode);
-				Serial.println(payloadRes);
+				if (_DEBUG > 0) {
+					Serial.print("t6 > OK Response: ");
+					Serial.println(httpCode);
+					Serial.println(payloadRes);
+				}
 				return httpCode;
 			} else {
 				const String& payloadRes = http.getString();
-				Serial.print(F("t6 > Error Response: "));
-				Serial.println(httpCode);
-				Serial.print(F("t6 > payload: "));
-				Serial.println(payloadRes);
-				Serial.println(F("<"));
+				if (_DEBUG > 0) {
+					Serial.print(F("t6 > Error Response: "));
+					Serial.println(httpCode);
+					Serial.print(F("t6 > payload: "));
+					Serial.println(payloadRes);
+					Serial.println(F("<"));
+				}
 				return httpCode;
 			}
 			http.end();
@@ -358,9 +429,11 @@ String t6iot::_getSignedPayload(String &payload, String &object_id, String &obje
 	String signedJson;
 	String payloadString;
 	String signedPayloadAsString;
-	Serial.println(payload);
-	Serial.println(object_id);
-	Serial.println(object_secret);
+	if (_DEBUG > 0) {
+		Serial.println(payload);
+		Serial.println(object_id);
+		Serial.println(object_secret);
+	}
 	/*
 	payload.printTo(payloadString);
 	signedJson = jwt.encodeJWT( payloadString );
@@ -498,7 +571,9 @@ void t6iot::goToSleep() {
 }
 void t6iot::goToSleep(const long dur) {
 	if (!_locked) {
-		Serial.println("t6 > Sleeping ; will wake up in " + String(dur) + "s...");
+		if (_DEBUG > 0) {
+			Serial.println("t6 > Sleeping ; will wake up in " + String(dur) + "s...");
+		}
 		#if defined(ESP8266)
 			ESP.deepSleep(dur * 1000000, WAKE_RF_DEFAULT);
 		#elif ESP32
@@ -507,8 +582,200 @@ void t6iot::goToSleep(const long dur) {
 	}
 }
 void t6iot::activateOTA() {
-	_OTA_activated = true;
+	return activateOTA(DEFAULT_friendlyName);
+}
+void t6iot::activateOTA(String friendlyName) {
+	_OTA_started = true;
 	_locked = true;
-	ArduinoOTA.handle();
+	DEFAULT_friendlyName = friendlyName;
+	ArduinoOTA.setHostname(DEFAULT_friendlyName.c_str());
+	//ArduinoOTA.setPort(8266);
+	//ArduinoOTA.setPassword("admin");
+	//MD5(admin) = 21232f297a57a5a743894a0e4a801fc3
+	//ArduinoOTA.setPasswordHash("21232f297a57a5a743894a0e4a801fc3");
+	ArduinoOTA.onStart([]() {
+		String type;
+		if (ArduinoOTA.getCommand() == U_FLASH) {
+			type = "sketch";
+		} else {  // U_FS
+			type = "filesystem";
+		}
+		// NOTE: if updating FS this would be the place to unmount FS using FS.end()
+		Serial.println("t6 > Start updating " + type);
+	});
+	ArduinoOTA.onEnd([]() {
+		Serial.println("\nEnd");
+	});
+	ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+		Serial.printf("t6 > Progress: %u%%\r\n", (progress / (total / 100)));
+	});
+	ArduinoOTA.onError([](ota_error_t error) {
+		Serial.printf("t6 > Error[%u]: ", error);
+		if (error == OTA_AUTH_ERROR) {
+			Serial.println("Auth Failed");
+		} else if (error == OTA_BEGIN_ERROR) {
+			Serial.println("Begin Failed");
+		} else if (error == OTA_CONNECT_ERROR) {
+			Serial.println("Connect Failed");
+		} else if (error == OTA_RECEIVE_ERROR) {
+			Serial.println("Receive Failed");
+		} else if (error == OTA_END_ERROR) {
+			Serial.println("End Failed");
+		}
+	});
 	ArduinoOTA.begin();
+}
+void t6iot::deployOTA(String user_id, String object_id, String source_id) {
+	t6iot::set_endpoint("/v2.0.1/ota/"+String(user_id)+"/deploy/"+String(object_id)); // Set the t6iot API endpoint.
+	if (_DEBUG > 0) {
+		Serial.println(F("t6 > Deploying t6 OTA Latest Version:"));
+		Serial.print(F("     * Object: ")); Serial.println(object_id);
+		Serial.print(F("     * User: ")); Serial.println(user_id);
+		Serial.print(F("     * ")); Serial.print(_httpProtocol); Serial.print(_httpHost); Serial.print(":"); Serial.print(_httpPort); Serial.println(_endpoint);
+		Serial.println(F("t6 > User-Agent: ")); Serial.print(F("     * ")); Serial.println(_userAgent);
+	}
+	if (_httpPort == 443) {
+		if (_DEBUG > 0) {
+			Serial.printf("t6 > HTTPS / Using fingerprint: %s\n", fingerprint);
+		}
+		#if defined(ESP8266)
+			if (_DEBUG > 0) {
+				Serial.println(F("t6 > ESP8266"));
+			}
+		#elif ESP32
+
+		#endif
+	} else {
+		if (_DEBUG > 0) {
+			Serial.println(F("t6 > HTTP / Not using fingerprint / setInsecure"));
+		}
+		#if defined(ESP8266)
+			if (_DEBUG > 0) {
+				Serial.println(F("t6 > ESP8266"));
+			}
+
+			WiFiClient wifi;
+			HttpClient client = HttpClient(wifi, _httpHost, _httpPort);
+
+			HTTPClient http;
+			int checkBegin = http.begin(wifi, _httpHost, _httpPort, _endpoint);
+			if (_DEBUG > 0) {
+				Serial.print(F("t6 > checkBegin: ")); Serial.println(checkBegin);
+			}
+//			http.setUserAgent(_userAgent);
+			http.addHeader("User-Agent", String(_userAgent));
+			http.addHeader("Accept", "application/json");
+			http.addHeader("Content-Type", "application/json");
+			http.addHeader("Cache-Control", "no-cache");
+			http.addHeader("Accept-Encoding", "gzip, deflate, br");
+			http.addHeader("x-api-key", _key);
+			http.addHeader("x-api-secret", _secret);
+
+			int httpCode = http.POST("");
+			if (httpCode == 201) {
+				String payload = http.getString();
+				if (_DEBUG > 0) {
+					Serial.print(F("t6 > payload: "));
+					Serial.println(payload);
+					Serial.println("<");
+				}
+			} else {
+				if (_DEBUG > 0) {
+					Serial.print(F("t6 > httpCode failure httpCode: "));
+					Serial.println(httpCode);
+					String payload = http.getString();
+					Serial.println(payload);
+					Serial.println("<");
+				}
+			}
+		#elif ESP32
+
+		#endif
+	}
+}
+void t6iot::getOtaLatestVersion(String object_id, int OTAcurrentVersion) {
+	t6iot::set_endpoint("/v2.0.1/objects/"+String(object_id)+"/latest-version"); // Set the t6iot API endpoint.
+	if (_DEBUG > 0) {
+		Serial.println(F("t6 > Getting t6 OTA Latest Version for Object: "));
+		Serial.print(F("     * ")); Serial.println(object_id);
+		Serial.print(F("     * ")); Serial.print(_httpProtocol); Serial.print(_httpHost); Serial.print(":"); Serial.print(_httpPort); Serial.println(_endpoint);
+		Serial.println(F("t6 > User-Agent: ")); Serial.print(F("     * ")); Serial.println(_userAgent);
+	}
+
+	if (_httpPort == 443) {
+		Serial.printf("t6 > HTTPS / Using fingerprint: %s\n", fingerprint);
+		#if defined(ESP8266)
+
+		#elif ESP32
+
+		#endif
+	} else {
+		Serial.println(F("t6 > HTTP / Not using fingerprint / setInsecure"));
+		#if defined(ESP8266)
+			Serial.println(F("t6 > ESP8266"));
+			WiFiClient wifi;
+			HttpClient client = HttpClient(wifi, _httpHost, _httpPort);
+
+			HTTPClient http;
+			int checkBegin = http.begin(wifi, _httpHost, _httpPort, _endpoint);
+			Serial.print(F("t6 > checkBegin: "));
+			Serial.println(checkBegin);
+	//			http.setUserAgent(_userAgent);
+			http.addHeader("User-Agent", String(_userAgent));
+			http.addHeader("Accept", "application/json");
+			http.addHeader("Content-Type", "application/json");
+			http.addHeader("Cache-Control", "no-cache");
+			http.addHeader("Accept-Encoding", "gzip, deflate, br");
+			http.addHeader("x-api-key", _key);
+			http.addHeader("x-api-secret", _secret);
+
+			int httpCode = http.GET();
+			if (httpCode == 200) {
+				String payload = http.getString();
+				Serial.print(F("t6 > payload: "));
+				Serial.println(payload);
+				Serial.println("<");
+
+				//DynamicJsonDocument ota(64);
+				StaticJsonDocument<2048> ota;
+				DeserializationError error = deserializeJson(ota, payload);
+				if (!error) {
+					Serial.print(F("t6 > objectExpectedVersion: ")); Serial.println(ota["objectExpectedVersion"].as<int>());
+					Serial.print(F("t6 > sourceLatestVersion: ")); Serial.println(ota["sourceLatestVersion"].as<int>());
+					Serial.print(F("t6 > source_id: ")); Serial.println(ota["source_id"].as<String>());
+					Serial.print(F("t6 > user_id: ")); Serial.println(ota["user_id"].as<String>());
+					if( ota["objectExpectedVersion"].as<int>() != OTAcurrentVersion ) {
+						//if ( newVersionStatus === "200 Ready to deploy" ) { // Commented as we consider the Build is already OK on t6 server
+						if (_DEBUG > 0) {
+							Serial.println(F("t6 > OTA new version is ready!"));
+							Serial.print(F("     * OTAcurrentVersion: ")); Serial.println(OTAcurrentVersion);
+							Serial.print(F("     * objectExpectedVersion: ")); Serial.println(ota["objectExpectedVersion"].as<int>());
+							deployOTA(ota["user_id"].as<String>(), object_id, ota["source_id"].as<String>());
+						}
+					} else {
+						Serial.println(F("t6 > OTA latest version already installed!"));
+					}
+				} else {
+					Serial.print(F("t6 > deserializeJson() failed: "));
+					Serial.println(error.f_str());
+				}
+			} else {
+				Serial.print(F("t6 > httpCode failure httpCode: "));
+				Serial.println(httpCode);
+				String payload = http.getString();
+				Serial.println(payload);
+				Serial.println("<");
+			}
+			http.end();
+		#elif ESP32
+
+		#endif
+	}
+}
+void t6iot::ota_loop() {
+	ArduinoOTA.handle();
+}
+int t6iot::debug(int level) {
+	_DEBUG = level;
+	return _DEBUG;
 }

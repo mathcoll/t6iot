@@ -81,10 +81,18 @@
 			bool addStaticRoutes();
 			bool addDynamicRoutes();
 			void activateOTA();
+			void activateOTA(String friendlyName);
+			void deployOTA(String user_id, String object_id, String source_id);
+			void getOtaLatestVersion(String object_id, int OTAcurrentVersion);
+			void ota_loop();
+			int debug(int level);
+
+			int _DEBUG;
 			bool _http_started;
 			bool _ssdp_started;
 			bool _mdns_started;
 			bool _audio_started;
+			bool _OTA_started;
 			bool _websockets_started;
 
 		private:
@@ -99,7 +107,6 @@
 			String _userAgent;
 			int _httpPort;
 			bool _locked;
-			bool _OTA_activated;
 			const char* _key;
 			const char* _secret;
 			long _sleepDuration;

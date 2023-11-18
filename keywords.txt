@@ -12,17 +12,19 @@ t6iot_Mdns	KEYWORD1
 t6iot_Http	KEYWORD1
 t6iot_Audio	KEYWORD1
 t6iot_Websockets	KEYWORD1
-bool _http_started	KEYWORD1
-bool _ssdp_started	KEYWORD1
-bool _mdns_started	KEYWORD1
-bool _audio_started	KEYWORD1
-bool _websockets_started	KEYWORD1
+_http_started	KEYWORD1
+_ssdp_started	KEYWORD1
+_mdns_started	KEYWORD1
+_audio_started	KEYWORD1
+_OTA_started	KEYWORD1
+_websockets_started	KEYWORD1
 
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 t6iot	KEYWORD2
+debug	KEYWORD2
 set_server	KEYWORD2
 set_useragent	KEYWORD2
 set_key	KEYWORD2
@@ -37,6 +39,7 @@ lockSleep	KEYWORD2
 setSleepDuration	KEYWORD2
 unlockSleep	KEYWORD2
 goToSleep	KEYWORD2
+checkOta	KEYWORD2
 startSsdp	KEYWORD2
 startMdns	KEYWORD2
 mdns_loop	KEYWORD2
@@ -52,6 +55,7 @@ startHttp	KEYWORD2
 addStaticRoutes	KEYWORD2
 addDynamicRoutes	KEYWORD2
 activateOTA	KEYWORD2
+ota_loop	KEYWORD2
 
 
 ######################################
@@ -63,6 +67,7 @@ SLEEP_DURATION_SEC	LITERAL1
 PWR_PROBE	LITERAL1
 PIN_PROBE	LITERAL1
 READINTERVAL	LITERAL1
+CHECKOTAINTERVAL	LITERAL1
 WAKE_RF_DEFAULT	LITERAL1
 T6_USE_CUSTOM_SERVER	LITERAL1
 T6_FEAT_HTTP	LITERAL1
@@ -73,6 +78,7 @@ T6_FEAT_WEBSOCKETS	LITERAL1
 T6_FEAT_OTA	LITERAL1
 WIFI_SSID	LITERAL1
 WIFI_PASSWORD	LITERAL1
+_DEBUG	LITERAL1
 host	LITERAL1
 useragent	LITERAL1
 portHttp	LITERAL1
@@ -80,6 +86,7 @@ portWs	LITERAL1
 object_name	LITERAL1
 object_id	LITERAL1
 object_secret	LITERAL1
+OTAcurrentVersion	LITERAL1
 flow_id	LITERAL1
 api_key	LITERAL1
 api_secret	LITERAL1
