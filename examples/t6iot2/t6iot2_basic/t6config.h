@@ -1,5 +1,5 @@
-#define WIFI_SSID             ""                   // WIFI SSID & Password
-#define WIFI_PASSWORD         ""
+#define WIFI_SSID             "couleurs"        // WIFI SSID & Password
+#define WIFI_PASSWORD         "u14nP5X>PWS9fZuw1}CR:~v8>~:uN)m={ozKSKoA7e_,oMF^m-1F?xiUwB&hkQ0"
 #define T6_FEAT_HTTP          false                // Feature Http activation
 #define T6_FEAT_MDNS          false                // Feature Mdns activation
 #define T6_FEAT_SSDP          false                // Feature Ssdp activation
@@ -13,16 +13,17 @@ int portHttp                  = 3000;              // .. and using a custom port
 int portWs                    = 4000;              // .. and using a custom port for t6iot websockets
 
 String object_name            = "customName";      // The name of the Object in the Mdns Local Area Network
-String object_id              = "";                // t6 Object Id, this is used on the useragent as well
+String object_id              = "object_id_uuidv4";                // t6 Object Id, this is used on the useragent as well
 String object_secret          = "";                // optional t6 Object secret (32bits hexa) when using payload encryption
-String flow_id                = "";                // t6 Flow Id that will contains and store the measurements
-const char* api_key           = "";                // t6 api Key
-const char* api_secret        = "";                // t6 api Secret
+String flow_id                = "TEST";                // t6 Flow Id that will contains and store the measurements
+const char* api_key           = "kBwXuypmcdMZiEYjkXkwwZFMGrqsvZUyvgitjajeANdyRicLDCzcnXaJVGXCgSBK";             // t6 api Key
+const char* api_secret        = "ewTqBYZkgSGywWWODywlfqZzMrlMgNOGDYNHgdvYnMIHjKWaCPkNjvHGliCfCTWc";             // t6 api Secret
 
 float sensorValue             = -1.0;              // This variable will store the measured value read by the sensor
 const int PIN_PROBE           = 0;                 // Analog data pin: 0
 const int PWR_PROBE           = 13;                // VCC connected to sensor, this will be set as OUTPUT Power
 const int measurements        = 10;                // Number of measurements to make sure measurement is accurate
 const long READINTERVAL       = 30 * 60;           // Interval between each READ in seconds // 30 minutes
-uint8_t                       readTask, sleepTask; // All tasks that can be cancelled
+const long CHECKOTAINTERVAL   = 60 * 60;        // Interval between each OTA CHECK in seconds // 60 minutes
+uint8_t                       readTask, sleepTask, otaTask; // All tasks that can be cancelled
 const long SLEEP_DURATION_SEC = 15 * 60;    	   // Sleep duration. // 1800=30 minutes / 3600=60 minutes / 2700=45min
