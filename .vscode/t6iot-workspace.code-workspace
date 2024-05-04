@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"postman.telemetry.enabled": false
+	},
+	"launch": {
+		"configurations": [
+		
+			{
+				"type": "chrome",
+				"name": "http://localhost:3000/",
+				"request": "launch",
+				"url": "http://localhost:3000/"
+			}
+		]
+	}
+}
