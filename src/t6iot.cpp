@@ -9,9 +9,9 @@
 // nmap --script ssl-cert.nse -p 443 api.internetcollaboratif.info | grep SHA-1
 // openssl s_client -connect api.internetcollaboratif.info:443 -prexit -showcerts -state -status -tlsextdebug -verify 10
 
-String VERSION = "2.0.12";
+String VERSION = "2.0.13";
 
-const char *fingerprint = "8b3f 6d72 3820 a261 e142 8d11 40ef 3ec2 68d1 ec52";
+const char *fingerprint = "3ce8 f4f3 37de 8117 b793 61ef f34a eedb 5a8c ffd0";
 const char* root_ca PROGMEM = R"EOF(
 -----BEGIN CERTIFICATE-----
 MIIDejCCAmKgAwIBAgIQf+UwvzMTQ77dghYQST2KGzANBgkqhkiG9w0BAQsFADBX
